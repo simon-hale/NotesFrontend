@@ -1,19 +1,27 @@
 <template>
     <ContentField>
         <div class="text-center title">
-            404 Not Found
+            {{ t('notFound.title') }}
         </div>
     </ContentField>
 </template>
 
 <script>
 import ContentField from '@/components/ContentField.vue';
+import { useI18n } from 'vue-i18n';
 
 export default {
-    name: 'AccountManagement',
+    name: 'NotFound',
     components: {
         ContentField,
     },
+    setup() {
+        const { t } = useI18n();
+
+        return {
+            t,
+        }
+    }
 }
 </script>
 

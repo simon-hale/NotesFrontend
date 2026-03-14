@@ -1,41 +1,55 @@
 <template>
-    <div class="container content-field" v-show="is_logined" style="margin-top: 10px;">
-      <vue-pdf-app v-show="is_pdf" :pdf="pdf_url" :style="{ height: content_height }"  @mouseup="handleSelect"/>
-      <div class="markdown-body" v-if="is_markdown" v-html="html" :style="{ height: content_height, overflowY: 'auto' }" @mouseup="handleSelect"></div>
-      <vue-office-docx
-          :src="word_url"
-          v-else-if="is_word"
-          :style="{ height: content_height }"
-      />
-      <vue-office-excel
-          :src="excel_url"
-          v-else-if="is_excel"
-          :style="{ height: content_height }"
-      />
-      <vue-office-pptx
-          :src="ppt_url"
-          v-else-if="is_ppt"
-          :style="{ height: content_height }"
-      />
-      <div
-        v-if="!is_pdf && !is_markdown && !is_word && !is_excel && !is_ppt"
-        class="empty-state"
-      >
-        <div class="empty-icon">📄</div>
-        <div class="empty-text">Select a file to start reading</div>
+    <div ref="readingPageRef" class="container content-field reading-page" v-show="is_logined">
+      <div class="viewer-shell" :style="{ minHeight: content_height }">
+        <vue-pdf-app v-show="is_pdf" class="reading-viewer" :pdf="pdf_url" :style="{ height: content_height }" @mouseup="handleSelect" />
+        <div class="markdown-body reading-viewer reading-viewer--markdown" v-if="is_markdown" v-html="html" :style="{ height: content_height, overflowY: 'auto' }" @mouseup="handleSelect"></div>
+        <vue-office-docx
+            class="reading-viewer"
+            :src="word_url"
+            v-else-if="is_word"
+            :style="{ height: content_height }"
+        />
+        <vue-office-excel
+            class="reading-viewer"
+            :src="excel_url"
+            v-else-if="is_excel"
+            :style="{ height: content_height }"
+        />
+        <vue-office-pptx
+            class="reading-viewer"
+            :src="ppt_url"
+            v-else-if="is_ppt"
+            :style="{ height: content_height }"
+        />
+        <div
+          v-if="!has_preview"
+          class="empty-state"
+          :style="{ minHeight: content_height }"
+        >
+          <div class="empty-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-book" viewBox="0 0 16 16">
+              <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.124.606.667-.543 1.795-.74 3.124-.606C11.87 2.06 13.14 2.458 14 2.828V14.5a.5.5 0 0 1-.74.439c-.706-.353-1.789-.73-2.94-.845-1.17-.118-2.232.097-2.706.665a.5.5 0 0 1-.768 0c-.474-.568-1.535-.783-2.706-.665-1.151.116-2.234.492-2.94.845A.5.5 0 0 1 1 14.5z"/>
+              <path d="M14 3.101c-.827-.363-2.06-.75-3.291-.874-1.087-.11-2.143.015-2.709.568V14.1c.63-.39 1.524-.523 2.41-.434 1.008.101 2.054.423 2.878.76zm-7 11V2.795c-.566-.553-1.622-.678-2.709-.568C3.06 2.351 1.827 2.738 1 3.1v11.325c.824-.337 1.87-.659 2.878-.76.886-.089 1.78.044 2.41.434"/>
+            </svg>
+          </div>
+          <div class="empty-text">{{ t('reading.emptyState') }}</div>
+        </div>
       </div>
-      <div class="text-center title-card title-wrapper">
-        <el-button round :icon="Picture" class="!ml-0 image-dialog" v-if="imageDialogVisible === false" @click="imageDialogVisible = true"/>
-        <el-button round :icon="PictureFilled" class="!ml-0 image-dialog" v-else @click="imageDialogVisible = false"/>
-        <el-button :icon="ArrowUp" v-if="show_navbar" @click="unshowNavbar" style="margin-right: 10px;" circle />
-        <el-button :icon="ArrowDown" v-if="!show_navbar" @click="showNavbar" style="margin-right: 10px;" circle />
-        {{ file_name }}
-        <el-button :icon="RefreshRight" @click="getFileURL" circle />
-        <span class="file-tip">PDF, Office and Markdown only.</span>
+
+      <div ref="toolbarRef" class="reading-toolbar reading-toolbar--footer">
+        <div class="reading-title-wrap">
+          <div class="reading-title" :title="display_file_name">{{ display_file_name }}</div>
+          <span class="file-tip">{{ t('reading.fileTip') }}</span>
+        </div>
+        <div class="toolbar-actions">
+          <el-button size="small" round :icon="imageDialogVisible ? PictureFilled : Picture" class="toolbar-button !ml-0" @click="imageDialogVisible = !imageDialogVisible" />
+          <el-button size="small" :icon="show_navbar ? ArrowUp : ArrowDown" class="toolbar-button" @click="show_navbar ? unshowNavbar() : showNavbar()" circle />
+          <el-button size="small" :icon="RefreshRight" class="toolbar-button" @click="getFileURL" circle />
+        </div>
       </div>
-      
+
       <el-dialog class="resizable-dialog" v-model="imageDialogVisible" 
-        title="Image Box"
+        :title="t('reading.imageBox')"
         draggable
         :top="dialogTop"
         :width="dialogWidth"
@@ -48,7 +62,7 @@
         @close="handleDialogClose"
         lock-scroll="false">
         <div class="paste-area">
-          <el-empty v-if="!imgUrl" class="empty-holder" description="Paste Image Here." />
+          <el-empty v-if="!imgUrl" class="empty-holder" :description="t('reading.pasteImageHere')" />
           <el-image
             v-else
             :src="imgUrl"
@@ -68,8 +82,8 @@
       </el-dialog>
     </div>
     <ContentField v-show="!is_logined" class="text-center">
-        Please login first.
-        <div><el-button type="primary" round @click="go_to_login" style="margin-top: 10px;">Login</el-button></div>
+        {{ t('auth.loginFirst') }}
+        <div><el-button type="primary" round @click="go_to_login" style="margin-top: 10px;">{{ t('common.login') }}</el-button></div>
     </ContentField>
 </template>
 
@@ -90,7 +104,8 @@ import 'highlight.js/styles/github.css'
 import DOMPurify from 'dompurify';
 import { ElMessage } from 'element-plus';
 import { RefreshRight, Picture, PictureFilled, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
-import { computed, ref, onActivated, onDeactivated } from 'vue';
+import { computed, ref, onActivated, onDeactivated, onBeforeUnmount, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import $ from 'jquery';
 import router from '@/router';
@@ -107,6 +122,7 @@ export default {
   },
   setup(){
     const store = useStore();
+    const { t } = useI18n();
     let is_logined = computed(() => store.state.user.is_logined);
     let file_name = computed(() => store.state.reading.file_name);
     let show_navbar = computed(() => store.state.navbar.show_navbar);
@@ -122,29 +138,85 @@ export default {
     let ppt_url = ref('');
     let file_type = ref('');
 
-    const SHOW_NAVBER_CONTENT_HEIGHT = '85vh';
-    const UNSHOW_NAVBER_CONTENT_HEIGHT = '92vh';
-    let content_height = ref(SHOW_NAVBER_CONTENT_HEIGHT);
-
+    let content_height = ref('60vh');
     let imageDialogVisible = ref(false);
-    
+    let readingPageRef = ref(null);
+    let toolbarRef = ref(null);
+
+    const has_preview = computed(() => is_pdf.value || is_markdown.value || is_word.value || is_excel.value || is_ppt.value);
+    const display_file_name = computed(() => file_name.value || t('reading.emptyState'));
+
+    let toolbarResizeObserver = null;
+
+    const updateContentHeight = () => {
+      const pageStyles = readingPageRef.value ? window.getComputedStyle(readingPageRef.value) : null;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const pageTop = readingPageRef.value?.getBoundingClientRect().top ?? 0;
+      const toolbarHeight = toolbarRef.value?.offsetHeight ?? 0;
+      const paddingTop = pageStyles ? Number.parseFloat(pageStyles.paddingTop) || 0 : 0;
+      const paddingBottom = pageStyles ? Number.parseFloat(pageStyles.paddingBottom) || 0 : 0;
+      const gap = pageStyles ? Number.parseFloat(pageStyles.rowGap || pageStyles.gap) || 0 : 0;
+      const availableHeight = viewportHeight - pageTop - paddingTop - paddingBottom - toolbarHeight - gap - 4;
+      const minimumHeight = window.innerWidth <= 480 ? 200 : window.innerWidth <= 768 ? 220 : 300;
+      content_height.value = `${Math.max(minimumHeight, Math.floor(availableHeight))}px`;
+    }
+
+    const scheduleContentHeightUpdate = () => {
+      nextTick(() => {
+        window.requestAnimationFrame(() => {
+          updateContentHeight();
+        });
+      });
+    }
+
+    const bindToolbarResize = () => {
+      if (typeof ResizeObserver === 'undefined' || !toolbarRef.value) return;
+      toolbarResizeObserver?.disconnect();
+      toolbarResizeObserver = new ResizeObserver(() => updateContentHeight());
+      toolbarResizeObserver.observe(toolbarRef.value);
+    }
+
+    const unbindToolbarResize = () => {
+      if (!toolbarResizeObserver) return;
+      toolbarResizeObserver.disconnect();
+      toolbarResizeObserver = null;
+    }
+
+    const handleViewportChange = () => {
+      scheduleContentHeightUpdate();
+    }
+
     onActivated(() => {
       document.addEventListener('paste', handlePaste);
+      window.addEventListener('resize', handleViewportChange);
+      window.addEventListener('orientationchange', handleViewportChange);
+      bindToolbarResize();
+      scheduleContentHeightUpdate();
     })
 
     onDeactivated(() => {
       showNavbar();
       document.removeEventListener('paste', handlePaste);
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('orientationchange', handleViewportChange);
+      unbindToolbarResize();
+    })
+
+    onBeforeUnmount(() => {
+      document.removeEventListener('paste', handlePaste);
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('orientationchange', handleViewportChange);
+      unbindToolbarResize();
     })
 
     const showNavbar = () => {
       store.commit("showNavbar");
-      content_height.value = SHOW_NAVBER_CONTENT_HEIGHT;
+      scheduleContentHeightUpdate();
     }
 
     const unshowNavbar = () => {
       store.commit("unshowNavbar");
-      content_height.value = UNSHOW_NAVBER_CONTENT_HEIGHT;
+      scheduleContentHeightUpdate();
     }
 
     const go_to_login = () => {
@@ -160,13 +232,13 @@ export default {
       if (!items) return;
 
       if (items.length > 1) {
-        ElMessage.error('Only One!');
+        ElMessage.error(t('reading.onlyOne'));
         return;
       }
 
       const [item] = items;
       if (!item.type.startsWith('image/')) {
-        ElMessage.error('Only Image!')
+        ElMessage.error(t('reading.onlyImage'))
         return
       }
 
@@ -191,12 +263,12 @@ export default {
     const DEFAULT_ZOOM = 0.5;
     let dialogWidth = ref(DEFAULT_DIALOG_WIDTH);
     let dialogTop = ref(DEFAULT_DIALOG_TOP);
-    let zoom = ref(DEFAULT_ZOOM);  
+    let zoom = ref(DEFAULT_ZOOM);
 
     function changeZoom (e) {
       if (!imageRef.value) return;
 
-      const step = Math.sign(e.deltaY); // -1 上，+1 下
+      const step = Math.sign(e.deltaY);
       const nextZoom = zoom.value - step * 0.1;
       if (nextZoom >= 0.2 && nextZoom <= 1) {
         zoom.value = nextZoom;
@@ -275,15 +347,16 @@ export default {
                 is_ppt.value = true;
               }else{
                 ElMessage({
-                  message: 'File type doesn\'t be supported.',
+                  message: t('reading.unsupportedFileType'),
                   type: 'error',
                 })
               }
+              scheduleContentHeightUpdate();
             }
         },
         error() {
           ElMessage({
-            message: 'Network error...',
+            message: t('common.networkError'),
             type: 'error',
           })
         }
@@ -301,7 +374,7 @@ export default {
               hljs.highlight(code, { language: lang }).value
             }</code></pre>`
           } catch (__) {
-            // ignore highlight error, fallback to auto
+            // Fall back to auto highlighting below.
           }
         }
         return `<pre class="hljs"><code>${
@@ -327,7 +400,7 @@ export default {
           ADD_ATTR: ['class', 'style']
         })
       } catch (e) {
-        html.value = '❌ Markdown failed to load.'
+        html.value = t('reading.markdownLoadFailed')
       }
     }
 
@@ -340,13 +413,11 @@ export default {
       const range = sel.getRangeAt(0)
       let node = range.commonAncestorContainer
 
-      // text node → element
       if (node.nodeType === Node.TEXT_NODE) {
         node = node.parentNode
       }
 
-      // 只允许 PDF 或 markdown
-      const inPdf = node.closest('.textLayer')   // pdf.js
+      const inPdf = node.closest('.textLayer')
       const inMarkdown = node.closest('.markdown-body')
 
       if (!inPdf && !inMarkdown) return
@@ -364,9 +435,8 @@ export default {
         .trim()
     }
 
-    // const selectedTextTranslate = ref('');
-
     return{
+      t,
       RefreshRight,
       Picture,
       PictureFilled,
@@ -388,6 +458,10 @@ export default {
       show_navbar,
       content_height,
       imageDialogVisible,
+      readingPageRef,
+      toolbarRef,
+      has_preview,
+      display_file_name,
       showNavbar,
       unshowNavbar,
       go_to_login,
@@ -409,85 +483,203 @@ export default {
 </script>
 
 <style scoped>
-.empty-state {
-  margin: 15px 0;
-  padding: 40px 24px;
-  text-align: center;
-
+div.content-field.reading-page {
+  margin-top: 4px;
+  padding: 6px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   background: #ffffff;
-  border-radius: 14px;
-
-  /* box-shadow: 0 5px 3px rgba(0, 0, 0, 0.03); */
-  transition: background-color 0.2s ease;
+  border-radius: 18px;
 }
 
-.empty-state:hover {
-  background: #f9f9f9;
+.reading-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid #e7edf4;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.reading-toolbar--footer {
+  margin-top: -2px;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.toolbar-button {
+  margin-left: 0 !important;
+}
+
+.reading-title-wrap {
+  min-width: 0;
+  flex: 1 1 18rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reading-title {
+  min-width: 0;
+  flex: 1 1 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #223045;
+}
+
+.file-tip {
+  flex-shrink: 0;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid #e7edf4;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #7b8794;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.viewer-shell {
+  overflow: hidden;
+  border: 1px solid #edf1f5;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.reading-viewer {
+  display: block;
+  width: 100%;
+}
+
+.reading-viewer--markdown {
+  padding: 14px clamp(14px, 4vw, 28px);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  background: #fafcff;
 }
 
 .empty-icon {
-  font-size: 34px;
-  margin-bottom: 14px;
-  opacity: 0.75;                    /* 提亮一点 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: #eef3f8;
+  color: #607080;
 }
 
 .empty-text {
   font-size: 15px;
-  color: #495057;                   /* 从 muted 灰 → 可读灰 */
+  color: #495057;
   letter-spacing: 0.2px;
 }
 
-div.title-card {
-  margin-top: 10px;
-}
-
-.title-wrapper {
-  position: relative;     /* 给右侧文字一个定位参照 */
-}
-
-.image-dialog {
-  position: absolute;
-  left: 0;               /* 固定在这一行最右 */
-  top: 50%;
-  transform: translateY(-50%); /* 垂直居中 */
-}
-
-.file-tip {
-  position: absolute;
-  right: 0;               /* 固定在这一行最右 */
-  top: 50%;
-  transform: translateY(-50%); /* 垂直居中 */
-  
-  font-size: 0.8em;
-  color: #999;
-  white-space: nowrap;
-}
-
-/* dialog 本体：允许随内容收缩 */
 .resizable-dialog {
   width: fit-content !important;
   max-width: 90vw;
 }
 
-/* 干掉 body padding */
 .resizable-dialog .el-dialog__body {
   padding: 0 !important;
 }
 
-/* 内容居中 */
 .paste-area {
   display: flex;
   justify-content: center;
   align-items: center;
+  min-height: min(60vh, 32rem);
 }
 
-/* 空状态固定尺寸，防止撑满 */
 .empty-holder {
-  width: 320px;
-  height: 240px;
+  width: min(320px, 78vw);
+  height: min(240px, 40vh);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+@media (max-width: 768px) {
+  div.content-field.reading-page {
+    padding: 6px;
+  }
+
+  .reading-toolbar {
+    padding: 7px 8px;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .toolbar-actions {
+    width: auto;
+    margin-left: 0;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    gap: 4px;
+  }
+
+  .reading-title-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0;
+  }
+
+  .reading-title {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+
+  .file-tip {
+    font-size: 0.74rem;
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .toolbar-actions {
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .reading-toolbar {
+    padding: 6px 7px;
+    gap: 6px;
+  }
+
+  .toolbar-button {
+    transform: scale(0.94);
+    transform-origin: center;
+  }
+
+  .paste-area {
+    min-height: min(50vh, 24rem);
+  }
+}
 </style>

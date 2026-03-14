@@ -6,7 +6,6 @@ export default createStore({
       username: "",
       access: "",
       is_logined: false,
-      admin_permission: false,
     },
     firstLogin: false,
     file: {

@@ -1,43 +1,41 @@
 <template>
-    <ContentField>
-        <div class="row justify-content-md-center">
-            <div class="col-4">
-                <form>
-                <div class="mb-3">
-                    <label for="username" class="form-label">Username</label>
-                    <input v-model="username" type="username" class="form-control" id="username">
-                </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input v-model="password" type="password" class="form-control" id="password">
-                </div>
-                <div class="mb-3">
-                    <label for="confirmedPassword" class="form-label">
-                        Confirm Password
-                        <div class="inconsistent-message" v-if="password !== confirmedPassword">The two passwords do not match.</div>
-                    </label>
-                    <input v-model="confirmedPassword" type="password" class="form-control" id="confirmedPassword">
-                </div>
-                <div class="warning-message">{{ error_message }}</div>
-                <button v-on:click.prevent="register" class="btn btn-primary">Register</button>
+    <div class="container auth-page">
+        <div class="register-shell">
+            <div class="register-panel">
+                <form class="register-form">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">{{ t('auth.username') }}</label>
+                        <input v-model="username" type="username" class="form-control register-input" id="username">
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">{{ t('auth.password') }}</label>
+                        <input v-model="password" type="password" class="form-control register-input" id="password">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmedPassword" class="form-label register-label">
+                            <span>{{ t('auth.confirmPassword') }}</span>
+                            <span class="inconsistent-message" v-if="password !== confirmedPassword">{{ t('changePassword.mismatch') }}</span>
+                        </label>
+                        <input v-model="confirmedPassword" type="password" class="form-control register-input" id="confirmedPassword">
+                    </div>
+                    <div class="warning-message">{{ error_message }}</div>
+                    <button v-on:click.prevent="register" class="btn btn-primary register-button">{{ t('auth.registerButton') }}</button>
                 </form>
             </div>
         </div>
-    </ContentField>
+    </div>
 </template>
 
 <script>
-import ContentField from '@/components/ContentField.vue';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import $ from 'jquery';
 import { BASE_URL } from "@/config"
 
 export default {
     name: 'RegisterView',
-    components: {
-        ContentField,
-    },
     setup(_, context) {
+        const { t } = useI18n();
         let username = ref('');
         let password = ref('');
         let confirmedPassword = ref('');
@@ -60,12 +58,13 @@ export default {
                     }
                 },
                 error() {
-                    error_message.value = "Network error.";
+                    error_message.value = t('auth.networkError');
                 }
             })
         }
 
         return {
+            t,
             username,
             password,
             confirmedPassword,
@@ -77,23 +76,64 @@ export default {
 </script>
 
 <style scoped>
+.auth-page {
+    margin-top: 20px;
+}
+
+.register-shell {
+    display: flex;
+    justify-content: center;
+}
+
+.register-panel {
+    width: min(100%, 30rem);
+}
+
+.register-form {
+    width: 100%;
+    padding: 20px 22px;
+    border: 1px solid #e6ecf3;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #fbfdff 0%, #f6f9fc 100%);
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+}
+
+.register-input {
+    min-height: 44px;
+    border-radius: 12px;
+}
+
+.register-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .warning-message {
     color: red;
+    min-height: 24px;
+    margin-bottom: 10px;
+    font-size: 0.92rem;
 }
 
 .inconsistent-message {
     color: red;
     font-size: 80%;
-    display: inline-block;
-    margin-left: 6px;
 }
 
-.divider {
-    color: rgb(0, 0, 0);
+.register-button {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 999px;
+    font-weight: 600;
 }
 
-.verCode {
-    margin-top: 0%;
-    margin-bottom: 0%;
+@media (max-width: 768px) {
+    .register-form {
+        padding: 16px;
+        border-radius: 16px;
+    }
 }
 </style>
