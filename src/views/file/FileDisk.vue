@@ -31,8 +31,7 @@
                 type="button"
                 class="icon-action icon-action--primary"
                 :aria-label="t('fileDisk.openUploadDialog')"
-                data-bs-toggle="modal"
-                data-bs-target="#uploadBackdrop"
+                @click="openUploadDialog"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-cloud-plus" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 5.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V10a.5.5 0 0 1-1 0V8.5H6a.5.5 0 0 1 0-1h1.5V6a.5.5 0 0 1 .5-.5"/>
@@ -54,66 +53,74 @@
             </div>
           </div>
 
-          <div class="modal fade upload-modal" id="uploadBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title" id="uploadBackdropLabel">{{ t('fileDisk.uploadTitle') }}</h5>
-                </div>
-                <div class="upload-switcher">
-                  <el-segmented v-model="selection_value" :options="selection_options" size="large" />
-                </div>
-                <div class="card upload-content-card" v-if="selection_value === 'Dir'">
-                  <div class="card-body">
-                    <el-form-item :label="t('fileDisk.dirName')">
-                      <el-input v-model="new_dir_name" />
-                    </el-form-item>
-                    <div class="button-container text-center">
-                      <el-button type="success" disabled v-if="new_dir_name.length === 0">{{ t('fileDisk.create') }}</el-button>
-                      <el-button class="ml-3" type="success" @click="submitCreateDirectory" v-if="new_dir_name.length !== 0">
-                        {{ t('fileDisk.create') }}
-                      </el-button>
-                    </div>
-                  </div>
-                </div>
-                <div class="card upload-content-card" v-if="selection_value === 'File'">
-                  <div class="card-body">
-                    <el-upload
-                      class="upload-demo"
-                      drag
-                      multiple
-                      :auto-upload="false"
-                      :show-file-list="true"
-                      :file-list="elFileList"
-                      :on-change="handleChange"
-                      :on-remove="handleRemove"
-                    >
-                      <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-                      <div class="el-upload__text">
-                        {{ t('fileDisk.uploadPrompt') }}
-                      </div>
-                      <template #tip>
-                        <div class="el-upload__tip text-center">
-                          {{ t('fileDisk.uploadTip') }}
-                        </div>
-                      </template>
-                    </el-upload>
-                    <div class="button-container text-center upload-actions">
-                      <el-button class="ml-3" type="success" @click="uploadAll()">
-                        {{ t('common.upload') }}
-                      </el-button>
-                      <div class="upload-progress" v-show="show_upload_progress">
-                        <el-progress :percentage="percentage" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" @click="percentage = 0">{{ t('common.close') }}</button>
+          <el-dialog
+            v-model="upload_dialog_visible"
+            append-to-body
+            align-center
+            width="min(92vw, 760px)"
+            class="upload-dialog"
+            :title="t('fileDisk.uploadTitle')"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
+            @closed="resetUploadDialogState"
+          >
+            <div class="upload-switcher">
+              <el-segmented v-model="selection_value" :options="selection_options" size="large" />
+            </div>
+            <div class="card upload-content-card" v-if="selection_value === 'Dir'">
+              <div class="card-body">
+                <el-form-item :label="t('fileDisk.dirName')">
+                  <el-input v-model="new_dir_name" />
+                </el-form-item>
+                <div class="button-container text-center">
+                  <el-button type="success" disabled v-if="new_dir_name.length === 0">{{ t('fileDisk.create') }}</el-button>
+                  <el-button class="ml-3" type="success" @click="submitCreateDirectory" v-if="new_dir_name.length !== 0">
+                    {{ t('fileDisk.create') }}
+                  </el-button>
                 </div>
               </div>
             </div>
-          </div>
+            <div class="card upload-content-card" v-if="selection_value === 'File'">
+              <div class="card-body">
+                <el-upload
+                  class="upload-demo"
+                  drag
+                  multiple
+                  :auto-upload="false"
+                  :show-file-list="true"
+                  :file-list="elFileList"
+                  :on-change="handleChange"
+                  :on-remove="handleRemove"
+                >
+                  <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                  <div class="el-upload__text">
+                    {{ t('fileDisk.uploadPrompt') }}
+                  </div>
+                  <template #tip>
+                    <div class="el-upload__tip text-center">
+                      {{ t('fileDisk.uploadTip') }}
+                    </div>
+                  </template>
+                </el-upload>
+                <div class="button-container text-center upload-actions">
+                  <el-button class="ml-3" type="success" @click="uploadAll()">
+                    {{ t('common.upload') }}
+                  </el-button>
+                  <div class="upload-progress" v-show="show_upload_progress">
+                    <el-progress :percentage="percentage" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <template #footer>
+              <div class="upload-dialog__footer">
+                <button type="button" class="btn btn-outline-secondary" @click="closeUploadDialog">
+                  {{ t('common.close') }}
+                </button>
+              </div>
+            </template>
+          </el-dialog>
 
           <div class="table-header entry-row entry-row--header">
             <div class="entry-name-cell">{{ t('common.name') }}</div>
@@ -266,6 +273,7 @@ export default {
 
     let new_dir_name = ref('');
     let show_upload_progress = ref(false);
+    let upload_dialog_visible = ref(false);
 
     const selection_value = ref('Dir');
     const selection_options = computed(() => [
@@ -288,6 +296,19 @@ export default {
 
     const go_to_login = () => {
       router.push({name: 'accountmanagement'});
+    }
+
+    const resetUploadDialogState = () => {
+      percentage.value = 0;
+      show_upload_progress.value = false;
+    }
+
+    const openUploadDialog = () => {
+      upload_dialog_visible.value = true;
+    }
+
+    const closeUploadDialog = () => {
+      upload_dialog_visible.value = false;
     }
 
     const submitCreateDirectory = () => {
@@ -779,12 +800,16 @@ export default {
       files,
       new_dir_name,
       show_upload_progress,
+      upload_dialog_visible,
       selection_value,
       selection_options,
       displayPathName,
       elFileList,
       percentage,
       go_to_login,
+      openUploadDialog,
+      closeUploadDialog,
+      resetUploadDialogState,
       submitCreateDirectory,
       submitDeleteDirectory,
       submitModifyDirectory,
@@ -1068,6 +1093,12 @@ div.content-field.file-disk-page {
   padding: 10px 16px 0;
 }
 
+.upload-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
 .upload-content-card {
   margin: 18px;
   border-radius: 12px;
@@ -1089,6 +1120,20 @@ div.content-field.file-disk-page {
 
 :deep(.upload-demo .el-upload-dragger) {
   width: 100%;
+}
+
+:deep(.upload-dialog .el-dialog) {
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+:deep(.upload-dialog .el-dialog__header) {
+  margin-right: 0;
+}
+
+:deep(.upload-dialog .el-dialog__body) {
+  padding-top: 4px;
+  padding-bottom: 8px;
 }
 
 @media (max-width: 991px) {
@@ -1179,11 +1224,6 @@ div.content-field.file-disk-page {
   div.content-field.file-disk-page {
     margin-top: 4px;
     padding: 8px;
-  }
-
-  :deep(.upload-modal .modal-dialog) {
-    margin: 1rem;
-    max-width: calc(100vw - 2rem);
   }
 
   .entry-actions {
