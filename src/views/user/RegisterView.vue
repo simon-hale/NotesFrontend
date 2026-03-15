@@ -5,7 +5,7 @@
                 <form class="register-form">
                     <div class="mb-3">
                         <label for="username" class="form-label">{{ t('auth.username') }}</label>
-                        <input v-model="username" type="username" class="form-control register-input" id="username">
+                        <input v-model="username" type="text" class="form-control register-input" id="username">
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">{{ t('auth.password') }}</label>
@@ -92,10 +92,10 @@ export default {
 .register-form {
     width: 100%;
     padding: 20px 22px;
-    border: 1px solid #e6ecf3;
+    border: 1px solid var(--border-soft);
     border-radius: 18px;
-    background: linear-gradient(180deg, #fbfdff 0%, #f6f9fc 100%);
-    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+    background: linear-gradient(180deg, var(--surface-card-strong) 0%, var(--surface-card-muted) 100%);
+    box-shadow: var(--shadow-soft);
 }
 
 .register-input {
@@ -112,14 +112,14 @@ export default {
 }
 
 .warning-message {
-    color: red;
+    color: var(--danger);
     min-height: 24px;
     margin-bottom: 10px;
     font-size: 0.92rem;
 }
 
 .inconsistent-message {
-    color: red;
+    color: var(--danger);
     font-size: 80%;
 }
 

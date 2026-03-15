@@ -45,7 +45,7 @@ export default {
 
 <style scoped>
 .warning-message {
-    color: red;
+    color: var(--danger);
 }
 
 .confrim-frist {

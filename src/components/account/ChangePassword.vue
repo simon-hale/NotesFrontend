@@ -54,12 +54,12 @@ export default {
 
 <style scoped>
 .warning-message {
-    color: orange;
+    color: var(--warning);
     margin-bottom: 10px;
 }
 
 .error-message {
-    color: red;
+    color: var(--danger);
     display: inline-block;
     margin-left: 6px;
 }

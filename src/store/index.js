@@ -1,4 +1,5 @@
 import { createStore } from 'vuex'
+import { DARK_THEME, LIGHT_THEME, getStoredTheme, persistTheme } from '@/utils/theme'
 
 export default createStore({
   state: {
@@ -18,7 +19,10 @@ export default createStore({
     },
     navbar: {
       show_navbar: true,
-    }
+    },
+    theme: {
+      mode: getStoredTheme(),
+    },
   },
   getters: {
   },
@@ -64,6 +68,11 @@ export default createStore({
     },
     unshowNavbar(state) {
       state.navbar.show_navbar = false;
+    },
+    toggleTheme(state) {
+      const nextTheme = state.theme.mode === DARK_THEME ? LIGHT_THEME : DARK_THEME;
+      state.theme.mode = nextTheme;
+      persistTheme(nextTheme);
     }
   },
   actions: {

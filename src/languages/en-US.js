@@ -3,6 +3,8 @@
     login: 'Login',
     register: 'Register',
     logout: 'Log out',
+    light: 'Light',
+    dark: 'Dark',
     confirm: 'Confirm',
     cancel: 'Cancel',
     close: 'Close',
@@ -19,9 +21,18 @@
     },
   },
   nav: {
+    title: 'Notes Space',
     disk: 'Disk',
     read: 'Read',
     account: 'Account',
+    theme: 'Theme',
+    guest: 'Guest',
+    online: 'Signed in',
+    offline: 'Guest mode',
+  },
+  theme: {
+    switchToLight: 'Switch to light mode',
+    switchToDark: 'Switch to dark mode',
   },
   auth: {
     username: 'Username',

@@ -284,6 +284,8 @@ export default {
       })
     }
 
+    const getCurrentPath = () => paths.value[path_level.value] ?? null;
+
     const go_to_login = () => {
       router.push({name: 'accountmanagement'});
     }
@@ -307,7 +309,7 @@ export default {
                   type: 'error',
                 })
             }else{
-              requestDirectoryById(paths.value[path_level.value].id);
+              refreshCurrentDirectory();
             }
         },
         error: showNetworkError
@@ -332,7 +334,7 @@ export default {
                 type: 'error',
               })
             }else{
-              requestDirectoryById(paths.value[path_level.value].id);
+              refreshCurrentDirectory();
               ElMessage({
                 message: t('fileDisk.deleted'),
                 type: 'success',
@@ -375,7 +377,7 @@ export default {
                   type: 'error',
                 })
               }else{
-                requestDirectoryById(paths.value[path_level.value].id);
+                refreshCurrentDirectory();
                 ElMessage({
                   message: t('fileDisk.renamed'),
                   type: 'success',
@@ -430,7 +432,7 @@ export default {
                   message: t('fileDisk.renamed'),
                   type: 'success',
                 })
-                requestDirectoryById(paths.value[path_level.value].id);
+                refreshCurrentDirectory();
                 store.commit("setReadingFileName", value);
               }
           },
@@ -463,7 +465,7 @@ export default {
                 type: 'error',
               })
             }else{
-              requestDirectoryById(paths.value[path_level.value].id);
+              refreshCurrentDirectory();
               ElMessage({
                 message: t('fileDisk.deleted'),
                 type: 'success',
@@ -492,16 +494,21 @@ export default {
                   type: 'error',
                 })
             }else{
-                directories.value = resp.directories,
-                files.value = resp.files
+                directories.value = resp.directories;
+                files.value = resp.files;
             }
         },
         error: showNetworkError
      })
     }
 
-    const requestDirectoryRoot = (init_bool) => {
-      let root_id = ref(0);
+    const refreshCurrentDirectory = () => {
+      const currentPath = getCurrentPath();
+      if (!currentPath) return;
+      requestDirectoryById(currentPath.id);
+    }
+
+    const requestDirectoryRoot = (showWelcome) => {
       $.ajax({
           url: `${BASE_URL}/api/directory/init/`,
           type: "POST",
@@ -518,20 +525,28 @@ export default {
                     type: 'error',
                   })
               }else{
-                if (init_bool)
+                if (showWelcome) {
                   ElMessage({
                     message: t('fileDisk.welcomeBack'),
                     type: 'success',
-                  })
-                directories.value = resp.directories,
-                files.value = resp.files,
-                root_id.value = Number(resp.root_id)
+                  });
+                }
+
+                directories.value = resp.directories;
+                files.value = resp.files;
+
+                store.dispatch("refreshPathsInfo", {
+                  path_level: 0,
+                  paths: [{
+                    level: 0,
+                    id: Number(resp.root_id),
+                    name: "root",
+                  }],
+                });
               }
           },
           error: showNetworkError
       })
-      if (init_bool) refreshPaths(store.state.file.path_level, root_id, "root", false);
-      else refreshPaths(0, root_id, "root", true);
     }
 
     const refreshPaths = (path_level, directory_id, directory_name, go_back) => {
@@ -557,16 +572,16 @@ export default {
     }
 
     const refreshCurrentPath = () => {
-      directories.value = [],
-      files.value = []
-      requestDirectoryById(paths.value[path_level.value].id);
+      directories.value = [];
+      files.value = [];
+      refreshCurrentDirectory();
     }
 
     if(is_logined.value){
       if(store.state.firstLogin){
         requestDirectoryRoot(true);
         store.commit("cleanFirstLogin");
-      }else requestDirectoryById(paths.value[path_level.value].id);
+      }else refreshCurrentDirectory();
     }
 
     const fileList = ref([]);
@@ -607,11 +622,11 @@ export default {
 
     const createOssClient = (sts) => {
       return new OSS({
-        region: sts.value.region,
-        bucket: sts.value.bucket,
-        accessKeyId: sts.value.accessKeyId,
-        accessKeySecret: sts.value.accessKeySecret,
-        stsToken: sts.value.securityToken,
+        region: sts.region,
+        bucket: sts.bucket,
+        accessKeyId: sts.accessKeyId,
+        accessKeySecret: sts.accessKeySecret,
+        stsToken: sts.securityToken,
       })
     }
 
@@ -627,9 +642,9 @@ export default {
 
     const uploadAll = async () => {
       percentage.value = 0;
-      let number = ref(fileList.value.length);
-      let count = ref(0);
-      if (number.value === 0){
+      const total = fileList.value.length;
+      let uploadedCount = 0;
+      if (total === 0){
         ElMessage.warning(t('fileDisk.noFileSelected'))
       } else {
         show_upload_progress.value = true
@@ -638,13 +653,13 @@ export default {
             await uploadFile(file);
             fileList.value = fileList.value.filter(f => f !== file);
             elFileList.value = elFileList.value.filter(item => item.raw !== file);
-            count.value = count.value + 1;
-            percentage.value = Math.floor( count.value / number.value * 100 );
+            uploadedCount += 1;
+            percentage.value = Math.floor(uploadedCount / total * 100);
           } catch (err) {
             console.warn('Upload failed but handled:', file.name)
           }
         }
-        requestDirectoryById(paths.value[path_level.value].id);
+        refreshCurrentDirectory();
         if (fileList.value.length !== 0) percentage.value = 0;
       }
     }
@@ -680,22 +695,20 @@ export default {
     }
 
     const uploadFile = async (file) => {
-      let string_of_path = ref('');
-
-      for (const path of paths.value) string_of_path.value += path.name + '/';
+      const string_of_path = paths.value.map((path) => `${path.name}/`).join('');
 
       try {
-        let sts = ref(await getSTS(string_of_path.value, file.name));
+        const sts = await getSTS(string_of_path, file.name);
 
-        if (sts.value === null) {
+        if (sts === null) {
           throw new Error('STS not ready')
         }
 
         let client = createOssClient(sts);
 
-        await client.multipartUpload( sts.value.objectKey, file )
+        await client.multipartUpload(sts.objectKey, file)
 
-        await insertFileInfo(string_of_path.value, file.name);
+        await insertFileInfo(string_of_path, file.name);
 
         ElMessage.success(t('fileDisk.uploadSuccess', { name: file.name }))
 
@@ -769,7 +782,6 @@ export default {
       selection_value,
       selection_options,
       displayPathName,
-      fileList,
       elFileList,
       percentage,
       go_to_login,
@@ -778,20 +790,13 @@ export default {
       submitModifyDirectory,
       submitModifyFileName,
       submitDeleteFile,
-      requestDirectoryById,
       requestDirectoryRoot,
-      refreshPaths,
       refresh,
       refreshCurrentPath,
-      getSTS,
-      createOssClient,
       handleChange,
       handleRemove,
       uploadAll,
-      insertFileInfo,
-      uploadFile,
       setReadingFileInfo,
-      getFileURL,
       downloadFile,
     }
   }
@@ -800,10 +805,14 @@ export default {
 
 <style scoped>
 div.content-field.file-disk-page {
-  margin-top: 20px;
-  padding: 14px 18px 18px;
-  background: #ffffff;
-  border-radius: 18px;
+  margin-top: 8px;
+  padding: 10px 14px 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  background: var(--surface-card);
+  box-shadow: var(--shadow-medium);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
   --entry-meta-width: 9rem;
   --entry-actions-width: 7rem;
 }
@@ -816,7 +825,7 @@ div.content-field.file-disk-page {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -833,7 +842,7 @@ div.content-field.file-disk-page {
   min-width: 0;
   overflow-x: auto;
   overflow-y: visible;
-  padding: 2px 0 6px;
+  padding: 0 0 4px;
 }
 
 :deep(.breadcrumb-scroll .el-breadcrumb) {
@@ -852,12 +861,12 @@ div.content-field.file-disk-page {
   white-space: nowrap;
   font-size: 1rem;
   line-height: 1.5;
-  color: #495057;
+  color: var(--text-secondary);
   transition: color 0.15s ease;
 }
 
 :deep(.ep-breadcrumb-item .el-breadcrumb__inner:hover) {
-  color: #0d6efd;
+  color: var(--accent-strong);
 }
 
 .breadcrumb-item-text {
@@ -883,18 +892,18 @@ div.content-field.file-disk-page {
   width: 2.5rem;
   height: 2.5rem;
   padding: 0;
-  border: 1px solid #d8dee6;
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
-  background: #ffffff;
-  color: #405266;
+  background: var(--surface-card-strong);
+  color: var(--text-secondary);
   line-height: 1;
   transition: color 0.15s ease, transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .icon-action:hover {
-  color: #0d6efd;
-  border-color: #0d6efd33;
-  background: #f4f8ff;
+  color: var(--accent-strong);
+  border-color: var(--border-accent);
+  background: var(--surface-soft-hover);
   transform: translateY(-1px);
 }
 
@@ -904,13 +913,13 @@ div.content-field.file-disk-page {
 }
 
 .icon-action--primary {
-  background: #eef6ff;
+  background: var(--surface-accent);
 }
 
 .table-header {
   font-size: 0.86rem;
   font-weight: 700;
-  color: #607080;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -924,21 +933,21 @@ div.content-field.file-disk-page {
   grid-template-columns: minmax(0, 1.8fr) var(--entry-meta-width) var(--entry-meta-width) var(--entry-actions-width);
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
-  border: 1px solid #edf1f5;
+  padding: 8px 11px;
+  border: 1px solid var(--border-muted);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--surface-card-strong);
   transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .entry-card:hover .entry-row {
-  background: #eef5ff;
-  border-color: #c8daf7;
-  box-shadow: 0 10px 24px rgba(13, 110, 253, 0.1);
+  background: var(--surface-soft-hover);
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-accent);
 }
 
 .entry-row--header {
-  margin: 10px 0 6px;
+  margin: 8px 0 4px;
   padding: 0 12px;
   border: 0;
   border-radius: 0;
@@ -959,12 +968,12 @@ div.content-field.file-disk-page {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #273240;
+  color: var(--text-primary);
   text-align: left;
 }
 
 .entry-name--interactive:hover {
-  color: #0d6efd;
+  color: var(--accent-strong);
 }
 
 .entry-name__text {
@@ -985,8 +994,8 @@ div.content-field.file-disk-page {
   min-width: 2.75rem;
   padding: 0.12rem 0.4rem;
   border-radius: 999px;
-  background: #eef2f7;
-  color: #536273;
+  background: var(--surface-soft);
+  color: var(--text-secondary);
   font-size: 0.66rem;
   font-weight: 700;
   text-align: center;
@@ -998,7 +1007,7 @@ div.content-field.file-disk-page {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.78rem;
 }
 
@@ -1006,7 +1015,7 @@ div.content-field.file-disk-page {
   display: none;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #7f8b99;
+  color: var(--text-faint);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -1039,7 +1048,7 @@ div.content-field.file-disk-page {
 
 .entry-actions--header {
   justify-content: flex-end;
-  color: #607080;
+  color: var(--text-muted);
 }
 
 :deep(.el-popover__reference) {
@@ -1062,7 +1071,8 @@ div.content-field.file-disk-page {
 .upload-content-card {
   margin: 18px;
   border-radius: 12px;
-  border-color: #edf1f5;
+  border-color: var(--border-muted);
+  background: var(--surface-card-muted);
 }
 
 .upload-actions {
@@ -1083,7 +1093,8 @@ div.content-field.file-disk-page {
 
 @media (max-width: 991px) {
   div.content-field.file-disk-page {
-    padding: 12px;
+    margin-top: 6px;
+    padding: 10px;
   }
 
   .entry-row--header {
@@ -1130,7 +1141,7 @@ div.content-field.file-disk-page {
 @media (max-width: 640px) {
   .disk-toolbar {
     align-items: stretch;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
 
   .breadcrumb-wrapper {
@@ -1143,7 +1154,7 @@ div.content-field.file-disk-page {
   }
 
   .entry-row {
-    padding: 10px 11px;
+    padding: 8px 10px;
   }
 
   .entry-name__text {
@@ -1156,7 +1167,7 @@ div.content-field.file-disk-page {
   }
 
   .upload-content-card {
-    margin: 14px;
+    margin: 12px;
   }
 
   .upload-progress {
@@ -1165,6 +1176,11 @@ div.content-field.file-disk-page {
 }
 
 @media (max-width: 480px) {
+  div.content-field.file-disk-page {
+    margin-top: 4px;
+    padding: 8px;
+  }
+
   :deep(.upload-modal .modal-dialog) {
     margin: 1rem;
     max-width: calc(100vw - 2rem);

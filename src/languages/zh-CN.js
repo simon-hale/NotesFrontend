@@ -3,6 +3,8 @@
     login: '登录',
     register: '注册',
     logout: '退出登录',
+    light: '浅色',
+    dark: '深色',
     confirm: '确认',
     cancel: '取消',
     close: '关闭',
@@ -19,9 +21,18 @@
     },
   },
   nav: {
+    title: '笔记空间',
     disk: '云盘',
     read: '阅读',
     account: '账户',
+    theme: '主题',
+    guest: '访客',
+    online: '已登录',
+    offline: '访客模式',
+  },
+  theme: {
+    switchToLight: '切换到浅色模式',
+    switchToDark: '切换到深色模式',
   },
   auth: {
     username: '用户名',

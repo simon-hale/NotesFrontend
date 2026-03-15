@@ -1,0 +1,234 @@
+:root {
+  color-scheme: light;
+  --app-bg:
+    radial-gradient(circle at top left, rgba(153, 203, 255, 0.34), transparent 34%),
+    radial-gradient(circle at top right, rgba(185, 232, 255, 0.28), transparent 28%),
+    linear-gradient(180deg, #f2f7fd 0%, #eaf1f8 100%);
+  --page-base: #edf3fa;
+  --surface-card: rgba(255, 255, 255, 0.88);
+  --surface-card-strong: #ffffff;
+  --surface-card-muted: #f6f9fc;
+  --surface-elevated: #ffffff;
+  --surface-soft: #eef3f8;
+  --surface-soft-hover: #e9f3ff;
+  --surface-accent: #eef6ff;
+  --surface-accent-strong: #edf4ff;
+  --surface-empty: #fafcff;
+  --surface-overlay: rgba(255, 255, 255, 0.72);
+  --border-soft: #e4ebf3;
+  --border-muted: #edf1f5;
+  --border-strong: #d8dee6;
+  --border-accent: #b8cdf1;
+  --text-primary: #223045;
+  --text-secondary: #556474;
+  --text-muted: #7b8794;
+  --text-faint: #8b98a8;
+  --text-accent: #174ea6;
+  --accent: #0f76ff;
+  --accent-strong: #0d6efd;
+  --accent-contrast: #ffffff;
+  --accent-soft: rgba(13, 110, 253, 0.12);
+  --success: #20dc6c;
+  --danger: #dc3545;
+  --warning: #f59f00;
+  --warning-ink: #6f4b00;
+  --warning-ink-strong: #3d3120;
+  --warning-ink-soft: #4f5865;
+  --warning-surface:
+    radial-gradient(circle at top right, rgba(255, 220, 120, 0.16), transparent 34%),
+    linear-gradient(180deg, #fffdf8 0%, #fff7e6 100%);
+  --warning-surface-soft: rgba(255, 255, 255, 0.78);
+  --warning-pill: rgba(255, 255, 255, 0.7);
+  --warning-border: rgba(213, 177, 93, 0.22);
+  --warning-inset: rgba(222, 193, 130, 0.22);
+  --warning-inset-strong: rgba(231, 217, 186, 0.5);
+  --shadow-soft: 0 14px 36px rgba(15, 23, 42, 0.08);
+  --shadow-medium: 0 12px 28px rgba(15, 23, 42, 0.06);
+  --shadow-accent: 0 10px 24px rgba(13, 110, 253, 0.1);
+  --shadow-warning: 0 12px 26px rgba(148, 107, 28, 0.08);
+  --close-filter: none;
+  --bs-body-bg: var(--page-base);
+  --bs-body-color: var(--text-primary);
+  --bs-secondary-color: var(--text-secondary);
+  --bs-secondary-bg: var(--surface-card-muted);
+  --bs-tertiary-bg: var(--surface-soft);
+  --bs-border-color: var(--border-soft);
+  --bs-emphasis-color: var(--text-primary);
+  --bs-card-bg: var(--surface-card-strong);
+  --bs-card-border-color: var(--border-soft);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --app-bg:
+    radial-gradient(circle at top left, rgba(34, 93, 160, 0.3), transparent 32%),
+    radial-gradient(circle at top right, rgba(26, 54, 89, 0.42), transparent 24%),
+    linear-gradient(180deg, #09111d 0%, #0f1725 100%);
+  --page-base: #09111d;
+  --surface-card: rgba(16, 24, 38, 0.88);
+  --surface-card-strong: #111b2a;
+  --surface-card-muted: #142134;
+  --surface-elevated: #162335;
+  --surface-soft: #18263a;
+  --surface-soft-hover: #1d314c;
+  --surface-accent: #17263d;
+  --surface-accent-strong: #1a2940;
+  --surface-empty: #101b2b;
+  --surface-overlay: rgba(17, 27, 42, 0.82);
+  --border-soft: #233246;
+  --border-muted: #1d2a3d;
+  --border-strong: #31465f;
+  --border-accent: #4a6ea0;
+  --text-primary: #edf4ff;
+  --text-secondary: #c4d0df;
+  --text-muted: #9eb0c5;
+  --text-faint: #7b8ea5;
+  --text-accent: #9bc2ff;
+  --accent: #8ebeff;
+  --accent-strong: #6ca9ff;
+  --accent-contrast: #08111f;
+  --accent-soft: rgba(108, 169, 255, 0.18);
+  --success: #5ee79b;
+  --danger: #ff8a97;
+  --warning: #ffc469;
+  --warning-ink: #ffd992;
+  --warning-ink-strong: #fff1c9;
+  --warning-ink-soft: #d1c4a8;
+  --warning-surface:
+    radial-gradient(circle at top right, rgba(203, 149, 34, 0.22), transparent 34%),
+    linear-gradient(180deg, #2a2114 0%, #1b160f 100%);
+  --warning-surface-soft: rgba(38, 31, 21, 0.92);
+  --warning-pill: rgba(69, 55, 31, 0.88);
+  --warning-border: rgba(201, 156, 63, 0.28);
+  --warning-inset: rgba(201, 156, 63, 0.28);
+  --warning-inset-strong: rgba(201, 156, 63, 0.22);
+  --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.34);
+  --shadow-medium: 0 16px 36px rgba(0, 0, 0, 0.24);
+  --shadow-accent: 0 12px 26px rgba(57, 123, 221, 0.22);
+  --shadow-warning: 0 14px 28px rgba(0, 0, 0, 0.28);
+  --close-filter: invert(1) grayscale(100%) brightness(180%);
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--app-bg);
+  background-color: var(--page-base);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: 'Trebuchet MS', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+.content-field .card {
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  background: var(--surface-card);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  box-shadow: var(--shadow-medium);
+}
+
+.content-field .card-body {
+  color: var(--text-primary);
+}
+
+.form-label {
+  color: var(--text-secondary);
+}
+
+.form-control,
+.form-select {
+  background-color: var(--surface-card-strong);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.form-control::placeholder,
+.form-select::placeholder {
+  color: var(--text-faint);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--surface-card-strong);
+  border-color: var(--accent-strong);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 0.25rem var(--accent-soft);
+}
+
+.modal-content {
+  border-color: var(--border-soft);
+  background: var(--surface-card-strong);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-soft);
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--border-soft);
+}
+
+.btn-close {
+  filter: var(--close-filter);
+}
+
+.markdown-body {
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6,
+.markdown-body strong,
+.markdown-body code {
+  color: var(--text-primary);
+}
+
+.markdown-body a {
+  color: var(--accent-strong);
+}
+
+.markdown-body hr,
+.markdown-body table th,
+.markdown-body table td,
+.markdown-body blockquote {
+  border-color: var(--border-soft) !important;
+}
+
+.markdown-body blockquote {
+  color: var(--text-muted);
+}
+
+.markdown-body pre,
+.markdown-body code,
+.hljs {
+  background: var(--surface-soft) !important;
+}
+
+:root[data-theme='dark'] .markdown-body pre,
+:root[data-theme='dark'] .markdown-body code,
+:root[data-theme='dark'] .hljs {
+  background: #0d1624 !important;
+  color: #dbe7f6 !important;
+}

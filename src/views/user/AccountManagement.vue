@@ -113,11 +113,15 @@ export default {
             setAppLocale(nextLocale);
         }
 
-        const logout = () => {
+        const clearUserState = () => {
             store.dispatch("cleaninfo");
             store.dispatch("cleanFirstLogin");
             store.dispatch("cleanPathsInfo");
             store.dispatch("cleanReadingInfo");
+        }
+
+        const logout = () => {
+            clearUserState();
             router.push({name: "accountmanagement"});
         }
 
@@ -137,10 +141,7 @@ export default {
                     if(resp.error_message !== "success"){
                         error_message.value = resp.error_message;
                     }else{
-                        store.dispatch('cleaninfo');
-                        store.dispatch("cleanFirstLogin");
-                        store.dispatch("cleanPathsInfo");
-                        store.dispatch("cleanReadingInfo");
+                        clearUserState();
                         router.push({name: 'accountmanagement'});
                     }
                 },
@@ -162,10 +163,7 @@ export default {
                 },
                 success(resp) {
                     if(resp.error_message === "success" || resp.error_message === "该用户已被删除"){
-                        store.dispatch('cleaninfo');
-                        store.dispatch("cleanFirstLogin");
-                        store.dispatch("cleanPathsInfo");
-                        store.dispatch("cleanReadingInfo");
+                        clearUserState();
                         router.push({name: 'accountmanagement'});
                     }else{
                         error_message.value = resp.error_message;
@@ -179,7 +177,6 @@ export default {
 
         return  {
             t,
-            locale,
             tabs,
             is_logined,
             error_message,
@@ -218,39 +215,39 @@ export default {
     width: 100%;
     min-height: 56px;
     padding: 0 16px;
-    border: 1px solid #e6ebf2;
+    border: 1px solid var(--border-soft);
     border-radius: 16px;
-    background: #ffffff;
-    color: #2f3a45;
+    background: var(--surface-card-strong);
+    color: var(--text-primary);
     text-align: left;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+    box-shadow: var(--shadow-medium);
     transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
 }
 
 .account-tab:hover {
-    border-color: #b8cdf1;
-    background: #edf4ff;
+    border-color: var(--border-accent);
+    background: var(--surface-accent-strong);
     transform: translateY(-1px);
-    box-shadow: 0 12px 26px rgba(13, 110, 253, 0.1);
+    box-shadow: var(--shadow-accent);
 }
 
 .account-tab--active {
-    border-color: #b8cdf1;
-    background: #edf4ff;
-    box-shadow: 0 12px 26px rgba(13, 110, 253, 0.1);
-    color: #174ea6;
+    border-color: var(--border-accent);
+    background: var(--surface-accent-strong);
+    box-shadow: var(--shadow-accent);
+    color: var(--text-accent);
 }
 
 .account-tab__rail {
     width: 4px;
     height: 24px;
     border-radius: 999px;
-    background: #d7e0ea;
+    background: var(--border-strong);
     flex-shrink: 0;
 }
 
 .account-tab--active .account-tab__rail {
-    background: #0d6efd;
+    background: var(--accent-strong);
 }
 
 .account-tab__label {
@@ -279,7 +276,7 @@ export default {
 
 .language-description,
 .language-current {
-    color: #5c6672;
+    color: var(--text-secondary);
 }
 
 .language-options {

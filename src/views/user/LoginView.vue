@@ -5,7 +5,7 @@
                 <form class="login-form">
                     <div class="mb-3">
                         <label for="username" class="form-label">{{ t('auth.username') }}</label>
-                        <input v-model="username" type="username" class="form-control login-input" id="username">
+                        <input v-model="username" type="text" class="form-control login-input" id="username">
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">{{ t('auth.password') }}</label>
@@ -63,7 +63,7 @@ export default {
                     if(resp.error_message === "success"){
                         let access = resp.token;
                         let is_logined = true;
-                        store.dispatch("login", {username, access, is_logined});
+                        store.dispatch("login", { username: username.value, access, is_logined });
                         store.commit("setFirstLogin");
                         router.push({name: "filedisk"});
                     }else{
@@ -111,10 +111,10 @@ export default {
 .login-form {
     width: 100%;
     padding: 20px 22px;
-    border: 1px solid #e6ecf3;
+    border: 1px solid var(--border-soft);
     border-radius: 18px;
-    background: linear-gradient(180deg, #fbfdff 0%, #f6f9fc 100%);
-    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+    background: linear-gradient(180deg, var(--surface-card-strong) 0%, var(--surface-card-muted) 100%);
+    box-shadow: var(--shadow-soft);
 }
 
 .login-input {
@@ -123,7 +123,7 @@ export default {
 }
 
 .warning-message {
-    color: red;
+    color: var(--danger);
     min-height: 24px;
     margin-bottom: 10px;
     font-size: 0.92rem;
@@ -142,14 +142,12 @@ export default {
     width: min(100%, 36rem);
     margin: 0 auto;
     padding: 16px 18px;
-    border: 1px solid rgba(213, 177, 93, 0.22);
+    border: 1px solid var(--warning-border);
     border-radius: 16px;
-    background:
-        radial-gradient(circle at top right, rgba(255, 220, 120, 0.16), transparent 34%),
-        linear-gradient(180deg, #fffdf8 0%, #fff7e6 100%);
+    background: var(--warning-surface);
     box-shadow:
-        0 12px 26px rgba(148, 107, 28, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.75);
+        var(--shadow-warning),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
     text-align: center;
 }
 
@@ -161,15 +159,15 @@ export default {
     padding: 0 10px;
     margin-bottom: 8px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.7);
-    color: #a66a00;
+    background: var(--warning-pill);
+    color: var(--warning-ink);
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.08em;
 }
 
 .teacher-notes__title {
-    color: #3d3120;
+    color: var(--warning-ink-strong);
     font-size: 0.96rem;
     font-weight: 700;
     line-height: 1.4;
@@ -179,15 +177,15 @@ export default {
     margin-top: 9px;
     padding: 8px 10px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.78);
-    color: #6f4b00;
+    background: var(--warning-surface-soft);
+    color: var(--warning-ink);
     font-weight: 700;
-    box-shadow: inset 0 0 0 1px rgba(222, 193, 130, 0.22);
+    box-shadow: inset 0 0 0 1px var(--warning-inset);
 }
 
 .teacher-notes__section-title {
     margin-top: 12px;
-    color: #4b3c28;
+    color: var(--warning-ink-strong);
     font-size: 0.86rem;
     font-weight: 700;
 }
@@ -201,11 +199,11 @@ export default {
 .teacher-notes__item {
     padding: 8px 10px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.72);
-    color: #4f5865;
+    background: var(--warning-surface-soft);
+    color: var(--warning-ink-soft);
     line-height: 1.5;
     font-size: 0.9rem;
-    box-shadow: inset 0 0 0 1px rgba(231, 217, 186, 0.5);
+    box-shadow: inset 0 0 0 1px var(--warning-inset-strong);
 }
 /* Teacher Notes Styles End */
 

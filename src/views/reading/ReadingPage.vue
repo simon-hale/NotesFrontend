@@ -1,8 +1,8 @@
 <template>
     <div ref="readingPageRef" class="container content-field reading-page" v-show="is_logined">
       <div class="viewer-shell" :style="{ minHeight: content_height }">
-        <vue-pdf-app v-show="is_pdf" class="reading-viewer" :pdf="pdf_url" :style="{ height: content_height }" @mouseup="handleSelect" />
-        <div class="markdown-body reading-viewer reading-viewer--markdown" v-if="is_markdown" v-html="html" :style="{ height: content_height, overflowY: 'auto' }" @mouseup="handleSelect"></div>
+        <vue-pdf-app v-show="is_pdf" class="reading-viewer" :pdf="pdf_url" :style="{ height: content_height }" />
+        <div class="markdown-body reading-viewer reading-viewer--markdown" v-if="is_markdown" v-html="html" :style="{ height: content_height, overflowY: 'auto' }"></div>
         <vue-office-docx
             class="reading-viewer"
             :src="word_url"
@@ -223,6 +223,14 @@ export default {
       router.push({name: 'accountmanagement'});
     }
 
+    const resetPreviewFlags = () => {
+      is_pdf.value = false;
+      is_markdown.value = false;
+      is_word.value = false;
+      is_excel.value = false;
+      is_ppt.value = false;
+    }
+
     const imgUrl = ref('');
 
     const handlePaste = (e) => {  
@@ -309,41 +317,22 @@ export default {
               })
             }else{
               file_type.value = resp.type;
+              resetPreviewFlags();
               if (file_type.value === 'pdf') {
                 pdf_url.value = resp.url;
-                is_markdown.value = false;
-                is_word.value = false;
-                is_excel.value = false;
-                is_ppt.value = false;
                 is_pdf.value = true;
               }else if (file_type.value === 'md') {
                 markdown_url.value = resp.url;
-                is_pdf.value = false;
-                is_word.value = false;
-                is_excel.value = false;
-                is_ppt.value = false;
                 is_markdown.value = true;
                 refreshMarkdown();
               }else if (file_type.value === 'docx') {
                 word_url.value = resp.url;
-                is_markdown.value = false;
-                is_pdf.value = false;
-                is_excel.value = false;
-                is_ppt.value = false;
                 is_word.value = true;
               }else if (file_type.value === 'xlsx' || file_type.value === 'xls') {
                 excel_url.value = resp.url;
-                is_markdown.value = false;
-                is_pdf.value = false;
-                is_word.value = false;
-                is_ppt.value = false;
                 is_excel.value = true;
               }else if (file_type.value === 'pptx') {
                 ppt_url.value = resp.url;
-                is_markdown.value = false;
-                is_pdf.value = false;
-                is_word.value = false;
-                is_excel.value = false;
                 is_ppt.value = true;
               }else{
                 ElMessage({
@@ -404,37 +393,6 @@ export default {
       }
     }
 
-    const selectedText = ref('')
-
-    const handleSelect = () => {
-      const sel = window.getSelection()
-      if (!sel || sel.isCollapsed || sel.type !== 'Range') return
-
-      const range = sel.getRangeAt(0)
-      let node = range.commonAncestorContainer
-
-      if (node.nodeType === Node.TEXT_NODE) {
-        node = node.parentNode
-      }
-
-      const inPdf = node.closest('.textLayer')
-      const inMarkdown = node.closest('.markdown-body')
-
-      if (!inPdf && !inMarkdown) return
-
-      const text = normalizeText(sel.toString())
-      if (text.length > 0) {
-        selectedText.value = text
-      }
-    }
-
-    const normalizeText = (text) => {
-      return text
-        .replace(/\s+/g, ' ')
-        .replace(/([a-zA-Z])\s+([a-zA-Z])/g, '$1$2')
-        .trim()
-    }
-
     return{
       t,
       RefreshRight,
@@ -449,12 +407,9 @@ export default {
       is_excel,
       is_ppt,
       pdf_url,
-      markdown_url,
       word_url,
       excel_url,
       ppt_url,
-      file_name,
-      file_type,
       show_navbar,
       content_height,
       imageDialogVisible,
@@ -465,7 +420,6 @@ export default {
       showNavbar,
       unshowNavbar,
       go_to_login,
-      handlePaste,
       handleDialogClose,
       dialogWidth,
       dialogTop,
@@ -474,9 +428,6 @@ export default {
       imgUrl,
       getFileURL,
       html,
-      refreshMarkdown,
-      selectedText,
-      handleSelect,
     }
   }
 }
@@ -489,8 +440,12 @@ div.content-field.reading-page {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #ffffff;
+  border: 1px solid var(--border-soft);
   border-radius: 18px;
+  background: var(--surface-card);
+  box-shadow: var(--shadow-medium);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
 }
 
 .reading-toolbar {
@@ -500,9 +455,9 @@ div.content-field.reading-page {
   gap: 10px;
   flex-wrap: wrap;
   padding: 8px 10px;
-  border: 1px solid #e7edf4;
+  border: 1px solid var(--border-soft);
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--surface-card-strong);
 }
 
 .reading-toolbar--footer {
@@ -539,25 +494,25 @@ div.content-field.reading-page {
   white-space: nowrap;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #223045;
+  color: var(--text-primary);
 }
 
 .file-tip {
   flex-shrink: 0;
   padding: 0.15rem 0.55rem;
-  border: 1px solid #e7edf4;
+  border: 1px solid var(--border-soft);
   border-radius: 999px;
-  background: #ffffff;
-  color: #7b8794;
+  background: var(--surface-card-muted);
+  color: var(--text-muted);
   font-size: 0.76rem;
   white-space: nowrap;
 }
 
 .viewer-shell {
   overflow: hidden;
-  border: 1px solid #edf1f5;
+  border: 1px solid var(--border-muted);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--surface-card-strong);
 }
 
 .reading-viewer {
@@ -577,7 +532,7 @@ div.content-field.reading-page {
   gap: 12px;
   padding: 40px 24px;
   text-align: center;
-  background: #fafcff;
+  background: var(--surface-empty);
 }
 
 .empty-icon {
@@ -587,13 +542,13 @@ div.content-field.reading-page {
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  background: #eef3f8;
-  color: #607080;
+  background: var(--surface-soft);
+  color: var(--text-muted);
 }
 
 .empty-text {
   font-size: 15px;
-  color: #495057;
+  color: var(--text-secondary);
   letter-spacing: 0.2px;
 }
 

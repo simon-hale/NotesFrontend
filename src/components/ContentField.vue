@@ -18,6 +18,12 @@ export default {
 
 <style scoped>
 div.content-field {
-    margin-top: 20px;
+    margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+    div.content-field {
+        margin-top: 8px;
+    }
 }
 </style>
