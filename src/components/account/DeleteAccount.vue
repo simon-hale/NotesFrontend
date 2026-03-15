@@ -15,7 +15,7 @@
                     {{ t('deleteAccount.modalBody') }}
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ t('common.close') }}</button>
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal">{{ t('common.close') }}</button>
                     <button data-bs-dismiss="modal" v-on:click="delete_account" class="btn btn-primary">{{ t('deleteAccount.confirmSecond') }}</button>
                 </div>
             </div>

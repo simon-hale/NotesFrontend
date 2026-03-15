@@ -15,14 +15,6 @@
             </aside>
 
             <section class="account-content">
-                <ContentField v-if="active_tab === 'changePassword'">
-                    <ChangePassword v-on:change_password="change_password" v-bind:error_message="error_message"></ChangePassword>
-                </ContentField>
-
-                <ContentField v-if="active_tab === 'deleteAccount'">
-                    <DeleteAccount v-on:delete_account="delete_account"></DeleteAccount>
-                </ContentField>
-
                 <ContentField v-if="active_tab === 'language'">
                     <div class="language-panel">
                         <div class="language-title">{{ t('account.languagePanelTitle') }}</div>
@@ -44,7 +36,15 @@
                     </div>
                 </ContentField>
 
-                <ContentField v-if="active_tab === 'logout'">
+                <ContentField v-else-if="active_tab === 'changePassword'">
+                    <ChangePassword v-on:change_password="change_password" v-bind:error_message="error_message"></ChangePassword>
+                </ContentField>
+
+                <ContentField v-else-if="active_tab === 'deleteAccount'">
+                    <DeleteAccount v-on:delete_account="delete_account"></DeleteAccount>
+                </ContentField>
+
+                <ContentField v-else-if="active_tab === 'logout'">
                     <button type="button" class="btn btn-warning" v-on:click="logout">
                         {{ t('account.logoutButton') }}
                     </button>
@@ -94,9 +94,9 @@ export default {
         let is_login_page = ref(true);
 
         const tabs = [
+            { key: 'language', labelKey: 'account.language' },
             { key: 'changePassword', labelKey: 'account.changePassword' },
             { key: 'deleteAccount', labelKey: 'account.deleteAccount' },
-            { key: 'language', labelKey: 'account.language' },
             { key: 'logout', labelKey: 'account.logout' },
         ];
 
