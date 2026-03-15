@@ -27,7 +27,12 @@
                                 v-for="option in language_options"
                                 :key="option.value"
                                 type="button"
-                                :class="locale === option.value ? 'btn btn-primary language-button' : 'btn btn-outline-secondary language-button'"
+                                :class="[
+                                    'btn',
+                                    'language-button',
+                                    locale === option.value ? 'language-button--active' : 'language-button--inactive',
+                                ]"
+                                :aria-pressed="locale === option.value"
                                 @click="change_locale(option.value)"
                             >
                                 {{ t(option.labelKey) }}
@@ -177,6 +182,7 @@ export default {
 
         return  {
             t,
+            locale,
             tabs,
             is_logined,
             error_message,
@@ -287,6 +293,38 @@ export default {
 
 .language-button {
     min-width: 140px;
+    border-radius: 999px;
+    border-width: 1px;
+    font-weight: 700;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.language-button:hover {
+    transform: translateY(-1px);
+}
+
+.language-button--inactive {
+    border-color: var(--border-strong);
+    background: var(--surface-card-strong);
+    color: var(--text-primary);
+}
+
+.language-button--inactive:hover {
+    border-color: var(--border-accent);
+    background: var(--surface-soft-hover);
+    color: var(--text-accent);
+}
+
+.language-button--active {
+    border-color: var(--border-accent);
+    background: var(--surface-soft-hover);
+    color: var(--text-accent);
+}
+
+.language-button--active:hover {
+    border-color: var(--border-accent);
+    background: var(--surface-soft-hover);
+    color: var(--text-accent);
 }
 
 .auth-switcher {
