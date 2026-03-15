@@ -90,7 +90,7 @@ export default {
         const { t, locale } = useI18n();
         let is_logined = computed(() => store.state.user.is_logined);
         let error_message = ref('');
-        let active_tab = ref('changePassword');
+        let active_tab = ref('language');
         let is_login_page = ref(true);
 
         const tabs = [
