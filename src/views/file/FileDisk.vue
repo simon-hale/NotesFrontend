@@ -347,6 +347,7 @@ export default {
       ElMessageBox.prompt(t('fileDisk.changeDirectoryPrompt'), t('fileDisk.changeDirectoryTitle'), {
         confirmButtonText: t('common.confirm'),
         cancelButtonText: t('common.cancel'),
+        draggable: true,
 
         inputValue: name,
 
@@ -396,6 +397,7 @@ export default {
       ElMessageBox.prompt(t('fileDisk.changeFilePrompt'), t('fileDisk.changeFileTitle'), {
         confirmButtonText: t('common.confirm'),
         cancelButtonText: t('common.cancel'),
+        draggable: true,
 
         inputValue: name,
 
@@ -1128,6 +1130,7 @@ div.content-field.file-disk-page {
 @media (max-width: 640px) {
   .disk-toolbar {
     align-items: stretch;
+    margin-bottom: 12px;
   }
 
   .breadcrumb-wrapper {
