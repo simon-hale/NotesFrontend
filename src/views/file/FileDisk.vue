@@ -864,11 +864,14 @@ div.content-field.file-disk-page {
 }
 
 .breadcrumb-scroll {
+  display: flex;
+  align-items: center;
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 2.25rem;
   overflow-x: auto;
   overflow-y: visible;
-  padding: 0 0 4px;
+  padding: 0;
 }
 
 :deep(.breadcrumb-scroll .el-breadcrumb) {
@@ -880,8 +883,17 @@ div.content-field.file-disk-page {
   min-height: 1.9rem;
 }
 
+:deep(.breadcrumb-scroll .el-breadcrumb__item) {
+  display: inline-flex;
+  align-items: center;
+}
+
 :deep(.ep-breadcrumb-item .el-breadcrumb__inner) {
+  display: inline-flex;
+  align-items: center;
   max-width: min(18rem, 50vw);
+  min-width: 0;
+  min-height: 1.5rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -891,16 +903,26 @@ div.content-field.file-disk-page {
   transition: color 0.15s ease;
 }
 
+:deep(.breadcrumb-scroll .el-breadcrumb__separator) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
 :deep(.ep-breadcrumb-item .el-breadcrumb__inner:hover) {
   color: var(--accent-strong);
 }
 
 .breadcrumb-item-text {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.5;
 }
 
 .page-actions {

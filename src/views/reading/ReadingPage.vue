@@ -48,36 +48,56 @@
         </div>
       </div>
 
-      <el-dialog class="resizable-dialog" v-model="imageDialogVisible" 
+      <el-dialog
+        v-if="isPageActive"
+        class="resizable-dialog"
+        v-model="imageDialogVisible"
         :title="t('reading.imageBox')"
         draggable
         :top="dialogTop"
         :width="dialogWidth"
+        append-to-body
         :modal="false"
         :overflow="true"
         :close-on-click-modal="false" 
         :close-on-press-escape="true"
         :modal-penetrable="true" 
         :destroy-on-close="true" 
+        :z-index="IMAGE_BOX_Z_INDEX"
         @close="handleDialogClose"
-        lock-scroll="false">
-        <div class="paste-area">
-          <el-empty v-if="!imgUrl" class="empty-holder" :description="t('reading.pasteImageHere')" />
-          <el-image
+        lock-scroll="false"
+      >
+        <div
+          :class="imgUrl ? 'paste-area paste-area--image' : 'paste-area paste-area--empty'"
+          :style="imgUrl ? null : emptyBoxStyle"
+        >
+          <el-empty
+            v-if="!imgUrl"
+            class="empty-holder"
+            :style="emptyBoxStyle"
+            :image-size="emptyImageSize"
+          >
+            <template #description>
+              <p class="empty-holder__description" :style="emptyDescriptionStyle">
+                {{ t('reading.pasteImageHere') }}
+              </p>
+            </template>
+          </el-empty>
+          <div
             v-else
-            :src="imgUrl"
-            fit="contain"
-            style="max-width: 90vw; max-height: 80vh; display: block"
-            :hide-on-click-modal="true"
-            :close-on-press-escape="true"
-            :zoom-rate="1.1"
-            :scale="1"
-            :min-scale="0.2"
-            :max-scale="2"
-            @load="onImageLoad"
-            @wheel="changeZoom"
-            lazy
-          />
+            class="image-stage"
+            :style="imageStageStyle"
+            @wheel.prevent.stop="changeZoom"
+          >
+            <img
+              :src="imgUrl"
+              class="image-box-image"
+              :style="imageStageStyle"
+              alt=""
+              draggable="false"
+              @load="onImageLoad"
+            >
+          </div>
         </div>
       </el-dialog>
     </div>
@@ -142,6 +162,9 @@ export default {
     let imageDialogVisible = ref(false);
     let readingPageRef = ref(null);
     let toolbarRef = ref(null);
+    let isPageActive = ref(false);
+
+    const IMAGE_BOX_Z_INDEX = 3000;
 
     const has_preview = computed(() => is_pdf.value || is_markdown.value || is_word.value || is_excel.value || is_ppt.value);
     const display_file_name = computed(() => file_name.value || t('reading.emptyState'));
@@ -182,11 +205,37 @@ export default {
       toolbarResizeObserver = null;
     }
 
+    const scheduleImageBoxUpdate = () => {
+      nextTick(() => {
+        window.requestAnimationFrame(() => {
+          reshapeImageBox();
+        });
+      });
+    }
+
+    const getInitialImageBoxSide = () => {
+      if (typeof window === 'undefined') return 240;
+
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      return Math.max(1, Math.floor(Math.min(viewportWidth, viewportHeight) / 4));
+    }
+
+    const updateInitialImageBoxSize = () => {
+      initialImageBoxSide.value = getInitialImageBoxSide();
+    }
+
     const handleViewportChange = () => {
+      updateInitialImageBoxSize();
       scheduleContentHeightUpdate();
+      if (imageDialogVisible.value && imgUrl.value) {
+        scheduleImageBoxUpdate();
+      }
     }
 
     onActivated(() => {
+      isPageActive.value = true;
+      updateInitialImageBoxSize();
       document.addEventListener('paste', handlePaste);
       window.addEventListener('resize', handleViewportChange);
       window.addEventListener('orientationchange', handleViewportChange);
@@ -195,6 +244,9 @@ export default {
     })
 
     onDeactivated(() => {
+      isPageActive.value = false;
+      imageDialogVisible.value = false;
+      handleDialogClose();
       showNavbar();
       document.removeEventListener('paste', handlePaste);
       window.removeEventListener('resize', handleViewportChange);
@@ -203,6 +255,9 @@ export default {
     })
 
     onBeforeUnmount(() => {
+      isPageActive.value = false;
+      imageDialogVisible.value = false;
+      handleDialogClose();
       document.removeEventListener('paste', handlePaste);
       window.removeEventListener('resize', handleViewportChange);
       window.removeEventListener('orientationchange', handleViewportChange);
@@ -235,6 +290,9 @@ export default {
 
     const handlePaste = (e) => {  
       if (imgUrl.value) URL.revokeObjectURL(imgUrl.value);  
+      imageBoxWidth.value = 0;
+      imageBoxHeight.value = 0;
+      imageRef.value = null;
       const items = e.clipboardData?.items;
 
       if (!items) return;
@@ -262,6 +320,8 @@ export default {
       zoom.value = DEFAULT_ZOOM;
       dialogWidth.value = DEFAULT_DIALOG_WIDTH;
       dialogTop.value = DEFAULT_DIALOG_TOP;
+      imageBoxWidth.value = 0;
+      imageBoxHeight.value = 0;
       imageRef.value = null
     }
 
@@ -269,19 +329,59 @@ export default {
     const DEFAULT_DIALOG_WIDTH = 'fit-content';
     const DEFAULT_DIALOG_TOP = '35vh';
     const DEFAULT_ZOOM = 0.5;
+    const MIN_ZOOM = 0.2;
+    const MAX_ZOOM = 1;
+    const ZOOM_STEP = 0.1;
+    const IMAGE_STAGE_MAX_WIDTH_RATIO = 0.9;
+    const IMAGE_STAGE_MAX_HEIGHT_RATIO = 0.8;
     let dialogWidth = ref(DEFAULT_DIALOG_WIDTH);
     let dialogTop = ref(DEFAULT_DIALOG_TOP);
     let zoom = ref(DEFAULT_ZOOM);
+    let initialImageBoxSide = ref(getInitialImageBoxSide());
+    let imageBoxWidth = ref(0);
+    let imageBoxHeight = ref(0);
+    const emptyImageSize = computed(() => Math.max(28, Math.round(initialImageBoxSide.value * 0.38)));
+
+    const emptyBoxStyle = computed(() => {
+      const side = initialImageBoxSide.value;
+      return {
+        width: `${side}px`,
+        height: `${side}px`,
+        '--empty-holder-padding': `${Math.max(8, Math.round(side * 0.08))}px`,
+      };
+    });
+
+    const emptyDescriptionStyle = computed(() => {
+      const side = initialImageBoxSide.value;
+      return {
+        fontSize: `${Math.max(10, Math.round(side * 0.08))}px`,
+        lineHeight: side <= 120 ? '1.25' : '1.35',
+      };
+    });
+
+    const imageStageStyle = computed(() => {
+      if (!imageBoxWidth.value || !imageBoxHeight.value) return {};
+
+      return {
+        width: `${imageBoxWidth.value}px`,
+        height: `${imageBoxHeight.value}px`,
+      };
+    });
 
     function changeZoom (e) {
       if (!imageRef.value) return;
 
+      e.preventDefault();
+      e.stopPropagation();
+
       const step = Math.sign(e.deltaY);
-      const nextZoom = zoom.value - step * 0.1;
-      if (nextZoom >= 0.2 && nextZoom <= 1) {
-        zoom.value = nextZoom;
-        reshapeImageBox();
-      }
+      if (!step) return;
+
+      const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number((zoom.value - step * ZOOM_STEP).toFixed(2))));
+      if (nextZoom === zoom.value) return;
+
+      zoom.value = nextZoom;
+      reshapeImageBox();
     }
 
     function onImageLoad(e) {
@@ -293,9 +393,19 @@ export default {
     const reshapeImageBox = () => {
       if (!imageRef.value) return;
 
-      const maxW = window.innerWidth * zoom.value;
-      const w = Math.min(imageRef.value.naturalWidth, maxW);
-      dialogWidth.value = `${w}px`;
+      const naturalWidth = imageRef.value.naturalWidth;
+      const naturalHeight = imageRef.value.naturalHeight;
+      if (!naturalWidth || !naturalHeight) return;
+
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || naturalWidth;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || naturalHeight;
+      const maxWidth = viewportWidth * IMAGE_STAGE_MAX_WIDTH_RATIO * zoom.value;
+      const maxHeight = viewportHeight * IMAGE_STAGE_MAX_HEIGHT_RATIO * zoom.value;
+      const scale = Math.min(maxWidth / naturalWidth, maxHeight / naturalHeight, 1);
+
+      imageBoxWidth.value = Math.max(1, Math.round(naturalWidth * scale));
+      imageBoxHeight.value = Math.max(1, Math.round(naturalHeight * scale));
+      dialogWidth.value = `${imageBoxWidth.value}px`;
     }
     
     const getFileURL = () => {
@@ -415,6 +525,8 @@ export default {
       imageDialogVisible,
       readingPageRef,
       toolbarRef,
+      isPageActive,
+      IMAGE_BOX_Z_INDEX,
       has_preview,
       display_file_name,
       showNavbar,
@@ -425,6 +537,10 @@ export default {
       dialogTop,
       changeZoom,
       onImageLoad,
+      emptyBoxStyle,
+      emptyImageSize,
+      emptyDescriptionStyle,
+      imageStageStyle,
       imgUrl,
       getFileURL,
       html,
@@ -553,7 +669,6 @@ div.content-field.reading-page {
 }
 
 .resizable-dialog {
-  width: fit-content !important;
   max-width: 90vw;
 }
 
@@ -565,15 +680,61 @@ div.content-field.reading-page {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: min(60vh, 32rem);
 }
 
-.empty-holder {
-  width: min(320px, 78vw);
-  height: min(240px, 40vh);
+.paste-area--empty {
+  min-height: 0;
+}
+
+.paste-area--image {
+  line-height: 0;
+}
+
+.image-stage {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.image-box-image {
+  display: block;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  user-select: none;
+}
+
+.empty-holder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.empty-holder .el-empty) {
+  width: 100%;
+  height: 100%;
+  padding: var(--empty-holder-padding);
+  box-sizing: border-box;
+}
+
+:deep(.empty-holder .el-empty__image) {
+  margin-bottom: clamp(6px, 3%, 12px);
+}
+
+:deep(.empty-holder .el-empty__description) {
+  margin-top: 0;
+}
+
+.empty-holder__description {
+  margin: 0;
+  color: var(--text-muted);
+  text-align: center;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 @media (max-width: 768px) {
