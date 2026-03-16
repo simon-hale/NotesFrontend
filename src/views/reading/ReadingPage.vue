@@ -102,13 +102,13 @@ import 'katex/dist/katex.min.css';
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import DOMPurify from 'dompurify';
-import { ElMessage } from 'element-plus';
 import { RefreshRight, Picture, PictureFilled, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { computed, ref, onActivated, onDeactivated, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import $ from 'jquery';
 import router from '@/router';
+import ElMessage from '@/utils/message';
 import { BASE_URL } from "@/config"
 
 export default {

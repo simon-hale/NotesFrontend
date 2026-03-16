@@ -247,11 +247,12 @@
 <script>
 import ContentField from '@/components/ContentField.vue';
 import { UploadFilled } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import router from '@/router';
+import ElMessage from '@/utils/message';
 import $ from 'jquery';
 import OSS from 'ali-oss';
 import { BASE_URL } from "@/config"
