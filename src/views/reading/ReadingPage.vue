@@ -42,7 +42,23 @@
           <span class="file-tip">{{ t('reading.fileTip') }}</span>
         </div>
         <div class="toolbar-actions">
-          <el-button size="small" round :icon="imageDialogVisible ? PictureFilled : Picture" class="toolbar-button !ml-0" @click="imageDialogVisible = !imageDialogVisible" />
+          <el-button
+            size="small"
+            round
+            :icon="Picture"
+            :class="['toolbar-button', '!ml-0', { 'toolbar-button--active': imageDialogVisible }]"
+            @click="imageDialogVisible = !imageDialogVisible"
+          />
+          <el-button
+            size="small"
+            :class="['toolbar-button', { 'toolbar-button--active': isFullscreen }]"
+            circle
+            :icon="FullScreen"
+            :title="fullscreenLabel"
+            :aria-label="fullscreenLabel"
+            :aria-pressed="isFullscreen"
+            @click="toggleFullscreen"
+          />
           <el-button size="small" :icon="show_navbar ? ArrowUp : ArrowDown" class="toolbar-button" @click="show_navbar ? unshowNavbar() : showNavbar()" circle />
           <el-button size="small" :icon="RefreshRight" class="toolbar-button" @click="getFileURL" circle />
         </div>
@@ -122,7 +138,7 @@ import 'katex/dist/katex.min.css';
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import DOMPurify from 'dompurify';
-import { RefreshRight, Picture, PictureFilled, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import { RefreshRight, Picture, ArrowUp, ArrowDown, FullScreen } from '@element-plus/icons-vue'
 import { computed, ref, onActivated, onDeactivated, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
@@ -163,11 +179,13 @@ export default {
     let readingPageRef = ref(null);
     let toolbarRef = ref(null);
     let isPageActive = ref(false);
+    let isFullscreen = ref(false);
 
     const IMAGE_BOX_Z_INDEX = 3000;
 
     const has_preview = computed(() => is_pdf.value || is_markdown.value || is_word.value || is_excel.value || is_ppt.value);
     const display_file_name = computed(() => file_name.value || t('reading.emptyState'));
+    const fullscreenLabel = computed(() => t(isFullscreen.value ? 'reading.exitFullscreen' : 'reading.enterFullscreen'));
 
     let toolbarResizeObserver = null;
 
@@ -233,13 +251,90 @@ export default {
       }
     }
 
+    const getFullscreenElement = () => {
+      if (typeof document === 'undefined') return null;
+      return document.fullscreenElement || document.webkitFullscreenElement || null;
+    }
+
+    const syncFullscreenState = () => {
+      isFullscreen.value = Boolean(getFullscreenElement());
+      scheduleContentHeightUpdate();
+    }
+
+    const requestDocumentFullscreen = async () => {
+      if (typeof document === 'undefined') return false;
+
+      const root = document.documentElement;
+      if (root.requestFullscreen) {
+        await root.requestFullscreen();
+        return true;
+      }
+
+      if (root.webkitRequestFullscreen) {
+        await root.webkitRequestFullscreen();
+        return true;
+      }
+
+      return false;
+    }
+
+    const exitDocumentFullscreen = async () => {
+      if (typeof document === 'undefined') return false;
+
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+        return true;
+      }
+
+      if (document.webkitExitFullscreen) {
+        await document.webkitExitFullscreen();
+        return true;
+      }
+
+      return false;
+    }
+
+    const toggleFullscreen = async () => {
+      try {
+        const success = getFullscreenElement()
+          ? await exitDocumentFullscreen()
+          : await requestDocumentFullscreen();
+
+        if (!success) {
+          ElMessage.error(t('reading.fullscreenFailed'));
+          return;
+        }
+
+        syncFullscreenState();
+      } catch {
+        ElMessage.error(t('reading.fullscreenFailed'));
+      }
+    }
+
+    const exitFullscreenIfActive = async () => {
+      if (!getFullscreenElement()) {
+        isFullscreen.value = false;
+        return;
+      }
+
+      try {
+        await exitDocumentFullscreen();
+      } finally {
+        isFullscreen.value = false;
+        scheduleContentHeightUpdate();
+      }
+    }
+
     onActivated(() => {
       isPageActive.value = true;
       updateInitialImageBoxSize();
       document.addEventListener('paste', handlePaste);
+      document.addEventListener('fullscreenchange', syncFullscreenState);
+      document.addEventListener('webkitfullscreenchange', syncFullscreenState);
       window.addEventListener('resize', handleViewportChange);
       window.addEventListener('orientationchange', handleViewportChange);
       bindToolbarResize();
+      syncFullscreenState();
       scheduleContentHeightUpdate();
     })
 
@@ -249,9 +344,12 @@ export default {
       handleDialogClose();
       showNavbar();
       document.removeEventListener('paste', handlePaste);
+      document.removeEventListener('fullscreenchange', syncFullscreenState);
+      document.removeEventListener('webkitfullscreenchange', syncFullscreenState);
       window.removeEventListener('resize', handleViewportChange);
       window.removeEventListener('orientationchange', handleViewportChange);
       unbindToolbarResize();
+      exitFullscreenIfActive();
     })
 
     onBeforeUnmount(() => {
@@ -259,9 +357,12 @@ export default {
       imageDialogVisible.value = false;
       handleDialogClose();
       document.removeEventListener('paste', handlePaste);
+      document.removeEventListener('fullscreenchange', syncFullscreenState);
+      document.removeEventListener('webkitfullscreenchange', syncFullscreenState);
       window.removeEventListener('resize', handleViewportChange);
       window.removeEventListener('orientationchange', handleViewportChange);
       unbindToolbarResize();
+      exitFullscreenIfActive();
     })
 
     const showNavbar = () => {
@@ -507,9 +608,9 @@ export default {
       t,
       RefreshRight,
       Picture,
-      PictureFilled,
       ArrowUp,
       ArrowDown,
+      FullScreen,
       is_logined,
       is_pdf,
       is_markdown,
@@ -526,11 +627,14 @@ export default {
       readingPageRef,
       toolbarRef,
       isPageActive,
+      isFullscreen,
       IMAGE_BOX_Z_INDEX,
       has_preview,
       display_file_name,
+      fullscreenLabel,
       showNavbar,
       unshowNavbar,
+      toggleFullscreen,
       go_to_login,
       handleDialogClose,
       dialogWidth,
@@ -590,6 +694,18 @@ div.content-field.reading-page {
 
 .toolbar-button {
   margin-left: 0 !important;
+}
+
+.toolbar-button--active {
+  --el-button-bg-color: var(--surface-accent-strong);
+  --el-button-border-color: var(--border-accent);
+  --el-button-text-color: var(--accent-strong);
+  --el-button-hover-bg-color: var(--surface-accent-strong);
+  --el-button-hover-border-color: var(--border-accent);
+  --el-button-hover-text-color: var(--accent-strong);
+  --el-button-active-bg-color: var(--surface-accent-strong);
+  --el-button-active-border-color: var(--border-accent);
+  --el-button-active-text-color: var(--accent-strong);
 }
 
 .reading-title-wrap {
