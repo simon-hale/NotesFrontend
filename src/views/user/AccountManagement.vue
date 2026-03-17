@@ -50,7 +50,7 @@
                 </ContentField>
 
                 <ContentField v-else-if="active_tab === 'logout'">
-                    <button type="button" class="btn btn-warning" v-on:click="logout">
+                    <button type="button" class="btn btn-warning logout-trigger" v-on:click="logout">
                         {{ t('account.logoutButton') }}
                     </button>
                 </ContentField>
@@ -58,12 +58,28 @@
         </div>
     </ContentField>
 
-    <LoginView v-else-if="is_login_page" class="text-center" />
-    <RegisterView v-else class="text-center" @change_to_login_page="is_login_page = true" />
+    <div v-else class="auth-entry">
+        <LoginView v-if="is_login_page" class="text-center auth-view" />
+        <RegisterView v-else class="text-center auth-view" @change_to_login_page="is_login_page = true" />
 
-    <div class="text-center auth-switcher">
-        <el-button type="warning" v-if="!is_logined && is_login_page" @click="is_login_page = false" round>{{ t('common.register') }}</el-button>
-        <el-button type="primary" v-if="!is_logined && !is_login_page" @click="is_login_page = true" round>{{ t('common.login') }}</el-button>
+        <div class="auth-switcher">
+            <button
+                type="button"
+                :class="is_login_page ? 'auth-switcher__button auth-switcher__button--active' : 'auth-switcher__button'"
+                :aria-pressed="is_login_page"
+                @click="is_login_page = true"
+            >
+                {{ t('common.login') }}
+            </button>
+            <button
+                type="button"
+                :class="!is_login_page ? 'auth-switcher__button auth-switcher__button--active' : 'auth-switcher__button'"
+                :aria-pressed="!is_login_page"
+                @click="is_login_page = false"
+            >
+                {{ t('common.register') }}
+            </button>
+        </div>
     </div>
 </template>
 
@@ -327,8 +343,70 @@ export default {
     color: var(--text-accent);
 }
 
+.auth-entry {
+    margin-top: 0;
+}
+
 .auth-switcher {
-    margin-top: 15px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    width: min(100%, 28rem);
+    margin: 12px auto 0;
+    padding: 6px;
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    background: var(--surface-card);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(18px) saturate(145%);
+    -webkit-backdrop-filter: blur(18px) saturate(145%);
+}
+
+.auth-switcher__button {
+    min-height: 46px;
+    padding: 0 16px;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 700;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.auth-switcher__button:hover {
+    background: var(--surface-soft-hover);
+    color: var(--text-accent);
+    transform: translateY(-1px);
+}
+
+.auth-switcher__button--active {
+    border-color: var(--border-accent);
+    background: var(--surface-accent-strong);
+    color: var(--accent-strong);
+    box-shadow: var(--shadow-accent);
+}
+
+.auth-switcher__button--active:hover {
+    background: var(--surface-accent-strong);
+    color: var(--accent-strong);
+}
+
+.auth-entry :deep(.auth-page) {
+    margin-top: 20px;
+}
+
+.logout-trigger {
+    border-color: var(--warning);
+    background: var(--warning);
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 10px 24px rgba(255, 191, 0, 0.354);
+}
+
+.logout-trigger:hover {
+    border-color: #ffd000;
+    background: #ffd000;
+    color: #fff;
 }
 
 @media (max-width: 991px) {
@@ -343,6 +421,19 @@ export default {
 }
 
 @media (max-width: 576px) {
+    .auth-switcher {
+        width: min(100%, 30rem);
+        padding: 5px;
+        border-radius: 16px;
+    }
+
+    .auth-switcher__button {
+        min-height: 44px;
+        padding: 0 14px;
+        border-radius: 12px;
+        font-size: 0.95rem;
+    }
+
     .account-tab {
         min-height: 50px;
         padding: 0 14px;

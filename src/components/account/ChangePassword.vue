@@ -14,7 +14,7 @@
         <div class="warning-message">{{ t('changePassword.warning') }}</div>
         <div class="error-message">{{ error_message }}</div>
     </form>
-    <button v-on:click.prevent="change_password" class="btn btn-primary">{{ t('changePassword.submit') }}</button>
+    <button v-on:click.prevent="change_password" class="btn btn-primary change-password-trigger">{{ t('changePassword.submit') }}</button>
 </template>
 
 <script>
@@ -62,5 +62,19 @@ export default {
     color: var(--danger);
     display: inline-block;
     margin-left: 6px;
+}
+
+.change-password-trigger {
+    border-color: #0d6efd;
+    background: #0d6efd;
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 10px 24px rgba(48, 131, 255, 0.266);
+}
+
+.change-password-trigger:hover {
+    border-color: #5396fb;
+    background: #5396fb;
+    color: #fff;
 }
 </style>

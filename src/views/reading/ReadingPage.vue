@@ -117,9 +117,11 @@
         </div>
       </el-dialog>
     </div>
-    <ContentField v-show="!is_logined" class="text-center">
-        {{ t('auth.loginFirst') }}
-        <div><el-button type="primary" round @click="go_to_login" style="margin-top: 10px;">{{ t('common.login') }}</el-button></div>
+    <ContentField v-show="!is_logined" class="text-center login-reminder-field">
+        <div class="login-reminder-content">
+          <div>{{ t('auth.loginFirst') }}</div>
+          <el-button class="login-reminder-button" size="large" round @click="go_to_login">{{ t('common.login') }}</el-button>
+        </div>
     </ContentField>
 </template>
 
@@ -668,6 +670,53 @@ div.content-field.reading-page {
   -webkit-backdrop-filter: blur(18px) saturate(145%);
 }
 
+div.content-field.login-reminder-field {
+  margin-top: 20px;
+}
+
+.login-reminder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+div.content-field.login-reminder-field :deep(.card) {
+  width: min(100%, 28rem);
+  margin: 0 auto;
+}
+
+:deep(.login-reminder-button.el-button) {
+  min-width: 7.5rem;
+  max-width: 100%;
+  min-height: 2.45rem;
+  padding: 0 1.05rem;
+  border-width: 1px;
+  border-color: color-mix(in srgb, var(--border-accent) 72%, var(--border-soft));
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--surface-card-strong) 0%, var(--surface-accent-strong) 100%);
+  color: var(--accent-strong);
+  font-size: 0.94rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent-soft) 60%, transparent);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+:deep(.login-reminder-button.el-button:focus),
+:deep(.login-reminder-button.el-button:focus-visible) {
+  border-color: var(--border-accent);
+  background: linear-gradient(180deg, var(--surface-card-strong) 0%, var(--surface-accent-strong) 100%);
+  color: var(--accent-strong);
+}
+
+:deep(.login-reminder-button.el-button:focus:active),
+:deep(.login-reminder-button.el-button:focus-visible:active) {
+  transform: translateY(1px);
+  background: linear-gradient(180deg, var(--surface-soft-hover) 0%, var(--surface-accent-strong) 100%);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent-soft) 55%, transparent);
+}
+
 .reading-toolbar {
   display: flex;
   align-items: center;
@@ -854,6 +903,10 @@ div.content-field.reading-page {
 }
 
 @media (max-width: 768px) {
+  div.content-field.login-reminder-field :deep(.card) {
+    width: min(100%, 32rem);
+  }
+
   div.content-field.reading-page {
     padding: 6px;
   }
@@ -895,6 +948,10 @@ div.content-field.reading-page {
 }
 
 @media (max-width: 480px) {
+  :deep(.login-reminder-button.el-button) {
+    width: 100%;
+  }
+
   .toolbar-actions {
     width: auto;
     justify-content: flex-end;

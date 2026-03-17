@@ -86,7 +86,7 @@ export default {
 }
 
 .register-panel {
-    width: min(100%, 30rem);
+    width: min(100%, 28rem);
 }
 
 .register-form {
@@ -125,12 +125,63 @@ export default {
 
 .register-button {
     width: 100%;
-    min-height: 44px;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--accent-strong) 26%, var(--border-accent));
     border-radius: 999px;
-    font-weight: 600;
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--surface-card-muted) 92%, transparent) 0%,
+        color-mix(in srgb, var(--surface-overlay) 96%, transparent) 52%,
+        color-mix(in srgb, var(--surface-accent-strong) 66%, transparent) 100%
+    );
+    color: var(--text-accent);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow:
+        0 12px 24px color-mix(in srgb, var(--accent-soft) 65%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 72%, transparent);
+    backdrop-filter: blur(18px) saturate(155%);
+    -webkit-backdrop-filter: blur(18px) saturate(155%);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.register-button:hover,
+.register-button:focus-visible {
+    border-color: color-mix(in srgb, var(--accent-strong) 40%, var(--border-accent));
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--surface-card-strong) 88%, transparent) 0%,
+        color-mix(in srgb, var(--surface-overlay) 96%, transparent) 44%,
+        color-mix(in srgb, var(--surface-accent-strong) 86%, transparent) 100%
+    );
+    color: var(--accent-strong);
+    filter: saturate(1.03) brightness(1.02);
+    transform: translateY(-1px);
+    box-shadow:
+        0 16px 30px color-mix(in srgb, var(--accent-soft) 72%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 80%, transparent);
+}
+
+.register-button:active {
+    transform: translateY(0);
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--surface-card-strong) 76%, transparent) 0%,
+        color-mix(in srgb, var(--surface-overlay) 90%, transparent) 100%
+    );
+    box-shadow:
+        0 8px 18px color-mix(in srgb, var(--accent-soft) 56%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 64%, transparent);
 }
 
 @media (max-width: 768px) {
+    .register-panel {
+        width: min(100%, 32rem);
+    }
+
     .register-form {
         padding: 16px;
         border-radius: 16px;
