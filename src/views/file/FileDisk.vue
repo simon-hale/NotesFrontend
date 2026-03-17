@@ -250,7 +250,7 @@
 import ContentField from '@/components/ContentField.vue';
 import { UploadFilled } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus';
-import { computed, ref } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import router from '@/router';
@@ -601,12 +601,19 @@ export default {
       refreshCurrentDirectory();
     }
 
-    if(is_logined.value){
-      if(store.state.firstLogin){
-        requestDirectoryRoot(true);
-        store.commit("cleanFirstLogin");
-      }else refreshCurrentDirectory();
+    const judgeDiskOrToLogin = () => {
+      if(is_logined.value){
+        if(store.state.firstLogin){
+          requestDirectoryRoot(true);
+          store.commit("cleanFirstLogin");
+        }else refreshCurrentDirectory();
+      }
+      store.commit("cleanAutoLogin");
     }
+
+    watch(() => store.state.autoLogin, () => { judgeDiskOrToLogin(); })
+
+    onMounted(() => { judgeDiskOrToLogin(); })
 
     const fileList = ref([]);
     const elFileList = ref([]);

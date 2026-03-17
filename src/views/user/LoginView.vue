@@ -64,6 +64,8 @@ export default {
                         let access = resp.token;
                         let is_logined = true;
                         store.dispatch("login", { username: username.value, access, is_logined });
+                        localStorage.setItem('notes-username', username.value)
+                        localStorage.setItem('notes-access', access)
                         store.commit("setFirstLogin");
                         router.push({name: "filedisk"});
                     }else{

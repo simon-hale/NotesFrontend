@@ -143,6 +143,8 @@ export default {
 
         const logout = () => {
             clearUserState();
+            localStorage.setItem('notes-username', '');
+            localStorage.setItem('notes-access', '');
             router.push({name: "accountmanagement"});
         }
 

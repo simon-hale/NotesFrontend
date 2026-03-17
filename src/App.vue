@@ -10,11 +10,16 @@
 </template>
 
 <script>
-import { computed, nextTick, onBeforeUnmount, onMounted, watch } from 'vue';
+import { ref, computed, nextTick, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useStore } from 'vuex';
 import NavBar from './components/NavBar.vue';
 import { applyThemeToDocument } from './utils/theme';
+import ElMessage from '@/utils/message';
+import { useI18n } from 'vue-i18n';
+import router from '@/router/index';
+import { BASE_URL } from "@/config";
+import $ from 'jquery';
 
 export default {
   name: "App",
@@ -24,8 +29,12 @@ export default {
   setup() {
     const store = useStore();
     const route = useRoute();
+    const { t } = useI18n();
     const theme_mode = computed(() => store.state.theme.mode);
     const show_navbar = computed(() => store.state.navbar.show_navbar);
+
+    const username = ref('');
+    const access = ref('');
 
     const updateMessageViewportMetrics = () => {
       if (typeof window === 'undefined') return;
@@ -68,9 +77,50 @@ export default {
       scheduleMessageViewportMetrics();
     });
 
+    const auto_login = () => {
+          $.ajax({
+              url: `${BASE_URL}/api/user/auto-login/`,
+              type: "POST",
+              headers: {
+                  Authorization:"Bearer " + access.value,
+              },
+              success(resp) {
+                if(resp.error_message === "success"){
+                    let is_logined = true;
+                    store.dispatch("login", { username: username.value, access:access.value, is_logined });
+                    store.commit("setFirstLogin");
+                    store.commit("setAutoLogin");
+                    router.push({name: "filedisk"});
+                }else{
+                    ElMessage.error(t('auth.unknownSuccessError'));
+                }
+              },
+              error(resp) {
+                  if(resp.status === 403) {
+                    ElMessage.error(t('auth.incorrectCredentials'));
+                  }else if(resp.status === 0){
+                    ElMessage.error(t('auth.networkError'));
+                  }else{
+                    ElMessage.error(t('auth.unknownError'));
+                  }
+                  localStorage.setItem('notes-username', '');
+                  localStorage.setItem('notes-access', '');
+              }
+          })
+      }
+
     onMounted(() => {
       scheduleMessageViewportMetrics();
       window.addEventListener('resize', handleViewportChange);
+      const storedUsername = localStorage.getItem('notes-username');
+      const storedAccess = localStorage.getItem('notes-access');
+      username.value = storedUsername || '';
+      access.value = storedAccess || '';
+      if (storedUsername && storedAccess) auto_login();
+      else {
+        localStorage.setItem('notes-username', '');
+        localStorage.setItem('notes-access', '');
+      }
     });
 
     onBeforeUnmount(() => {

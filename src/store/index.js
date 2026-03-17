@@ -9,6 +9,7 @@ export default createStore({
       is_logined: false,
     },
     firstLogin: false,
+    autoLogin: false,
     file: {
       path_level: -1,
       paths: [],
@@ -50,6 +51,12 @@ export default createStore({
     },
     cleanFirstLogin(state) {
       state.firstLogin = false;
+    },
+    setAutoLogin(state) {
+      state.autoLogin = true;
+    },
+    cleanAutoLogin(state) {
+      state.autoLogin = false;
     },
     refreshPathLevel(state, path_level) {
       state.file.path_level = path_level;
