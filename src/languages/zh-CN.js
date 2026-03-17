@@ -39,6 +39,7 @@
     password: '密码',
     confirmPassword: '确认密码',
     loginButton: '登录',
+    autoLogin: '自动登录',
     registerButton: '注册',
     loginFirst: '请先登录',
     incorrectCredentials: '用户名或密码错误',

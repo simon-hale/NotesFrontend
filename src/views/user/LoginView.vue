@@ -11,6 +11,7 @@
                         <label for="password" class="form-label">{{ t('auth.password') }}</label>
                         <input v-model="password" type="password" class="form-control login-input" id="password">
                     </div>
+                    <el-checkbox v-model="autoLoginSelector" name="type">{{ t('auth.autoLogin') }}</el-checkbox>
                     <div class="warning-message">{{ error_message }}</div>
                     <button v-on:click.prevent="login" class="btn btn-primary login-button">{{ t('auth.loginButton') }}</button>
                 </form>
@@ -45,6 +46,7 @@ export default {
     name: 'LoginView',
     setup() {
         const store = useStore();
+        let autoLoginSelector = ref(false);
         const { t } = useI18n();
         let username = ref('');
         let password = ref('');
@@ -64,8 +66,13 @@ export default {
                         let access = resp.token;
                         let is_logined = true;
                         store.dispatch("login", { username: username.value, access, is_logined });
-                        localStorage.setItem('notes-username', username.value)
-                        localStorage.setItem('notes-access', access)
+                        if (autoLoginSelector.value) {
+                            localStorage.setItem('notes-username', username.value);
+                            localStorage.setItem('notes-access', access);
+                        }else{
+                            localStorage.setItem('notes-username', '');
+                            localStorage.setItem('notes-access', '');
+                        }
                         store.commit("setFirstLogin");
                         router.push({name: "filedisk"});
                     }else{
@@ -85,6 +92,7 @@ export default {
         }
 
         return {
+            autoLoginSelector,
             t,
             username,
             password,

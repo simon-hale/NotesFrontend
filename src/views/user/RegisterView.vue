@@ -12,14 +12,12 @@
                         <input v-model="password" type="password" class="form-control register-input" id="password">
                     </div>
                     <div class="mb-3">
-                        <label for="confirmedPassword" class="form-label register-label">
-                            <span>{{ t('auth.confirmPassword') }}</span>
-                            <span class="inconsistent-message" v-if="password !== confirmedPassword">{{ t('changePassword.mismatch') }}</span>
-                        </label>
+                        <label for="confirmedPassword" class="form-label">{{ t('auth.confirmPassword') }}</label>
                         <input v-model="confirmedPassword" type="password" class="form-control register-input" id="confirmedPassword">
                     </div>
                     <div class="warning-message">{{ error_message }}</div>
                     <button v-on:click.prevent="register" class="btn btn-primary register-button">{{ t('auth.registerButton') }}</button>
+                    <div class="text-center inconsistent-message" v-if="password !== confirmedPassword">{{ t('changePassword.mismatch') }}</div>
                 </form>
             </div>
         </div>
@@ -103,14 +101,6 @@ export default {
     border-radius: 12px;
 }
 
-.register-label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
 .warning-message {
     color: var(--danger);
     min-height: 24px;
@@ -121,6 +111,8 @@ export default {
 .inconsistent-message {
     color: var(--danger);
     font-size: 80%;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 .register-button {

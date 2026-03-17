@@ -39,6 +39,7 @@
     password: 'Password',
     confirmPassword: 'Confirm Password',
     loginButton: 'Login',
+    autoLogin: 'Auto login',
     registerButton: 'Register',
     loginFirst: 'Please login first.',
     incorrectCredentials: 'Incorrect username or password.',
