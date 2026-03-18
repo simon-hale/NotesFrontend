@@ -80,13 +80,30 @@ export default {
                     }
                 },
                 error(resp) {
+                    // if(resp.status === 403) {
+                    //     error_message.value = t('auth.incorrectCredentials');
+                    // }else if(resp.status === 0){
+                    //     error_message.value = t('auth.networkError');
+                    // }else{
+                    //     error_message.value = t('auth.unknownError');
+                    // }
                     if(resp.status === 403) {
                         error_message.value = t('auth.incorrectCredentials');
-                    }else if(resp.status === 0){
+                    }else if(resp.status === 401) {
+                        error_message.value = t('auth.unauthorized');
+                    }else if(resp.status === 400) {
+                        error_message.value = t('auth.badRequest');
+                    }else if(resp.status === 404) {
+                        error_message.value = t('auth.apiNotFound');
+                    }else if(resp.status === 500) {
+                        error_message.value = t('auth.serverError');
+                    }else if(resp.status === 0) {
                         error_message.value = t('auth.networkError');
                     }else{
                         error_message.value = t('auth.unknownError');
                     }
+                    localStorage.setItem('notes-username', '');
+                    localStorage.setItem('notes-access', '');
                 }
             })
         }

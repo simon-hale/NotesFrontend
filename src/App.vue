@@ -78,35 +78,50 @@ export default {
     });
 
     const auto_login = () => {
-          $.ajax({
-              url: `${BASE_URL}/api/user/auto-login/`,
-              type: "POST",
-              headers: {
-                  Authorization:"Bearer " + access.value,
-              },
-              success(resp) {
-                if(resp.error_message === "success"){
-                    let is_logined = true;
-                    store.dispatch("login", { username: username.value, access:access.value, is_logined });
-                    store.commit("setFirstLogin");
-                    store.commit("setAutoLogin");
-                    router.push({name: "filedisk"});
-                }else{
-                    ElMessage.error(t('auth.unknownSuccessError'));
-                }
-              },
-              error(resp) {
-                  if(resp.status === 403) {
-                    ElMessage.error(t('auth.incorrectCredentials'));
-                  }else if(resp.status === 0){
-                    ElMessage.error(t('auth.networkError'));
-                  }else{
-                    ElMessage.error(t('auth.unknownError'));
-                  }
-                  localStorage.setItem('notes-username', '');
-                  localStorage.setItem('notes-access', '');
-              }
-          })
+        $.ajax({
+          url: `${BASE_URL}/api/user/auto-login/`,
+          type: "POST",
+          headers: {
+              Authorization:"Bearer " + access.value,
+          },
+          success(resp) {
+            if(resp.error_message === "success"){
+                let is_logined = true;
+                store.dispatch("login", { username: username.value, access:access.value, is_logined });
+                store.commit("setFirstLogin");
+                store.commit("setAutoLogin");
+                router.push({name: "filedisk"});
+            }else{
+                ElMessage.error(t('auth.unknownSuccessError'));
+            }
+          },
+          error(resp) {
+            // if(resp.status === 403) {
+            //   ElMessage.error(t('auth.incorrectCredentials'));
+            // }else if(resp.status === 0){
+            //   ElMessage.error(t('auth.networkError'));
+            // }else{
+            //   ElMessage.error(t('auth.unknownError'));
+            // }
+            if(resp.status === 403) {
+                ElMessage.error(t('auth.incorrectCredentials'));
+            }else if(resp.status === 401) {
+                ElMessage.error(t('auth.unauthorized'));
+            }else if(resp.status === 400) {
+                ElMessage.error(t('auth.badRequest'));
+            }else if(resp.status === 404) {
+                ElMessage.error(t('auth.apiNotFound'));
+            }else if(resp.status === 500) {
+                ElMessage.error(t('auth.serverError'));
+            }else if(resp.status === 0) {
+                ElMessage.error(t('auth.networkError'));
+            }else{
+                ElMessage.error(t('auth.unknownError'));
+            }
+            localStorage.setItem('notes-username', '');
+            localStorage.setItem('notes-access', '');
+          }
+        })
       }
 
     onMounted(() => {
