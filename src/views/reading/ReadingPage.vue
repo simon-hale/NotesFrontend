@@ -148,6 +148,7 @@ import $ from 'jquery';
 import router from '@/router';
 import ElMessage from '@/utils/message';
 import { BASE_URL } from "@/config"
+import { getCurrentLanguage, getHttpErrorMessage } from '@/utils/http';
 
 export default {
   name: "ReadingPage",
@@ -521,6 +522,7 @@ export default {
         data: {
           id: store.state.reading.file_id,
           username: store.state.user.username,
+          language: getCurrentLanguage(),
         },
         success(resp){
             if(resp.error_message !== 'success'){
@@ -556,9 +558,9 @@ export default {
               scheduleContentHeightUpdate();
             }
         },
-        error() {
+        error(resp) {
           ElMessage({
-            message: t('common.networkError'),
+            message: getHttpErrorMessage(t, resp.status),
             type: 'error',
           })
         }

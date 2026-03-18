@@ -41,6 +41,7 @@ import { useI18n } from 'vue-i18n';
 import router from '@/router/index';
 import $ from 'jquery';
 import { BASE_URL } from "@/config"
+import { AUTH_HTTP_ERROR_KEY_MAP, getCurrentLanguage, getHttpErrorMessage } from '@/utils/http';
 
 export default {
     name: 'LoginView',
@@ -60,6 +61,7 @@ export default {
                 data: {
                     username: username.value,
                     password: password.value,
+                    language: getCurrentLanguage(),
                 },
                 success(resp) {
                     if(resp.error_message === "success"){
@@ -80,28 +82,7 @@ export default {
                     }
                 },
                 error(resp) {
-                    // if(resp.status === 403) {
-                    //     error_message.value = t('auth.incorrectCredentials');
-                    // }else if(resp.status === 0){
-                    //     error_message.value = t('auth.networkError');
-                    // }else{
-                    //     error_message.value = t('auth.unknownError');
-                    // }
-                    if(resp.status === 403) {
-                        error_message.value = t('auth.incorrectCredentials');
-                    }else if(resp.status === 401) {
-                        error_message.value = t('auth.unauthorized');
-                    }else if(resp.status === 400) {
-                        error_message.value = t('auth.badRequest');
-                    }else if(resp.status === 404) {
-                        error_message.value = t('auth.apiNotFound');
-                    }else if(resp.status === 500) {
-                        error_message.value = t('auth.serverError');
-                    }else if(resp.status === 0) {
-                        error_message.value = t('auth.networkError');
-                    }else{
-                        error_message.value = t('auth.unknownError');
-                    }
+                    error_message.value = getHttpErrorMessage(t, resp.status, AUTH_HTTP_ERROR_KEY_MAP);
                     localStorage.setItem('notes-username', '');
                     localStorage.setItem('notes-access', '');
                 }

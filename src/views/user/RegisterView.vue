@@ -29,6 +29,7 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import $ from 'jquery';
 import { BASE_URL } from "@/config"
+import { getCurrentLanguage, getHttpErrorMessage } from '@/utils/http';
 
 export default {
     name: 'RegisterView',
@@ -47,6 +48,7 @@ export default {
                     username: username.value,
                     password: password.value,
                     confirmedPassword: confirmedPassword.value,
+                    language: getCurrentLanguage(),
                 },
                 success(resp){
                     if(resp.error_message !== 'success'){
@@ -55,8 +57,8 @@ export default {
                         context.emit('change_to_login_page');
                     }
                 },
-                error() {
-                    error_message.value = t('auth.networkError');
+                error(resp) {
+                    error_message.value = getHttpErrorMessage(t, resp.status);
                 }
             })
         }

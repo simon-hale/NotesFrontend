@@ -96,6 +96,7 @@ import $ from 'jquery';
 import router from '@/router';
 import { setAppLocale } from '@/i18n';
 import { BASE_URL } from "@/config"
+import { getCurrentLanguage, getHttpErrorMessage } from '@/utils/http';
 
 export default {
     name: 'AccountManagement',
@@ -159,6 +160,7 @@ export default {
                     username: store.state.user.username,
                     password: data.password,
                     confirmedPassword: data.confirmedPassword,
+                    language: getCurrentLanguage(),
                 },
                 success(resp) {
                     if(resp.error_message !== "success"){
@@ -168,8 +170,8 @@ export default {
                         router.push({name: 'accountmanagement'});
                     }
                 },
-                error() {
-                    error_message.value = t('common.networkError');
+                error(resp) {
+                    error_message.value = getHttpErrorMessage(t, resp.status);
                 }
             })
         }
@@ -183,6 +185,7 @@ export default {
                 },
                 data: {
                     username: store.state.user.username,
+                    language: getCurrentLanguage(),
                 },
                 success(resp) {
                     if(resp.error_message === "success" || resp.error_message === "该用户已被删除"){
@@ -192,8 +195,8 @@ export default {
                         error_message.value = resp.error_message;
                     }
                 },
-                error() {
-                    error_message.value = t('common.networkError');
+                error(resp) {
+                    error_message.value = getHttpErrorMessage(t, resp.status);
                 }
             })
         }

@@ -20,6 +20,7 @@ import { useI18n } from 'vue-i18n';
 import router from '@/router/index';
 import { BASE_URL } from "@/config";
 import $ from 'jquery';
+import { COMMON_HTTP_ERROR_KEY_MAP, getHttpErrorMessage } from '@/utils/http';
 
 export default {
   name: "App",
@@ -96,28 +97,7 @@ export default {
             }
           },
           error(resp) {
-            // if(resp.status === 403) {
-            //   ElMessage.error(t('auth.incorrectCredentials'));
-            // }else if(resp.status === 0){
-            //   ElMessage.error(t('auth.networkError'));
-            // }else{
-            //   ElMessage.error(t('auth.unknownError'));
-            // }
-            if(resp.status === 403) {
-                ElMessage.error(t('auth.incorrectCredentials'));
-            }else if(resp.status === 401) {
-                ElMessage.error(t('auth.unauthorized'));
-            }else if(resp.status === 400) {
-                ElMessage.error(t('auth.badRequest'));
-            }else if(resp.status === 404) {
-                ElMessage.error(t('auth.apiNotFound'));
-            }else if(resp.status === 500) {
-                ElMessage.error(t('auth.serverError'));
-            }else if(resp.status === 0) {
-                ElMessage.error(t('auth.networkError'));
-            }else{
-                ElMessage.error(t('auth.unknownError'));
-            }
+            ElMessage.error(getHttpErrorMessage(t, resp.status, COMMON_HTTP_ERROR_KEY_MAP));
             localStorage.setItem('notes-username', '');
             localStorage.setItem('notes-access', '');
           }
