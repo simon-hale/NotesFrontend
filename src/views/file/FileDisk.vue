@@ -277,120 +277,133 @@
             </template>
           </el-dialog>
 
-          <div class="table-header entry-row entry-row--header">
-            <div class="entry-name-cell">{{ t('common.name') }}</div>
-            <div class="entry-meta entry-meta--created">{{ t('fileDisk.creationTime') }}</div>
-            <div class="entry-meta entry-meta--updated">{{ t('fileDisk.lastModified') }}</div>
-            <div class="entry-actions entry-actions--header">{{ t('common.actions') }}</div>
+          <div
+            v-if="show_directory_feedback"
+            class="directory-feedback"
+            :class="directory_feedback_tone"
+            :role="directory_feedback_tone === 'directory-feedback--error' ? 'alert' : 'status'"
+            aria-live="polite"
+          >
+            <div class="directory-feedback__message">{{ directory_feedback_message }}</div>
+            <div v-if="directory_feedback_detail" class="directory-feedback__detail">{{ directory_feedback_detail }}</div>
           </div>
 
-          <div v-for="directory in directories" v-bind:key="directory.id" class="entry-card entry-card--directory">
-            <div class="entry-row">
-              <button
-                type="button"
-                class="entry-name entry-name--interactive"
-                :title="directory.name"
-                @click="refresh(path_level, directory.id, directory.name, false)"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-folder-fill entry-icon" viewBox="0 0 16 16">
-                  <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3m-8.322.12q.322-.119.684-.12h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981z"/>
-                </svg>
-                <span class="entry-name__text">{{ directory.name }}</span>
-              </button>
-              <div class="entry-meta entry-meta--created entry-meta--placeholder" aria-hidden="true">
-                <span class="entry-meta__label">{{ t('fileDisk.created') }}</span>
-                <span class="entry-meta__value">--</span>
-              </div>
-              <div class="entry-meta entry-meta--updated entry-meta--placeholder" aria-hidden="true">
-                <span class="entry-meta__label">{{ t('fileDisk.updated') }}</span>
-                <span class="entry-meta__value">--</span>
-              </div>
-              <div class="entry-actions">
-                <button
-                  type="button"
-                  class="icon-action"
-                  :aria-label="t('fileDisk.renameDirectory')"
-                  @click="openRenameDialog('directory', directory.id, directory.name)"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
-                    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                    <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
-                  </svg>
-                </button>
-                <el-divider direction="vertical" />
-                <button
-                  type="button"
-                  class="icon-action icon-action--danger"
-                  :aria-label="t('fileDisk.deleteDirectory')"
-                  @click="openDeleteDialog('directory', directory.id, directory.name)"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder-x" viewBox="0 0 16 16">
-                    <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181L15.546 8H14.54l.265-2.91A1 1 0 0 0 13.81 4H2.19a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91H9v1H2.826a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31zm6.339-1.577A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139q.323-.119.684-.12h5.396z"/>
-                    <path d="M11.854 10.146a.5.5 0 0 0-.707.708L12.293 12l-1.146 1.146a.5.5 0 0 0 .707.708L13 12.707l1.146 1.147a.5.5 0 0 0 .708-.708L13.707 12l1.147-1.146a.5.5 0 0 0-.707-.708L13 11.293z"/>
-                  </svg>
-                </button>
-              </div>
+          <template v-else>
+            <div class="table-header entry-row entry-row--header">
+              <div class="entry-name-cell">{{ t('common.name') }}</div>
+              <div class="entry-meta entry-meta--created">{{ t('fileDisk.creationTime') }}</div>
+              <div class="entry-meta entry-meta--updated">{{ t('fileDisk.lastModified') }}</div>
+              <div class="entry-actions entry-actions--header">{{ t('common.actions') }}</div>
             </div>
-          </div>
 
-          <div v-for="file in files" v-bind:key="file.id" class="entry-card entry-card--file">
-            <div class="entry-row">
-              <button
-                type="button"
-                class="entry-name entry-name--interactive"
-                :title="file.name"
-                @click="setReadingFileInfo(file.id, file.name)"
-              >
-                <span class="entry-type-badge">{{ file.type ? file.type.toUpperCase() : 'FILE' }}</span>
-                <span class="entry-name__text">{{ file.name }}</span>
-              </button>
-              <div class="entry-meta entry-meta--created">
-                <span class="entry-meta__label">{{ t('fileDisk.created') }}</span>
-                <span class="entry-meta__value" :title="file.creation_time">{{ file.creation_time }}</span>
-              </div>
-              <div class="entry-meta entry-meta--updated">
-                <span class="entry-meta__label">{{ t('fileDisk.updated') }}</span>
-                <span class="entry-meta__value" :title="file.last_modified_time">{{ file.last_modified_time }}</span>
-              </div>
-              <div class="entry-actions">
+            <div v-for="directory in directories" v-bind:key="directory.id" class="entry-card entry-card--directory">
+              <div class="entry-row">
                 <button
                   type="button"
-                  class="icon-action"
-                  :aria-label="t('fileDisk.renameFile')"
-                  @click="openRenameDialog('file', file.id, file.name)"
+                  class="entry-name entry-name--interactive"
+                  :title="directory.name"
+                  @click="refresh(path_level, directory.id, directory.name, false)"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
-                    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                    <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-folder-fill entry-icon" viewBox="0 0 16 16">
+                    <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3m-8.322.12q.322-.119.684-.12h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981z"/>
                   </svg>
+                  <span class="entry-name__text">{{ directory.name }}</span>
                 </button>
-                <el-divider direction="vertical" />
-                <button
-                  type="button"
-                  class="icon-action icon-action--danger"
-                  :aria-label="t('fileDisk.deleteFile')"
-                  @click="openDeleteDialog('file', file.id, file.name)"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-x" viewBox="0 0 16 16">
-                    <path d="M6.854 7.146a.5.5 0 1 0-.708.708L7.293 9l-1.147 1.146a.5.5 0 0 0 .708.708L8 9.707l1.146 1.147a.5.5 0 0 0 .708-.708L8.707 9l1.147-1.146a.5.5 0 0 0-.708-.708L8 8.293z"/>
-                    <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
-                  </svg>
-                </button>
-                <el-divider direction="vertical" />
-                <button
-                  type="button"
-                  class="icon-action"
-                  :aria-label="t('fileDisk.downloadFile')"
-                  @click="downloadFile(file.id, file.name)"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
-                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
-                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
-                  </svg>
-                </button>
+                <div class="entry-meta entry-meta--created entry-meta--placeholder" aria-hidden="true">
+                  <span class="entry-meta__label">{{ t('fileDisk.created') }}</span>
+                  <span class="entry-meta__value">--</span>
+                </div>
+                <div class="entry-meta entry-meta--updated entry-meta--placeholder" aria-hidden="true">
+                  <span class="entry-meta__label">{{ t('fileDisk.updated') }}</span>
+                  <span class="entry-meta__value">--</span>
+                </div>
+                <div class="entry-actions">
+                  <button
+                    type="button"
+                    class="icon-action"
+                    :aria-label="t('fileDisk.renameDirectory')"
+                    @click="openRenameDialog('directory', directory.id, directory.name)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                      <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                      <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                    </svg>
+                  </button>
+                  <el-divider direction="vertical" />
+                  <button
+                    type="button"
+                    class="icon-action icon-action--danger"
+                    :aria-label="t('fileDisk.deleteDirectory')"
+                    @click="openDeleteDialog('directory', directory.id, directory.name)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder-x" viewBox="0 0 16 16">
+                      <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181L15.546 8H14.54l.265-2.91A1 1 0 0 0 13.81 4H2.19a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91H9v1H2.826a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31zm6.339-1.577A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139q.323-.119.684-.12h5.396z"/>
+                      <path d="M11.854 10.146a.5.5 0 0 0-.707.708L12.293 12l-1.146 1.146a.5.5 0 0 0 .707.708L13 12.707l1.146 1.147a.5.5 0 0 0 .708-.708L13.707 12l1.147-1.146a.5.5 0 0 0-.707-.708L13 11.293z"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+
+            <div v-for="file in files" v-bind:key="file.id" class="entry-card entry-card--file">
+              <div class="entry-row">
+                <button
+                  type="button"
+                  class="entry-name entry-name--interactive"
+                  :title="file.name"
+                  @click="setReadingFileInfo(file.id, file.name)"
+                >
+                  <span class="entry-type-badge">{{ file.type ? file.type.toUpperCase() : 'FILE' }}</span>
+                  <span class="entry-name__text">{{ file.name }}</span>
+                </button>
+                <div class="entry-meta entry-meta--created">
+                  <span class="entry-meta__label">{{ t('fileDisk.created') }}</span>
+                  <span class="entry-meta__value" :title="file.creation_time">{{ file.creation_time }}</span>
+                </div>
+                <div class="entry-meta entry-meta--updated">
+                  <span class="entry-meta__label">{{ t('fileDisk.updated') }}</span>
+                  <span class="entry-meta__value" :title="file.last_modified_time">{{ file.last_modified_time }}</span>
+                </div>
+                <div class="entry-actions">
+                  <button
+                    type="button"
+                    class="icon-action"
+                    :aria-label="t('fileDisk.renameFile')"
+                    @click="openRenameDialog('file', file.id, file.name)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                      <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                      <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                    </svg>
+                  </button>
+                  <el-divider direction="vertical" />
+                  <button
+                    type="button"
+                    class="icon-action icon-action--danger"
+                    :aria-label="t('fileDisk.deleteFile')"
+                    @click="openDeleteDialog('file', file.id, file.name)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-x" viewBox="0 0 16 16">
+                      <path d="M6.854 7.146a.5.5 0 1 0-.708.708L7.293 9l-1.147 1.146a.5.5 0 0 0 .708.708L8 9.707l1.146 1.147a.5.5 0 0 0 .708-.708L8.707 9l1.147-1.146a.5.5 0 0 0-.708-.708L8 8.293z"/>
+                      <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+                    </svg>
+                  </button>
+                  <el-divider direction="vertical" />
+                  <button
+                    type="button"
+                    class="icon-action"
+                    :aria-label="t('fileDisk.downloadFile')"
+                    @click="downloadFile(file.id, file.name)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                      <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                      <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
     </div>
     <ContentField v-else class="text-center login-reminder-field">
@@ -404,7 +417,7 @@
 <script>
 import ContentField from '@/components/ContentField.vue';
 import { UploadFilled } from '@element-plus/icons-vue'
-import { computed, nextTick, ref, watch, onMounted } from 'vue';
+import { computed, nextTick, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import router from '@/router';
@@ -428,6 +441,32 @@ export default {
     let paths = computed(() => store.state.file.paths);
     let directories = ref([]);
     let files = ref([]);
+    const DIRECTORY_VIEW_STATES = Object.freeze({
+      LOADING: 'loading',
+      READY: 'ready',
+      EMPTY: 'empty',
+      ERROR: 'error',
+    });
+    const directory_view_state = ref(DIRECTORY_VIEW_STATES.LOADING);
+    const directory_status_detail = ref('');
+    let active_directory_request = null;
+    const show_directory_feedback = computed(() => directory_view_state.value !== DIRECTORY_VIEW_STATES.READY);
+    const directory_feedback_message = computed(() => {
+      if (directory_view_state.value === DIRECTORY_VIEW_STATES.LOADING) return t('fileDisk.directoryLoading');
+      if (directory_view_state.value === DIRECTORY_VIEW_STATES.ERROR) return t('fileDisk.directoryLoadFailed');
+      if (directory_view_state.value === DIRECTORY_VIEW_STATES.EMPTY) return t('fileDisk.directoryEmpty');
+      return '';
+    });
+    const directory_feedback_detail = computed(() => (
+      directory_view_state.value === DIRECTORY_VIEW_STATES.ERROR
+        ? directory_status_detail.value
+        : ''
+    ));
+    const directory_feedback_tone = computed(() => {
+      if (directory_view_state.value === DIRECTORY_VIEW_STATES.ERROR) return 'directory-feedback--error';
+      if (directory_view_state.value === DIRECTORY_VIEW_STATES.LOADING) return 'directory-feedback--loading';
+      return 'directory-feedback--empty';
+    });
 
     let new_dir_name = ref('');
     let show_upload_progress = ref(false);
@@ -439,7 +478,7 @@ export default {
     const rename_original_name = ref('');
     const rename_draft = ref('');
     const rename_validation_message = ref('');
-    const rename_dialog_should_notify_cancel = ref(false);
+    const rename_dialog_close_intent = ref('dismiss');
     const delete_dialog_visible = ref(false);
     const delete_dialog_type = ref('directory');
     const delete_target_id = ref(null);
@@ -480,6 +519,84 @@ export default {
 
     const getCurrentPath = () => paths.value[path_level.value] ?? null;
 
+    const abortActiveDirectoryRequest = () => {
+      if (active_directory_request && active_directory_request.readyState !== 4) {
+        active_directory_request.abort();
+      }
+      active_directory_request = null;
+    }
+
+    const beginDirectoryRequest = () => {
+      abortActiveDirectoryRequest();
+      directories.value = [];
+      files.value = [];
+      directory_view_state.value = DIRECTORY_VIEW_STATES.LOADING;
+      directory_status_detail.value = '';
+    }
+
+    const resolveDirectoryRequest = (nextDirectories = [], nextFiles = []) => {
+      const safeDirectories = Array.isArray(nextDirectories) ? nextDirectories : [];
+      const safeFiles = Array.isArray(nextFiles) ? nextFiles : [];
+
+      directories.value = safeDirectories;
+      files.value = safeFiles;
+      directory_status_detail.value = '';
+      directory_view_state.value = safeDirectories.length > 0 || safeFiles.length > 0
+        ? DIRECTORY_VIEW_STATES.READY
+        : DIRECTORY_VIEW_STATES.EMPTY;
+    }
+
+    const rejectDirectoryRequest = (detail = '') => {
+      directories.value = [];
+      files.value = [];
+      directory_view_state.value = DIRECTORY_VIEW_STATES.ERROR;
+      directory_status_detail.value = detail;
+    }
+
+    const handleDirectoryHttpError = (resp, textStatus) => {
+      if (textStatus === 'abort') return;
+
+      active_directory_request = null;
+      const message = getHttpErrorMessage(t, resp?.status);
+      rejectDirectoryRequest(message);
+      ElMessage.error(message);
+    }
+
+    const handleDirectoryBusinessError = (resp) => {
+      const message = resp?.error_message || t('common.unknownError');
+      rejectDirectoryRequest(message);
+      ElMessage({
+        message: message,
+        type: 'error',
+      })
+    }
+
+    const loadDirectory = ({ url, data, onSuccess }) => {
+      beginDirectoryRequest();
+      active_directory_request = $.ajax({
+        url,
+        type: "POST",
+        headers: {
+          Authorization:"Bearer " + store.state.user.access,
+        },
+        data,
+        success(resp){
+          active_directory_request = null;
+
+          if(resp.error_message !== 'success'){
+            handleDirectoryBusinessError(resp);
+            return;
+          }
+
+          resolveDirectoryRequest(resp.directories, resp.files);
+          onSuccess?.(resp);
+        },
+        error(resp, textStatus){
+          handleDirectoryHttpError(resp, textStatus);
+        }
+      })
+    }
+
     const go_to_login = () => {
       router.push({name: 'accountmanagement'});
     }
@@ -507,7 +624,7 @@ export default {
       rename_original_name.value = name;
       rename_draft.value = name;
       rename_validation_message.value = '';
-      rename_dialog_should_notify_cancel.value = false;
+      rename_dialog_close_intent.value = 'dismiss';
       rename_dialog_visible.value = true;
 
       nextTick(() => {
@@ -516,17 +633,17 @@ export default {
       });
     }
 
-    const closeRenameDialog = (notifyCancel = false) => {
-      rename_dialog_should_notify_cancel.value = notifyCancel;
+    const closeRenameDialog = (intent = 'dismiss') => {
+      rename_dialog_close_intent.value = intent;
       rename_dialog_visible.value = false;
     }
 
     const cancelRenameDialog = () => {
-      closeRenameDialog(true);
+      closeRenameDialog('cancel');
     }
 
     const handleRenameDialogClosed = () => {
-      if (rename_dialog_should_notify_cancel.value) {
+      if (rename_dialog_close_intent.value !== 'confirm') {
         ElMessage({
           type: 'info',
           message: t('fileDisk.inputCanceled'),
@@ -538,7 +655,7 @@ export default {
       rename_original_name.value = '';
       rename_draft.value = '';
       rename_validation_message.value = '';
-      rename_dialog_should_notify_cancel.value = false;
+      rename_dialog_close_intent.value = 'dismiss';
     }
 
     const requestModifyDirectoryName = (id, value) => {
@@ -616,7 +733,7 @@ export default {
 
       const targetType = rename_dialog_type.value;
       const targetId = rename_target_id.value;
-      closeRenameDialog(false);
+      closeRenameDialog('confirm');
 
       if (targetType === 'directory') {
         requestModifyDirectoryName(targetId, value);
@@ -749,106 +866,80 @@ export default {
      })
     }
 
-    const requestDirectoryById = (id) => {
-      $.ajax({
+    const requestDirectoryById = (id, onSuccess) => {
+      loadDirectory({
         url: `${BASE_URL}/api/directory/id/`,
-        type: "POST",
-        headers: {
-            Authorization:"Bearer " + store.state.user.access,
-        },
         data: {
-            parent_id: id,
-            username: store.state.user.username,
-            language: getCurrentLanguage(),
+          parent_id: id,
+          username: store.state.user.username,
+          language: getCurrentLanguage(),
         },
-        success(resp){
-            if(resp.error_message !== 'success'){
-                ElMessage({
-                  message: resp.error_message,
-                  type: 'error',
-                })
-            }else{
-                directories.value = resp.directories;
-                files.value = resp.files;
-            }
-        },
-        error: showHttpError
-     })
+        onSuccess,
+      });
     }
 
     const refreshCurrentDirectory = () => {
       const currentPath = getCurrentPath();
-      if (!currentPath) return;
+      if (!currentPath) {
+        requestDirectoryRoot(false);
+        return;
+      }
       requestDirectoryById(currentPath.id);
     }
 
     const requestDirectoryRoot = (showWelcome) => {
-      $.ajax({
-          url: `${BASE_URL}/api/directory/init/`,
-          type: "POST",
-          headers: {
-              Authorization:"Bearer " + store.state.user.access,
-          },
-          data: {
-              username: store.state.user.username,
-              language: getCurrentLanguage(),
-          },
-          success(resp){
-              if(resp.error_message !== 'success'){
-                  ElMessage({
-                    message: t('common.networkError'),
-                    type: 'error',
-                  })
-              }else{
-                if (showWelcome) {
-                  ElMessage({
-                    message: t('fileDisk.welcomeBack'),
-                    type: 'success',
-                  });
-                }
+      loadDirectory({
+        url: `${BASE_URL}/api/directory/init/`,
+        data: {
+          username: store.state.user.username,
+          language: getCurrentLanguage(),
+        },
+        onSuccess(resp) {
+          if (showWelcome) {
+            ElMessage({
+              message: t('fileDisk.welcomeBack'),
+              type: 'success',
+            });
+          }
 
-                directories.value = resp.directories;
-                files.value = resp.files;
-
-                store.dispatch("refreshPathsInfo", {
-                  path_level: 0,
-                  paths: [{
-                    level: 0,
-                    id: Number(resp.root_id),
-                    name: "root",
-                  }],
-                });
-              }
-          },
-          error: showHttpError
-      })
+          store.dispatch("refreshPathsInfo", {
+            path_level: 0,
+            paths: [{
+              level: 0,
+              id: Number(resp.root_id),
+              name: "root",
+            }],
+          });
+        },
+      });
     }
 
-    const refreshPaths = (path_level, directory_id, directory_name, go_back) => {
+    const buildNextPathsInfo = (path_level, directory_id, directory_name, go_back) => {
       let pathsOld = Array.from(store.state.file.paths);
       if (go_back) {
         pathsOld.splice(path_level + 1)
-      } else if (pathsOld.length === 0 || pathsOld[path_level].id !== directory_id) {
-        pathsOld.push({
-          level: path_level + 1,
-          id: directory_id,
-          name: directory_name,
-        })
-        path_level = path_level + 1;
-      } else ElMessage.warning(t('fileDisk.waitForRequest'))
+        return { path_level, paths: pathsOld };
+      }
 
-      let data = {path_level, paths: pathsOld};
-      store.dispatch("refreshPathsInfo", data);
+      const nextPathLevel = path_level + 1;
+      pathsOld.splice(nextPathLevel);
+      pathsOld.push({
+        level: nextPathLevel,
+        id: directory_id,
+        name: directory_name,
+      });
+
+      return { path_level: nextPathLevel, paths: pathsOld };
     }
 
     const refresh = (path_level, directory_id, directory_name, go_back) => {
-      requestDirectoryById(directory_id);
-      refreshPaths(path_level, directory_id, directory_name, go_back);
+      const nextPathsInfo = buildNextPathsInfo(path_level, directory_id, directory_name, go_back);
+      requestDirectoryById(directory_id, () => {
+        store.dispatch("refreshPathsInfo", nextPathsInfo);
+      });
     }
 
     const refreshCurrentPath = () => {
-      directories.value = [];
-      files.value = [];
       refreshCurrentDirectory();
     }
 
@@ -862,7 +953,11 @@ export default {
       store.commit("cleanAutoLogin");
     }
 
-    watch(() => store.state.autoLogin, () => { judgeDiskOrToLogin(); })
+    watch(() => store.state.autoLogin, (autoLogin) => {
+      if (autoLogin) {
+        judgeDiskOrToLogin();
+      }
+    })
     watch(rename_draft, () => {
       if (rename_validation_message.value) {
         rename_validation_message.value = '';
@@ -870,6 +965,7 @@ export default {
     })
 
     onMounted(() => { judgeDiskOrToLogin(); })
+    onBeforeUnmount(() => { abortActiveDirectoryRequest(); })
 
     const fileList = ref([]);
     const elFileList = ref([]);
@@ -1070,6 +1166,10 @@ export default {
       paths,
       directories,
       files,
+      show_directory_feedback,
+      directory_feedback_message,
+      directory_feedback_detail,
+      directory_feedback_tone,
       new_dir_name,
       show_upload_progress,
       upload_dialog_visible,
@@ -1322,8 +1422,65 @@ div.content-field.login-reminder-field :deep(.card) {
   letter-spacing: 0.04em;
 }
 
+.directory-feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 240px;
+  margin: 12px 0 6px;
+  padding: 28px 20px;
+  border-radius: 18px;
+  text-align: center;
+}
+
+.directory-feedback__message {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.directory-feedback__detail {
+  max-width: 32rem;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.directory-feedback--loading {
+}
+
+.directory-feedback--loading .directory-feedback__message {
+  color: var(--text-muted);
+  animation: directory-feedback-pulse 1.15s ease-in-out infinite alternate;
+}
+
+.directory-feedback--error {
+}
+
+.directory-feedback--error .directory-feedback__message {
+  color: color-mix(in srgb, var(--danger) 88%, var(--text-primary));
+}
+
+.directory-feedback--empty .directory-feedback__message {
+  color: var(--text-secondary);
+}
+
 .entry-card + .entry-card {
   margin-top: 6px;
+}
+
+@keyframes directory-feedback-pulse {
+  from {
+    opacity: 0.6;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .entry-row {

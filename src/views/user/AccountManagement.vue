@@ -46,13 +46,22 @@
                 </ContentField>
 
                 <ContentField v-else-if="active_tab === 'deleteAccount'">
-                    <DeleteAccount v-on:delete_account="delete_account"></DeleteAccount>
+                    <DeleteAccount v-on:delete_account="delete_account" v-bind:error_message="error_message"></DeleteAccount>
                 </ContentField>
 
                 <ContentField v-else-if="active_tab === 'logout'">
-                    <button type="button" class="btn btn-warning logout-trigger" v-on:click="logout">
-                        {{ t('account.logoutButton') }}
-                    </button>
+                    <div class="language-panel">
+                        <div class="language-title">{{ t('account.logout') }}</div>
+                        <div class="language-description">{{ t('account.logoutPanelDescription') }}</div>
+                        <div class="language-current">
+                            {{ t('account.currentAccount') }}: <strong>{{ username }}</strong>
+                        </div>
+                        <div class="language-options">
+                            <button type="button" class="btn logout-trigger" v-on:click="logout">
+                                {{ t('account.logoutButton') }}
+                            </button>
+                        </div>
+                    </div>
                 </ContentField>
             </section>
         </div>
@@ -89,7 +98,7 @@ import ChangePassword from '@/components/account/ChangePassword.vue';
 import DeleteAccount from '@/components/account/DeleteAccount.vue';
 import LoginView from './LoginView.vue'
 import RegisterView from './RegisterView.vue'
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import $ from 'jquery';
@@ -111,6 +120,7 @@ export default {
         const store = useStore();
         const { t, locale } = useI18n();
         let is_logined = computed(() => store.state.user.is_logined);
+        let username = computed(() => store.state.user.username);
         let error_message = ref('');
         let active_tab = ref('language');
         let is_login_page = ref(true);
@@ -201,9 +211,14 @@ export default {
             })
         }
 
+        watch(active_tab, () => {
+            error_message.value = '';
+        });
+
         return  {
             t,
             locale,
+            username,
             tabs,
             is_logined,
             error_message,
@@ -401,17 +416,17 @@ export default {
 }
 
 .logout-trigger {
-    border-color: var(--warning);
-    background: var(--warning);
-    color: #ffffff;
+    min-width: 140px;
+    border-color: color-mix(in srgb, var(--warning) 28%, var(--border-strong));
+    background: color-mix(in srgb, var(--warning) 10%, var(--surface-card-strong));
+    color: color-mix(in srgb, var(--warning) 88%, var(--text-primary));
     font-weight: 700;
-    box-shadow: 0 10px 24px rgba(255, 191, 0, 0.354);
 }
 
 .logout-trigger:hover {
-    border-color: #ffd000;
-    background: #ffd000;
-    color: #fff;
+    border-color: color-mix(in srgb, var(--warning) 36%, var(--border-strong));
+    background: color-mix(in srgb, var(--warning) 14%, var(--surface-soft-hover));
+    color: color-mix(in srgb, var(--warning) 90%, var(--text-primary));
 }
 
 @media (max-width: 991px) {
@@ -426,6 +441,10 @@ export default {
 }
 
 @media (max-width: 576px) {
+    .logout-trigger {
+        width: 100%;
+    }
+
     .auth-switcher {
         width: min(100%, 30rem);
         padding: 5px;

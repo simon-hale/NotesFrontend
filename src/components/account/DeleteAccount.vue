@@ -1,9 +1,18 @@
 <template>
-    <div class="delete-account-panel">
-        <div class="warning-message">{{ t('deleteAccount.warning') }}</div>
-        <button type="button" class="btn delete-account-trigger" @click="dialog_visible = true">
-            {{ t('deleteAccount.confirmFirst') }}
-        </button>
+    <div class="account-panel">
+        <div class="account-panel__title">{{ t('account.deleteAccount') }}</div>
+        <div class="account-panel__description">{{ t('deleteAccount.warning') }}</div>
+        <div class="account-panel__note">{{ t('deleteAccount.modalBody') }}</div>
+
+        <div v-if="error_message" class="account-panel__error">
+            {{ error_message }}
+        </div>
+
+        <div class="account-panel__actions">
+            <button type="button" class="btn delete-account-trigger" @click="dialog_visible = true">
+                {{ t('deleteAccount.confirmFirst') }}
+            </button>
+        </div>
     </div>
 
     <el-dialog
@@ -14,7 +23,7 @@
         class="delete-account-dialog"
         :title="t('deleteAccount.modalTitle')"
     >
-        <div class="warning-message delete-account-dialog__body">
+        <div class="delete-account-dialog__body">
             {{ t('deleteAccount.modalBody') }}
         </div>
 
@@ -37,6 +46,13 @@ import { useI18n } from 'vue-i18n';
 
 export default {
     name: "DeleteAccount",
+    props: {
+        error_message: {
+            type: String,
+            required: false,
+            default: '',
+        }
+    },
     setup(_, context) {
         const { t } = useI18n();
         const dialog_visible = ref(false);
@@ -56,33 +72,55 @@ export default {
 </script>
 
 <style scoped>
-.delete-account-panel {
+.account-panel {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
+    gap: 16px;
 }
 
-.warning-message {
+.account-panel__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.account-panel__description {
+    color: var(--text-secondary);
+    line-height: 1.65;
+}
+
+.account-panel__note {
+    color: var(--text-secondary);
+    line-height: 1.65;
+}
+
+.account-panel__error {
     color: var(--danger);
+    line-height: 1.6;
+}
+
+.account-panel__actions {
+    display: flex;
+    justify-content: flex-start;
 }
 
 .delete-account-trigger {
-    border-color: var(--danger);
-    background: var(--danger);
-    color: #fff;
+    min-width: 140px;
+    border-color: color-mix(in srgb, var(--danger) 26%, var(--border-strong));
+    background: color-mix(in srgb, var(--danger) 8%, var(--surface-card-strong));
+    color: color-mix(in srgb, var(--danger) 88%, var(--text-primary));
     font-weight: 700;
-    box-shadow: 0 10px 24px rgba(220, 53, 69, 0.18);
 }
 
 .delete-account-trigger:hover {
-    border-color: #bb2d3b;
-    background: #bb2d3b;
-    color: #fff;
+    border-color: color-mix(in srgb, var(--danger) 34%, var(--border-strong));
+    background: color-mix(in srgb, var(--danger) 12%, var(--surface-soft-hover));
+    color: color-mix(in srgb, var(--danger) 90%, var(--text-primary));
 }
 
 .delete-account-dialog__body {
     line-height: 1.6;
+    color: color-mix(in srgb, var(--danger) 88%, var(--text-primary));
 }
 
 .delete-account-dialog__actions {
@@ -107,6 +145,10 @@ export default {
 }
 
 @media (max-width: 576px) {
+    .delete-account-trigger {
+        width: 100%;
+    }
+
     .delete-account-dialog__actions {
         flex-direction: column-reverse;
     }

@@ -1,24 +1,37 @@
 <template>
-    <form>
-        <div class="mb-3">
-            <label for="password" class="form-label">{{ t('changePassword.newPassword') }}</label>
-            <input v-model="password" type="password" class="form-control" id="password">
-        </div>
-        <div class="mb-3">
-            <label for="confirmedPassword" class="form-label">
-                {{ t('changePassword.confirmPassword') }}
-                <div class="error-message" v-if="password !== confirmedPassword">{{ t('changePassword.mismatch') }}</div>
+    <form class="account-panel" @submit.prevent="change_password">
+        <div class="account-panel__title">{{ t('account.changePassword') }}</div>
+        <div class="account-panel__description">{{ t('changePassword.warning') }}</div>
+
+        <div class="change-password-grid">
+            <label for="password" class="change-password-field">
+                <span class="change-password-field__label">{{ t('changePassword.newPassword') }}</span>
+                <input v-model="password" type="password" class="form-control change-password-field__input" id="password">
             </label>
-            <input v-model="confirmedPassword" type="password" class="form-control" id="confirmedPassword">
+
+            <label for="confirmedPassword" class="change-password-field">
+                <span class="change-password-field__label">{{ t('changePassword.confirmPassword') }}</span>
+                <input v-model="confirmedPassword" type="password" class="form-control change-password-field__input" id="confirmedPassword">
+                <span v-if="show_mismatch" class="change-password-field__feedback">
+                    {{ t('changePassword.mismatch') }}
+                </span>
+            </label>
         </div>
-        <div class="warning-message">{{ t('changePassword.warning') }}</div>
-        <div class="error-message">{{ error_message }}</div>
+
+        <div v-if="error_message" class="account-panel__error">
+            {{ error_message }}
+        </div>
+
+        <div class="account-panel__actions">
+            <button v-on:click.prevent="change_password" class="btn change-password-trigger">
+                {{ t('changePassword.submit') }}
+            </button>
+        </div>
     </form>
-    <button v-on:click.prevent="change_password" class="btn btn-primary change-password-trigger">{{ t('changePassword.submit') }}</button>
 </template>
 
 <script>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 export default {
@@ -34,6 +47,10 @@ export default {
         const { t } = useI18n();
         let password = ref('');
         let confirmedPassword = ref('');
+        const show_mismatch = computed(() => {
+            if (password.value === '' && confirmedPassword.value === '') return false;
+            return password.value !== confirmedPassword.value;
+        });
 
         const change_password = () => {
             context.emit("change_password", {
@@ -46,6 +63,7 @@ export default {
             t,
             password,
             confirmedPassword,
+            show_mismatch,
             change_password,
         }
     }
@@ -53,28 +71,79 @@ export default {
 </script>
 
 <style scoped>
-.warning-message {
-    color: var(--warning);
-    margin-bottom: 10px;
+.account-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
-.error-message {
+.account-panel__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.account-panel__description {
+    color: var(--text-secondary);
+    line-height: 1.65;
+}
+
+.account-panel__error {
     color: var(--danger);
-    display: inline-block;
-    margin-left: 6px;
+    line-height: 1.6;
+}
+
+.account-panel__actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.change-password-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.change-password-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.change-password-field__label {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.change-password-field__input {
+    min-height: 48px;
+    border-radius: 14px;
+}
+
+.change-password-field__feedback {
+    color: var(--danger);
+    font-size: 0.86rem;
+    line-height: 1.5;
 }
 
 .change-password-trigger {
-    border-color: #0d6efd;
-    background: #0d6efd;
-    color: #fff;
+    min-width: 140px;
+    border-color: var(--border-accent);
+    background: var(--surface-soft-hover);
+    color: var(--text-accent);
     font-weight: 700;
-    box-shadow: 0 10px 24px rgba(48, 131, 255, 0.266);
 }
 
 .change-password-trigger:hover {
-    border-color: #5396fb;
-    background: #5396fb;
-    color: #fff;
+    border-color: var(--border-accent);
+    background: var(--surface-soft-hover);
+    color: var(--text-accent);
+}
+
+@media (max-width: 576px) {
+    .change-password-trigger {
+        width: 100%;
+    }
 }
 </style>
