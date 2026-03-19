@@ -872,7 +872,6 @@ export default {
         data: {
           parent_id: id,
           username: store.state.user.username,
-          language: getCurrentLanguage(),
         },
         onSuccess,
       });
@@ -892,7 +891,6 @@ export default {
         url: `${BASE_URL}/api/directory/init/`,
         data: {
           username: store.state.user.username,
-          language: getCurrentLanguage(),
         },
         onSuccess(resp) {
           if (showWelcome) {

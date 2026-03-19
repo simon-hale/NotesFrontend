@@ -23,7 +23,7 @@
     unknownError: 'Unknown error. Please contact the administrator (resp-error-error).',
     locales: {
       enUS: 'English',
-      zhCN: 'Simplified Chinese',
+      zhCN: '简体中文',
     },
   },
   nav: {

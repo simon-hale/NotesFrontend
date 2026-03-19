@@ -41,7 +41,7 @@ import { useI18n } from 'vue-i18n';
 import router from '@/router/index';
 import $ from 'jquery';
 import { BASE_URL } from "@/config"
-import { AUTH_HTTP_ERROR_KEY_MAP, getCurrentLanguage, getHttpErrorMessage } from '@/utils/http';
+import { AUTH_HTTP_ERROR_KEY_MAP, getHttpErrorMessage } from '@/utils/http';
 
 export default {
     name: 'LoginView',
@@ -61,7 +61,6 @@ export default {
                 data: {
                     username: username.value,
                     password: password.value,
-                    language: getCurrentLanguage(),
                 },
                 success(resp) {
                     if(resp.error_message === "success"){
