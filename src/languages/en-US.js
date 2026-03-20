@@ -39,6 +39,20 @@
   theme: {
     switchToLight: 'Switch to light mode',
     switchToDark: 'Switch to dark mode',
+    settingsTitle: 'Theme settings',
+    settingsDescription: 'Choose a theme palette, then switch between its light and dark variants. The setting will be saved on this device.',
+    currentTheme: 'Current theme',
+    mode: 'Mode',
+    palette: 'Palette',
+    eyeCarePalette: 'Eye-care themes',
+    palettes: {
+      blue: 'Default blue',
+      emerald: 'Emerald',
+      amber: 'Amber',
+      rose: 'Rose',
+      sage: 'Sage',
+      almond: 'Almond',
+    },
   },
   auth: {
     username: 'Username',

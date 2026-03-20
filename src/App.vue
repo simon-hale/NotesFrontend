@@ -31,7 +31,7 @@ export default {
     const store = useStore();
     const route = useRoute();
     const { t } = useI18n();
-    const theme_mode = computed(() => store.state.theme.mode);
+    const theme_state = computed(() => store.state.theme);
     const show_navbar = computed(() => store.state.navbar.show_navbar);
 
     const username = ref('');
@@ -66,8 +66,8 @@ export default {
       updateMessageViewportMetrics();
     };
 
-    watch(theme_mode, (mode) => {
-      applyThemeToDocument(mode);
+    watch(() => [theme_state.value.palette, theme_state.value.mode], ([palette, mode]) => {
+      applyThemeToDocument({ palette, mode });
     }, { immediate: true });
 
     watch(show_navbar, () => {

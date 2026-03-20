@@ -666,7 +666,7 @@ div.content-field.reading-page {
   gap: 8px;
   border: 1px solid var(--border-soft);
   border-radius: 18px;
-  background: var(--surface-card);
+  background: var(--content-panel-bg);
   box-shadow: var(--shadow-medium);
   backdrop-filter: blur(18px) saturate(145%);
   -webkit-backdrop-filter: blur(18px) saturate(145%);
@@ -728,7 +728,7 @@ div.content-field.login-reminder-field :deep(.card) {
   padding: 8px 10px;
   border: 1px solid var(--border-soft);
   border-radius: 14px;
-  background: var(--surface-card-strong);
+  background: var(--reading-toolbar-bg);
 }
 
 .reading-toolbar--footer {
@@ -745,6 +745,33 @@ div.content-field.login-reminder-field :deep(.card) {
 
 .toolbar-button {
   margin-left: 0 !important;
+  --el-button-bg-color: color-mix(in srgb, var(--reading-toolbar-bg) 92%, transparent);
+  --el-button-border-color: var(--border-soft);
+  --el-button-text-color: var(--text-secondary);
+  --el-button-hover-bg-color: var(--surface-soft-hover);
+  --el-button-hover-border-color: var(--border-accent);
+  --el-button-hover-text-color: var(--text-accent);
+  --el-button-active-bg-color: var(--surface-accent-strong);
+  --el-button-active-border-color: var(--border-accent);
+  --el-button-active-text-color: var(--accent-strong);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 72%, transparent);
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.toolbar-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-accent);
+}
+
+.toolbar-button:focus-visible {
+  box-shadow:
+    0 0 0 3px var(--accent-soft),
+    var(--shadow-accent);
 }
 
 .toolbar-button--active {
@@ -757,6 +784,14 @@ div.content-field.login-reminder-field :deep(.card) {
   --el-button-active-bg-color: var(--surface-accent-strong);
   --el-button-active-border-color: var(--border-accent);
   --el-button-active-text-color: var(--accent-strong);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 70%, transparent),
+    var(--shadow-accent);
+}
+
+.toolbar-button--active:hover,
+.toolbar-button--active:focus-visible {
+  transform: translateY(-1px);
 }
 
 .reading-title-wrap {
@@ -795,7 +830,7 @@ div.content-field.login-reminder-field :deep(.card) {
   overflow: hidden;
   border: 1px solid var(--border-muted);
   border-radius: 16px;
-  background: var(--surface-card-strong);
+  background: var(--reading-viewer-bg);
 }
 
 .reading-viewer {
@@ -805,6 +840,7 @@ div.content-field.login-reminder-field :deep(.card) {
 
 .reading-viewer--markdown {
   padding: 14px clamp(14px, 4vw, 28px);
+  background: var(--reading-markdown-bg);
 }
 
 .empty-state {
@@ -815,7 +851,7 @@ div.content-field.login-reminder-field :deep(.card) {
   gap: 12px;
   padding: 40px 24px;
   text-align: center;
-  background: var(--surface-empty);
+  background: var(--reading-empty-bg);
 }
 
 .empty-icon {

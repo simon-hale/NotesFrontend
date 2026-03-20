@@ -74,6 +74,7 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
+import { DARK_THEME } from '@/utils/theme';
 
 export default {
   name: 'NavBar',
@@ -90,7 +91,7 @@ export default {
     const show_navbar = computed(() => store.state.navbar.show_navbar);
     const route_name = computed(() => route.name);
     const is_logined = computed(() => store.state.user.is_logined);
-    const is_dark_theme = computed(() => store.state.theme.mode === 'dark');
+    const is_dark_theme = computed(() => store.state.theme.mode === DARK_THEME);
     const display_name = computed(() => {
       return store.state.user.username || t('nav.guest');
     });
@@ -202,7 +203,7 @@ export default {
   width: 34px;
   height: 34px;
   border-radius: 11px;
-  background: linear-gradient(145deg, #102d4f, var(--accent-strong));
+  background: linear-gradient(145deg, var(--brand-start), var(--accent-strong));
   color: var(--accent-contrast);
   font-size: 0.88rem;
   font-weight: 800;

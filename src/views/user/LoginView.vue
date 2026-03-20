@@ -11,7 +11,7 @@
                         <label for="password" class="form-label">{{ t('auth.password') }}</label>
                         <input v-model="password" type="password" class="form-control login-input" id="password">
                     </div>
-                    <el-checkbox v-model="autoLoginSelector" name="type">{{ t('auth.autoLogin') }}</el-checkbox>
+                    <el-checkbox v-model="autoLoginSelector" name="type" class="auto-login-checkbox">{{ t('auth.autoLogin') }}</el-checkbox>
                     <div class="warning-message">{{ error_message }}</div>
                     <button v-on:click.prevent="login" class="btn btn-primary login-button">{{ t('auth.loginButton') }}</button>
                 </form>
@@ -127,6 +127,57 @@ export default {
 .login-input {
     min-height: 44px;
     border-radius: 12px;
+}
+
+:deep(.auto-login-checkbox.el-checkbox) {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+    color: var(--text-secondary);
+    --el-checkbox-text-color: var(--text-secondary);
+    --el-checkbox-checked-text-color: var(--text-primary);
+    --el-checkbox-input-border-color-hover: var(--border-accent);
+}
+
+:deep(.auto-login-checkbox .el-checkbox__input) {
+    display: inline-flex;
+    align-items: center;
+}
+
+:deep(.auto-login-checkbox .el-checkbox__label) {
+    display: inline-flex;
+    align-items: center;
+    padding-left: 0;
+    color: inherit;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+:deep(.auto-login-checkbox .el-checkbox__inner) {
+    width: 16px;
+    height: 16px;
+    border-color: var(--border-strong);
+    background-color: var(--surface-card-strong);
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+:deep(.auto-login-checkbox:hover .el-checkbox__inner) {
+    border-color: var(--border-accent);
+}
+
+:deep(.auto-login-checkbox .el-checkbox__input.is-checked .el-checkbox__inner),
+:deep(.auto-login-checkbox .el-checkbox__input.is-indeterminate .el-checkbox__inner) {
+    border-color: var(--accent-strong);
+    background-color: var(--accent-strong);
+}
+
+:deep(.auto-login-checkbox .el-checkbox__input.is-checked + .el-checkbox__label) {
+    color: var(--text-primary);
+}
+
+:deep(.auto-login-checkbox .el-checkbox__input.is-focus .el-checkbox__inner) {
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .warning-message {

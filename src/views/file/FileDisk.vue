@@ -1224,7 +1224,7 @@ div.content-field.file-disk-page {
   padding: 10px 14px 14px;
   border: 1px solid var(--border-soft);
   border-radius: 16px;
-  background: var(--surface-card);
+  background: var(--content-panel-bg);
   box-shadow: var(--shadow-medium);
   backdrop-filter: blur(18px) saturate(145%);
   -webkit-backdrop-filter: blur(18px) saturate(145%);
@@ -2060,8 +2060,9 @@ div.content-field.login-reminder-field :deep(.card) {
   --el-segmented-bg-color: transparent;
   --el-segmented-item-selected-bg-color: color-mix(in srgb, var(--surface-card-strong) 52%, transparent);
   --el-segmented-item-selected-color: var(--text-primary);
-  --el-segmented-item-hover-color: var(--text-primary);
-  --el-segmented-item-hover-bg-color: color-mix(in srgb, var(--surface-card-strong) 36%, transparent);
+  --el-segmented-item-hover-color: var(--text-accent);
+  --el-segmented-item-hover-bg-color: color-mix(in srgb, var(--accent) 10%, var(--surface-soft-hover));
+  --el-segmented-item-active-bg-color: color-mix(in srgb, var(--accent) 18%, var(--surface-soft-hover));
 }
 
 :deep(.upload-switcher__control.el-segmented .el-segmented__item-selected) {
@@ -2074,6 +2075,15 @@ div.content-field.login-reminder-field :deep(.card) {
   border-radius: var(--upload-switcher-radius);
   color: var(--text-secondary);
   font-weight: 700;
+  transition: color 0.16s ease, transform 0.16s ease;
+}
+
+:deep(.upload-switcher__control.el-segmented .el-segmented__item:not(.is-disabled):not(.is-selected):hover) {
+  color: var(--text-accent);
+}
+
+:deep(.upload-switcher__control.el-segmented .el-segmented__item.is-selected) {
+  color: var(--text-primary);
 }
 
 :deep(.upload-form-item .el-form-item__label) {

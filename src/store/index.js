@@ -1,5 +1,17 @@
 import { createStore } from 'vuex'
-import { DARK_THEME, LIGHT_THEME, getStoredTheme, persistTheme } from '@/utils/theme'
+import {
+  DARK_THEME,
+  LIGHT_THEME,
+  getStoredTheme,
+  normalizeThemeMode,
+  normalizeThemePalette,
+  persistTheme,
+} from '@/utils/theme'
+
+const syncThemeState = (state, nextTheme) => {
+  state.theme = nextTheme
+  persistTheme(nextTheme)
+}
 
 export default createStore({
   state: {
@@ -21,9 +33,7 @@ export default createStore({
     navbar: {
       show_navbar: true,
     },
-    theme: {
-      mode: getStoredTheme(),
-    },
+    theme: getStoredTheme(),
   },
   getters: {
   },
@@ -76,10 +86,23 @@ export default createStore({
     unshowNavbar(state) {
       state.navbar.show_navbar = false;
     },
+    setThemeMode(state, mode) {
+      syncThemeState(state, {
+        ...state.theme,
+        mode: normalizeThemeMode(mode),
+      });
+    },
+    setThemePalette(state, palette) {
+      syncThemeState(state, {
+        ...state.theme,
+        palette: normalizeThemePalette(palette),
+      });
+    },
     toggleTheme(state) {
-      const nextTheme = state.theme.mode === DARK_THEME ? LIGHT_THEME : DARK_THEME;
-      state.theme.mode = nextTheme;
-      persistTheme(nextTheme);
+      syncThemeState(state, {
+        ...state.theme,
+        mode: state.theme.mode === DARK_THEME ? LIGHT_THEME : DARK_THEME,
+      });
     }
   },
   actions: {

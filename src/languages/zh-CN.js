@@ -39,6 +39,20 @@
   theme: {
     switchToLight: '切换到浅色模式',
     switchToDark: '切换到深色模式',
+    settingsTitle: '配色调整',
+    settingsDescription: '选择主题配色，并在当前配色下切换浅色或深色模式。设置会保存在当前设备上。',
+    currentTheme: '当前主题',
+    mode: '明暗模式',
+    palette: '主题配色',
+    eyeCarePalette: '护眼主题',
+    palettes: {
+      blue: '默认蓝',
+      emerald: '青绿色',
+      amber: '琥珀色',
+      rose: '玫瑰色',
+      sage: '豆沙绿',
+      almond: '杏仁黄',
+    },
   },
   auth: {
     username: '用户名',
