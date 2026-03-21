@@ -494,6 +494,17 @@ select {
   color: var(--selection-fg);
 }
 
+/* Keep pdf.js text layers invisible when theme selection colors are applied. */
+:root[data-theme-palette='sage'] .pdf-app .textLayer ::selection,
+:root[data-theme-palette='almond'] .pdf-app .textLayer ::selection {
+  color: transparent;
+}
+
+:root[data-theme-palette='sage'] .pdf-app .textLayer ::-moz-selection,
+:root[data-theme-palette='almond'] .pdf-app .textLayer ::-moz-selection {
+  color: transparent;
+}
+
 a {
   color: inherit;
 }
