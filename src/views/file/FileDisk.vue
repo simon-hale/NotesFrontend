@@ -29,13 +29,30 @@
             <div class="page-actions">
               <button
                 type="button"
-                class="icon-action icon-action--primary"
+                class="icon-action"
                 :aria-label="t('fileDisk.openUploadDialog')"
                 @click="openUploadDialog"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-cloud-plus" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 5.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V10a.5.5 0 0 1-1 0V8.5H6a.5.5 0 0 1 0-1h1.5V6a.5.5 0 0 1 .5-.5"/>
                   <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383m.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="icon-action mobile-sort-trigger"
+                :class="{ 'mobile-sort-trigger--active': !is_default_sort }"
+                :aria-label="mobile_sort_trigger_label"
+                :title="mobile_sort_trigger_label"
+                @click="openMobileSortSheet"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 4.5h5.2"/>
+                  <path d="M3 8h3.6"/>
+                  <path d="M3 11.5h6.1"/>
+                  <path d="M11.5 3.2v9.6"/>
+                  <path d="M10.45 4.25 11.5 3.2l1.05 1.05"/>
+                  <path d="M10.45 11.75 11.5 12.8l1.05-1.05"/>
                 </svg>
               </button>
               <el-divider direction="vertical" />
@@ -52,6 +69,42 @@
               </button>
             </div>
           </div>
+
+          <el-drawer
+            v-model="mobile_sort_visible"
+            append-to-body
+            direction="btt"
+            size="min(78vh, 26rem)"
+            :with-header="false"
+            class="mobile-sort-drawer"
+            modal-class="disk-action-dialog-mask mobile-sort-sheet-mask"
+          >
+            <div class="mobile-sort-sheet">
+              <div class="mobile-sort-sheet__handle" aria-hidden="true"></div>
+              <div class="mobile-sort-sheet__header">
+                <div class="mobile-sort-sheet__title">{{ t('fileDisk.sortOptionsTitle') }}</div>
+                <div class="mobile-sort-sheet__current">{{ t('fileDisk.sortCurrentLabel', { label: mobile_current_sort_label }) }}</div>
+              </div>
+
+              <div class="mobile-sort-sheet__options">
+                <button
+                  v-for="option in mobile_sort_options"
+                  :key="option.id"
+                  type="button"
+                  class="mobile-sort-option"
+                  :class="{ 'is-active': isMobileSortOptionActive(option) }"
+                  @click="applyMobileSortOption(option)"
+                >
+                  <span class="mobile-sort-option__label">{{ option.label }}</span>
+                  <span class="mobile-sort-option__check" aria-hidden="true">
+                    <svg v-if="isMobileSortOptionActive(option)" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0"/>
+                    </svg>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </el-drawer>
 
           <el-dialog
             v-model="upload_dialog_visible"
@@ -290,9 +343,72 @@
 
           <template v-else>
             <div class="table-header entry-row entry-row--header">
-              <div class="entry-name-cell">{{ t('common.name') }}</div>
-              <div class="entry-meta entry-meta--created">{{ t('fileDisk.creationTime') }}</div>
-              <div class="entry-meta entry-meta--updated">{{ t('fileDisk.lastModified') }}</div>
+              <button
+                type="button"
+                class="entry-sort-button entry-sort-button--name"
+                :class="{ 'is-active': isSortActive(sort_keys.NAME) }"
+                :aria-label="getSortButtonTitle(sort_keys.NAME, t('common.name'))"
+                :title="getSortButtonTitle(sort_keys.NAME, t('common.name'))"
+                @click="toggleSort(sort_keys.NAME)"
+              >
+                <span class="entry-sort-button__label">{{ t('common.name') }}</span>
+                <span class="entry-sort-button__indicator" :class="`is-${getSortDirection(sort_keys.NAME) || 'none'}`" aria-hidden="true">
+                  <svg v-if="getSortDirection(sort_keys.NAME) === sort_directions.ASC" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 12a.5.5 0 0 1-.5-.5V4.707L5.354 6.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 4.707V11.5A.5.5 0 0 1 8 12"/>
+                  </svg>
+                  <svg v-else-if="getSortDirection(sort_keys.NAME) === sort_directions.DESC" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v6.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 11.293V4.5A.5.5 0 0 1 8 4"/>
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 2.5a.5.5 0 0 1 .5.5v8.293l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 11.293V3a.5.5 0 0 1 .5-.5"/>
+                    <path fill-rule="evenodd" d="M8 13.5a.5.5 0 0 1-.5-.5V4.707L5.354 6.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 4.707V13a.5.5 0 0 1-.5.5"/>
+                  </svg>
+                </span>
+              </button>
+              <button
+                type="button"
+                class="entry-sort-button entry-sort-button--meta"
+                :class="{ 'is-active': isSortActive(sort_keys.CREATED) }"
+                :aria-label="getSortButtonTitle(sort_keys.CREATED, t('fileDisk.creationTime'))"
+                :title="getSortButtonTitle(sort_keys.CREATED, t('fileDisk.creationTime'))"
+                @click="toggleSort(sort_keys.CREATED)"
+              >
+                <span class="entry-sort-button__label">{{ t('fileDisk.creationTime') }}</span>
+                <span class="entry-sort-button__indicator" :class="`is-${getSortDirection(sort_keys.CREATED) || 'none'}`" aria-hidden="true">
+                  <svg v-if="getSortDirection(sort_keys.CREATED) === sort_directions.ASC" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 12a.5.5 0 0 1-.5-.5V4.707L5.354 6.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 4.707V11.5A.5.5 0 0 1 8 12"/>
+                  </svg>
+                  <svg v-else-if="getSortDirection(sort_keys.CREATED) === sort_directions.DESC" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v6.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 11.293V4.5A.5.5 0 0 1 8 4"/>
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 2.5a.5.5 0 0 1 .5.5v8.293l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 11.293V3a.5.5 0 0 1 .5-.5"/>
+                    <path fill-rule="evenodd" d="M8 13.5a.5.5 0 0 1-.5-.5V4.707L5.354 6.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 4.707V13a.5.5 0 0 1-.5.5"/>
+                  </svg>
+                </span>
+              </button>
+              <button
+                type="button"
+                class="entry-sort-button entry-sort-button--meta"
+                :class="{ 'is-active': isSortActive(sort_keys.UPDATED) }"
+                :aria-label="getSortButtonTitle(sort_keys.UPDATED, t('fileDisk.lastModified'))"
+                :title="getSortButtonTitle(sort_keys.UPDATED, t('fileDisk.lastModified'))"
+                @click="toggleSort(sort_keys.UPDATED)"
+              >
+                <span class="entry-sort-button__label">{{ t('fileDisk.lastModified') }}</span>
+                <span class="entry-sort-button__indicator" :class="`is-${getSortDirection(sort_keys.UPDATED) || 'none'}`" aria-hidden="true">
+                  <svg v-if="getSortDirection(sort_keys.UPDATED) === sort_directions.ASC" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 12a.5.5 0 0 1-.5-.5V4.707L5.354 6.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 4.707V11.5A.5.5 0 0 1 8 12"/>
+                  </svg>
+                  <svg v-else-if="getSortDirection(sort_keys.UPDATED) === sort_directions.DESC" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v6.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 11.293V4.5A.5.5 0 0 1 8 4"/>
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 2.5a.5.5 0 0 1 .5.5v8.293l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 11.293V3a.5.5 0 0 1 .5-.5"/>
+                    <path fill-rule="evenodd" d="M8 13.5a.5.5 0 0 1-.5-.5V4.707L5.354 6.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 4.707V13a.5.5 0 0 1-.5.5"/>
+                  </svg>
+                </span>
+              </button>
               <div class="entry-actions entry-actions--header">{{ t('common.actions') }}</div>
             </div>
 
@@ -439,8 +555,25 @@ export default {
     let is_logined = computed(() => store.state.user.is_logined);
     let path_level = computed(() => store.state.file.path_level);
     let paths = computed(() => store.state.file.paths);
+    let raw_directories = ref([]);
+    let raw_files = ref([]);
     let directories = ref([]);
     let files = ref([]);
+    const SORT_KEYS = Object.freeze({
+      NAME: 'name',
+      CREATED: 'creation_time',
+      UPDATED: 'last_modified_time',
+    });
+    const SORT_DIRECTIONS = Object.freeze({
+      ASC: 'asc',
+      DESC: 'desc',
+    });
+    const directory_sort_direction = ref(SORT_DIRECTIONS.ASC);
+    const file_sort_key = ref(SORT_KEYS.NAME);
+    const file_sort_direction = ref(SORT_DIRECTIONS.ASC);
+    const mobile_sort_visible = ref(false);
+    let cached_name_collator = null;
+    let cached_name_collator_locale = '';
     const DIRECTORY_VIEW_STATES = Object.freeze({
       LOADING: 'loading',
       READY: 'ready',
@@ -513,6 +646,229 @@ export default {
       return name === 'root' ? t('fileDisk.root') : name;
     }
 
+    const getNameCollator = () => {
+      const locale = getCurrentLanguage();
+      if (!cached_name_collator || cached_name_collator_locale !== locale) {
+        cached_name_collator = new Intl.Collator(locale, {
+          numeric: true,
+          sensitivity: 'base',
+        });
+        cached_name_collator_locale = locale;
+      }
+      return cached_name_collator;
+    }
+
+    const compareNumbers = (left, right) => {
+      if (left === right) return 0;
+      return left < right ? -1 : 1;
+    }
+
+    const compareIdentifiers = (left, right) => {
+      const left_number = Number(left);
+      const right_number = Number(right);
+      if (Number.isFinite(left_number) && Number.isFinite(right_number)) {
+        return compareNumbers(left_number, right_number);
+      }
+      return getNameCollator().compare(String(left ?? ''), String(right ?? ''));
+    }
+
+    const getDirectionalResult = (value, direction) => (
+      direction === SORT_DIRECTIONS.DESC ? value * -1 : value
+    )
+
+    const normalizeTimestamp = (value) => {
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (value instanceof Date) {
+        const timestamp = value.getTime();
+        return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY;
+      }
+      if (typeof value !== 'string') return Number.NEGATIVE_INFINITY;
+
+      const trimmedValue = value.trim();
+      if (!trimmedValue) return Number.NEGATIVE_INFINITY;
+
+      const normalizedValue = trimmedValue.includes('T')
+        ? trimmedValue
+        : trimmedValue.replace(' ', 'T');
+      const parsedTimestamp = Date.parse(normalizedValue);
+      if (Number.isFinite(parsedTimestamp)) return parsedTimestamp;
+
+      const fallbackTimestamp = Date.parse(trimmedValue.replace(/-/g, '/'));
+      return Number.isFinite(fallbackTimestamp) ? fallbackTimestamp : Number.NEGATIVE_INFINITY;
+    }
+
+    const sortEntriesByName = (entries, direction) => (
+      [...entries]
+        .map((entry) => ({
+          entry,
+          name: String(entry?.name ?? ''),
+          id: entry?.id,
+        }))
+        .sort((left, right) => {
+          const name_result = getNameCollator().compare(left.name, right.name);
+          if (name_result !== 0) {
+            return getDirectionalResult(name_result, direction);
+          }
+          return compareIdentifiers(left.id, right.id);
+        })
+        .map(({ entry }) => entry)
+    )
+
+    const sortFilesByTime = (entries, sort_key, direction) => (
+      [...entries]
+        .map((entry) => ({
+          entry,
+          timestamp: normalizeTimestamp(entry?.[sort_key]),
+          name: String(entry?.name ?? ''),
+          id: entry?.id,
+        }))
+        .sort((left, right) => {
+          const time_result = compareNumbers(left.timestamp, right.timestamp);
+          if (time_result !== 0) {
+            return getDirectionalResult(time_result, direction);
+          }
+
+          const name_result = getNameCollator().compare(left.name, right.name);
+          if (name_result !== 0) {
+            return name_result;
+          }
+
+          return compareIdentifiers(left.id, right.id);
+        })
+        .map(({ entry }) => entry)
+    )
+
+    const applyCurrentSort = () => {
+      directories.value = sortEntriesByName(raw_directories.value, directory_sort_direction.value);
+      files.value = file_sort_key.value === SORT_KEYS.NAME
+        ? sortEntriesByName(raw_files.value, file_sort_direction.value)
+        : sortFilesByTime(raw_files.value, file_sort_key.value, file_sort_direction.value);
+    }
+
+    const resetSortState = () => {
+      directory_sort_direction.value = SORT_DIRECTIONS.ASC;
+      file_sort_key.value = SORT_KEYS.NAME;
+      file_sort_direction.value = SORT_DIRECTIONS.ASC;
+    }
+
+    const setSortState = (key, direction) => {
+      if (key === SORT_KEYS.NAME) {
+        directory_sort_direction.value = direction;
+      }
+      file_sort_key.value = key;
+      file_sort_direction.value = direction;
+      applyCurrentSort();
+    }
+
+    const isSortActive = (key) => file_sort_key.value === key;
+    const is_default_sort = computed(() => (
+      directory_sort_direction.value === SORT_DIRECTIONS.ASC &&
+      file_sort_key.value === SORT_KEYS.NAME &&
+      file_sort_direction.value === SORT_DIRECTIONS.ASC
+    ));
+
+    const getSortDirection = (key) => {
+      if (key === SORT_KEYS.NAME) {
+        return file_sort_key.value === SORT_KEYS.NAME ? file_sort_direction.value : null;
+      }
+      return file_sort_key.value === key ? file_sort_direction.value : null;
+    }
+
+    const getSortDirectionLabel = (direction) => (
+      direction === SORT_DIRECTIONS.DESC
+        ? t('fileDisk.sortDescending')
+        : t('fileDisk.sortAscending')
+    )
+
+    const getSortButtonTitle = (key, label) => {
+      const direction = getSortDirection(key);
+      if (!direction) {
+        return t('fileDisk.sortByColumn', { label });
+      }
+      return t('fileDisk.sortByColumnWithDirection', {
+        label,
+        direction: getSortDirectionLabel(direction),
+      });
+    }
+
+    const mobile_sort_options = computed(() => ([
+      {
+        id: 'name-asc',
+        key: SORT_KEYS.NAME,
+        direction: SORT_DIRECTIONS.ASC,
+        label: t('fileDisk.sortNameAscending'),
+      },
+      {
+        id: 'name-desc',
+        key: SORT_KEYS.NAME,
+        direction: SORT_DIRECTIONS.DESC,
+        label: t('fileDisk.sortNameDescending'),
+      },
+      {
+        id: 'created-desc',
+        key: SORT_KEYS.CREATED,
+        direction: SORT_DIRECTIONS.DESC,
+        label: t('fileDisk.sortCreationNewest'),
+      },
+      {
+        id: 'created-asc',
+        key: SORT_KEYS.CREATED,
+        direction: SORT_DIRECTIONS.ASC,
+        label: t('fileDisk.sortCreationOldest'),
+      },
+      {
+        id: 'updated-desc',
+        key: SORT_KEYS.UPDATED,
+        direction: SORT_DIRECTIONS.DESC,
+        label: t('fileDisk.sortModifiedNewest'),
+      },
+      {
+        id: 'updated-asc',
+        key: SORT_KEYS.UPDATED,
+        direction: SORT_DIRECTIONS.ASC,
+        label: t('fileDisk.sortModifiedOldest'),
+      },
+    ]));
+
+    const isMobileSortOptionActive = (option) => (
+      file_sort_key.value === option.key &&
+      file_sort_direction.value === option.direction &&
+      (option.key !== SORT_KEYS.NAME || directory_sort_direction.value === option.direction)
+    )
+
+    const mobile_current_sort_label = computed(() => (
+      mobile_sort_options.value.find((option) => isMobileSortOptionActive(option))?.label
+      ?? t('fileDisk.sortNameAscending')
+    ));
+
+    const mobile_sort_trigger_label = computed(() => (
+      t('fileDisk.openSortOptionsWithCurrent', { label: mobile_current_sort_label.value })
+    ));
+
+    const openMobileSortSheet = () => {
+      mobile_sort_visible.value = true;
+    }
+
+    const applyMobileSortOption = (option) => {
+      setSortState(option.key, option.direction);
+      mobile_sort_visible.value = false;
+    }
+
+    const toggleSort = (key) => {
+      if (key === SORT_KEYS.NAME) {
+        const next_direction = file_sort_key.value === SORT_KEYS.NAME && file_sort_direction.value === SORT_DIRECTIONS.ASC
+          ? SORT_DIRECTIONS.DESC
+          : SORT_DIRECTIONS.ASC;
+        setSortState(SORT_KEYS.NAME, next_direction);
+        return;
+      }
+
+      const next_direction = file_sort_key.value === key && file_sort_direction.value === SORT_DIRECTIONS.ASC
+        ? SORT_DIRECTIONS.DESC
+        : SORT_DIRECTIONS.ASC;
+      setSortState(key, next_direction);
+    }
+
     const showHttpError = (resp) => {
       ElMessage.error(getHttpErrorMessage(t, resp?.status))
     }
@@ -528,6 +884,8 @@ export default {
 
     const beginDirectoryRequest = () => {
       abortActiveDirectoryRequest();
+      raw_directories.value = [];
+      raw_files.value = [];
       directories.value = [];
       files.value = [];
       directory_view_state.value = DIRECTORY_VIEW_STATES.LOADING;
@@ -538,8 +896,9 @@ export default {
       const safeDirectories = Array.isArray(nextDirectories) ? nextDirectories : [];
       const safeFiles = Array.isArray(nextFiles) ? nextFiles : [];
 
-      directories.value = safeDirectories;
-      files.value = safeFiles;
+      raw_directories.value = safeDirectories;
+      raw_files.value = safeFiles;
+      applyCurrentSort();
       directory_status_detail.value = '';
       directory_view_state.value = safeDirectories.length > 0 || safeFiles.length > 0
         ? DIRECTORY_VIEW_STATES.READY
@@ -547,6 +906,8 @@ export default {
     }
 
     const rejectDirectoryRequest = (detail = '') => {
+      raw_directories.value = [];
+      raw_files.value = [];
       directories.value = [];
       files.value = [];
       directory_view_state.value = DIRECTORY_VIEW_STATES.ERROR;
@@ -571,7 +932,10 @@ export default {
       })
     }
 
-    const loadDirectory = ({ url, data, onSuccess }) => {
+    const loadDirectory = ({ url, data, onSuccess, resetSort = false }) => {
+      if (resetSort) {
+        resetSortState();
+      }
       beginDirectoryRequest();
       active_directory_request = $.ajax({
         url,
@@ -866,7 +1230,7 @@ export default {
      })
     }
 
-    const requestDirectoryById = (id, onSuccess) => {
+    const requestDirectoryById = (id, onSuccess, resetSort = false) => {
       loadDirectory({
         url: `${BASE_URL}/api/directory/id/`,
         data: {
@@ -874,6 +1238,7 @@ export default {
           username: store.state.user.username,
         },
         onSuccess,
+        resetSort,
       });
     }
 
@@ -886,7 +1251,7 @@ export default {
       requestDirectoryById(currentPath.id);
     }
 
-    const requestDirectoryRoot = (showWelcome) => {
+    const requestDirectoryRoot = (showWelcome, resetSort = true) => {
       loadDirectory({
         url: `${BASE_URL}/api/directory/init/`,
         data: {
@@ -909,6 +1274,7 @@ export default {
             }],
           });
         },
+        resetSort,
       });
     }
 
@@ -934,7 +1300,7 @@ export default {
       const nextPathsInfo = buildNextPathsInfo(path_level, directory_id, directory_name, go_back);
       requestDirectoryById(directory_id, () => {
         store.dispatch("refreshPathsInfo", nextPathsInfo);
-      });
+      }, true);
     }
 
     const refreshCurrentPath = () => {
@@ -1164,6 +1530,20 @@ export default {
       paths,
       directories,
       files,
+      sort_keys: SORT_KEYS,
+      sort_directions: SORT_DIRECTIONS,
+      mobile_sort_visible,
+      mobile_sort_options,
+      mobile_current_sort_label,
+      mobile_sort_trigger_label,
+      is_default_sort,
+      isSortActive,
+      getSortDirection,
+      getSortButtonTitle,
+      isMobileSortOptionActive,
+      openMobileSortSheet,
+      applyMobileSortOption,
+      toggleSort,
       show_directory_feedback,
       directory_feedback_message,
       directory_feedback_detail,
@@ -1396,8 +1776,14 @@ div.content-field.login-reminder-field :deep(.card) {
   height: 2.25rem;
 }
 
-.icon-action--primary {
+.mobile-sort-trigger {
+  display: none;
+}
+
+.mobile-sort-trigger--active {
+  border-color: var(--border-accent);
   background: var(--surface-accent);
+  color: var(--accent-strong);
 }
 
 .icon-action--danger {
@@ -1511,6 +1897,71 @@ div.content-field.login-reminder-field :deep(.card) {
 .entry-name,
 .entry-name-cell {
   min-width: 0;
+}
+
+.entry-sort-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.entry-sort-button:focus {
+  outline: none;
+}
+
+.entry-sort-button:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-soft) 88%, transparent);
+}
+
+.entry-sort-button:hover {
+  transform: translateY(-1px);
+}
+
+.entry-sort-button:active {
+  transform: translateY(1px);
+}
+
+.entry-sort-button.is-active {
+  color: var(--text-secondary);
+}
+
+.entry-sort-button__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-sort-button__indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--text-faint);
+  opacity: 0.55;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.entry-sort-button:hover .entry-sort-button__indicator,
+.entry-sort-button.is-active .entry-sort-button__indicator {
+  opacity: 1;
+}
+
+.entry-sort-button__indicator.is-asc,
+.entry-sort-button__indicator.is-desc {
+  color: var(--accent-strong);
 }
 
 .entry-name {
@@ -1761,6 +2212,103 @@ div.content-field.login-reminder-field :deep(.card) {
 .upload-actions--file .upload-progress {
   width: 100%;
   margin-right: 0;
+}
+
+.mobile-sort-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  padding: 10px 14px calc(16px + env(safe-area-inset-bottom));
+  background: transparent;
+}
+
+.mobile-sort-sheet__handle {
+  align-self: center;
+  width: 2.5rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border-strong) 58%, var(--text-faint));
+}
+
+.mobile-sort-sheet__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobile-sort-sheet__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mobile-sort-sheet__current {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.mobile-sort-sheet__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.mobile-sort-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--border-soft) 86%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-card-strong) 92%, transparent);
+  color: var(--text-secondary);
+  text-align: left;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 28%, transparent);
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mobile-sort-option:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-accent);
+  background: var(--surface-soft-hover);
+}
+
+.mobile-sort-option:active {
+  transform: translateY(1px);
+}
+
+.mobile-sort-option.is-active {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-accent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 10%, var(--surface-card-strong)) 0%,
+    color-mix(in srgb, var(--accent-soft) 68%, var(--surface-elevated)) 100%
+  );
+  color: var(--accent-strong);
+  box-shadow:
+    0 10px 22px color-mix(in srgb, var(--accent-soft) 46%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 18%, transparent);
+}
+
+.mobile-sort-option__label {
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.mobile-sort-option__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .disk-action-shell {
@@ -2210,6 +2758,10 @@ div.content-field.login-reminder-field :deep(.card) {
     padding: 10px;
   }
 
+  .mobile-sort-trigger {
+    display: inline-flex;
+  }
+
   .entry-row--header {
     display: none;
   }
@@ -2249,6 +2801,49 @@ div.content-field.login-reminder-field :deep(.card) {
   .entry-card--directory .entry-meta {
     display: none;
   }
+}
+
+:deep(.mobile-sort-drawer) {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--border-soft) 92%, transparent);
+  border-radius: 22px 22px 0 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 78%, transparent), transparent 38%),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--surface-soft) 72%, transparent), transparent 42%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--surface-card) 82%, transparent),
+      color-mix(in srgb, var(--surface-overlay) 62%, transparent)
+    );
+  box-shadow:
+    var(--shadow-medium),
+    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 22%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--surface-card-strong) 10%, transparent);
+  backdrop-filter: blur(18px) saturate(165%);
+  -webkit-backdrop-filter: blur(18px) saturate(165%);
+}
+
+:deep(.mobile-sort-drawer::after) {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-card-strong) 20%, transparent),
+    color-mix(in srgb, var(--surface-card-strong) 0%, transparent)
+  );
+  pointer-events: none;
+}
+
+:deep(.mobile-sort-drawer .el-drawer__header) {
+  display: none;
+}
+
+:deep(.mobile-sort-drawer .el-drawer__body) {
+  position: relative;
+  z-index: 1;
+  padding: 0;
 }
 
 @media (max-width: 768px) {
