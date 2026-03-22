@@ -77,7 +77,7 @@
             size="min(78vh, 26rem)"
             :with-header="false"
             class="mobile-sort-drawer"
-            modal-class="disk-action-dialog-mask mobile-sort-sheet-mask"
+            modal-class="disk-action-dialog-mask"
           >
             <div class="mobile-sort-sheet">
               <div class="mobile-sort-sheet__handle" aria-hidden="true"></div>
@@ -2097,12 +2097,8 @@ div.content-field.login-reminder-field :deep(.card) {
   padding: 16px;
   border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
   border-radius: 18px;
-  background: var(--surface-card-strong);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 18%, transparent);
-}
-
-.upload-glass-card--file {
-  background: var(--surface-card-strong);
+  background: color-mix(in srgb, var(--surface-card-strong) 92%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 28%, transparent);
 }
 
 .upload-glass-card__header {
@@ -2414,25 +2410,12 @@ div.content-field.login-reminder-field :deep(.card) {
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
   border-radius: 14px;
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--surface-card) 70%, transparent),
-      color-mix(in srgb, var(--surface-overlay) 44%, transparent)
-    );
-  backdrop-filter: blur(14px) saturate(150%);
-  -webkit-backdrop-filter: blur(14px) saturate(150%);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 18%, transparent);
+  background: color-mix(in srgb, var(--surface-card-strong) 92%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 28%, transparent);
 }
 
 .disk-action-panel--danger {
   border-color: color-mix(in srgb, var(--danger) 16%, var(--border-soft));
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--surface-card) 68%, transparent),
-      color-mix(in srgb, var(--surface-overlay) 42%, transparent)
-    );
 }
 
 .disk-action-row {
@@ -2654,7 +2637,7 @@ div.content-field.login-reminder-field :deep(.card) {
   min-height: 2.9rem;
   padding: 0 12px;
   border-radius: 14px;
-  background: var(--upload-accent-surface);
+  background: transparent;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--border-soft) 82%, transparent) inset;
   transition: box-shadow 0.16s ease, background 0.16s ease;
 }
@@ -2684,7 +2667,7 @@ div.content-field.login-reminder-field :deep(.card) {
   min-height: 12.75rem;
   border-radius: 16px;
   border: 1px dashed color-mix(in srgb, var(--border-accent) 68%, var(--border-soft));
-  background: var(--upload-accent-surface);
+  background: transparent;
 }
 
 :deep(.upload-demo--glass .el-upload-dragger:hover) {
@@ -2804,36 +2787,8 @@ div.content-field.login-reminder-field :deep(.card) {
 }
 
 :deep(.mobile-sort-drawer) {
-  position: relative;
-  border: 1px solid color-mix(in srgb, var(--border-soft) 92%, transparent);
   border-radius: 22px 22px 0 0;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 78%, transparent), transparent 38%),
-    radial-gradient(circle at bottom right, color-mix(in srgb, var(--surface-soft) 72%, transparent), transparent 42%),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--surface-card) 82%, transparent),
-      color-mix(in srgb, var(--surface-overlay) 62%, transparent)
-    );
-  box-shadow:
-    var(--shadow-medium),
-    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 22%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--surface-card-strong) 10%, transparent);
-  backdrop-filter: blur(18px) saturate(165%);
-  -webkit-backdrop-filter: blur(18px) saturate(165%);
-}
-
-:deep(.mobile-sort-drawer::after) {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--surface-card-strong) 20%, transparent),
-    color-mix(in srgb, var(--surface-card-strong) 0%, transparent)
-  );
-  pointer-events: none;
+  background: transparent;
 }
 
 :deep(.mobile-sort-drawer .el-drawer__header) {
@@ -2841,8 +2796,6 @@ div.content-field.login-reminder-field :deep(.card) {
 }
 
 :deep(.mobile-sort-drawer .el-drawer__body) {
-  position: relative;
-  z-index: 1;
   padding: 0;
 }
 
@@ -2951,31 +2904,15 @@ div.content-field.login-reminder-field :deep(.card) {
 .el-dialog.upload-dialog {
   --el-dialog-margin-top: 8vh;
   position: relative;
-  border: 1px solid transparent;
+  border: 1px solid color-mix(in srgb, var(--border-soft) 92%, transparent);
   border-radius: 20px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 78%, transparent), transparent 38%),
-    radial-gradient(circle at bottom right, color-mix(in srgb, var(--surface-soft) 72%, transparent), transparent 42%),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--surface-card) 78%, transparent),
-      color-mix(in srgb, var(--surface-overlay) 58%, transparent)
-    );
+  background: color-mix(in srgb, var(--surface-card-strong) 96%, transparent);
   box-shadow:
     var(--shadow-medium),
-    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 22%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--surface-card-strong) 10%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 22%, transparent);
   backdrop-filter: blur(18px) saturate(165%);
   -webkit-backdrop-filter: blur(18px) saturate(165%);
-}
-
-.el-dialog.upload-dialog::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
-  pointer-events: none;
 }
 
 .el-dialog.upload-dialog .el-dialog__header,
@@ -3000,25 +2937,12 @@ div.content-field.login-reminder-field :deep(.card) {
   border: 1px solid color-mix(in srgb, var(--border-soft) 92%, transparent);
   border-radius: 16px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 78%, transparent), transparent 38%),
-    radial-gradient(circle at bottom right, color-mix(in srgb, var(--surface-soft) 72%, transparent), transparent 42%),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--surface-card) 78%, transparent),
-      color-mix(in srgb, var(--surface-overlay) 58%, transparent)
-    );
-  box-shadow: var(--shadow-soft);
+  background: color-mix(in srgb, var(--surface-card-strong) 96%, transparent);
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 22%, transparent);
   backdrop-filter: blur(18px) saturate(165%);
   -webkit-backdrop-filter: blur(18px) saturate(165%);
-}
-
-.el-dialog.disk-action-dialog::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
-  pointer-events: none;
 }
 
 .el-dialog.disk-action-dialog .el-dialog__header {
