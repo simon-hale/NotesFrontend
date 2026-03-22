@@ -2175,7 +2175,7 @@ div.content-field.login-reminder-field :deep(.card) {
 .upload-actions--file {
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .upload-progress {
@@ -2184,7 +2184,9 @@ div.content-field.login-reminder-field :deep(.card) {
 }
 
 .upload-actions--file .upload-progress {
+  flex: 0 0 auto;
   width: 100%;
+  min-width: 0;
   margin-right: 0;
 }
 
@@ -2845,7 +2847,17 @@ div.content-field.login-reminder-field :deep(.card) {
   }
 
   .upload-glass-card__header,
-  .upload-glass-card__heading,
+  .upload-glass-card__heading {
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+
+  .upload-glass-card__chip {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   .upload-actions--file {
     align-items: flex-start;
     flex-direction: column;
@@ -2859,6 +2871,33 @@ div.content-field.login-reminder-field :deep(.card) {
     width: 100%;
   }
 
+}
+
+@media (max-width: 380px) {
+  .upload-glass-card__chip {
+    display: none;
+  }
+}
+
+@media (max-width: 340px) {
+  .upload-glass-card__header {
+    gap: 8px;
+  }
+
+  .upload-glass-card__heading {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 300px) {
+  .upload-glass-card__header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .upload-glass-card__heading {
+    flex-wrap: wrap;
+  }
 }
 </style>
 
