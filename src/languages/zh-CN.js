@@ -174,6 +174,9 @@
     markdownLoadFailed: 'Markdown 加载失败',
   },
   notFound: {
-    title: '404 页面不存在',
+    kicker: '页面迷路了',
+    description: '你访问的地址没有对应内容，可能已经移动、被删除，或者路径输入有误。当前会话仍然保持正常，你可以返回上一页，或直接回到首页继续操作。',
+    goHome: '回到首页',
+    goBack: '返回上一页',
   },
 }

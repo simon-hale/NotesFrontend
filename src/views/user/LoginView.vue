@@ -75,6 +75,7 @@ export default {
                             localStorage.setItem('notes-access', '');
                         }
                         store.commit("setFirstLogin");
+                        store.commit("setWelcomeBackPending");
                         router.push({name: "filedisk"});
                     }else{
                         error_message.value = t('auth.unknownSuccessError');

@@ -17,7 +17,6 @@ import NavBar from './components/NavBar.vue';
 import { applyThemeToDocument } from './utils/theme';
 import ElMessage from '@/utils/message';
 import { useI18n } from 'vue-i18n';
-import router from '@/router/index';
 import { BASE_URL } from "@/config";
 import $ from 'jquery';
 import { COMMON_HTTP_ERROR_KEY_MAP, getHttpErrorMessage } from '@/utils/http';
@@ -74,6 +73,13 @@ export default {
       scheduleMessageViewportMetrics();
     });
 
+    watch(() => store.state.welcomeBackPending, (welcomeBackPending) => {
+      if (!welcomeBackPending) return;
+
+      ElMessage.success(t('fileDisk.welcomeBack'));
+      store.commit("cleanWelcomeBackPending");
+    });
+
     watch(() => route.fullPath, () => {
       scheduleMessageViewportMetrics();
     });
@@ -91,7 +97,7 @@ export default {
                 store.dispatch("login", { username: username.value, access:access.value, is_logined });
                 store.commit("setFirstLogin");
                 store.commit("setAutoLogin");
-                router.push({name: "filedisk"});
+                store.commit("setWelcomeBackPending");
             }else{
                 ElMessage.error(t('auth.unknownSuccessError'));
             }

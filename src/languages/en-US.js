@@ -174,6 +174,9 @@
     markdownLoadFailed: 'Markdown failed to load.',
   },
   notFound: {
-    title: '404 Not Found',
+    kicker: 'Route Missing',
+    description: 'The address you entered does not match an available page. It may have moved, been removed, or the path may be incorrect. Your session is still active, so you can go back or head straight to the home page.',
+    goHome: 'Go Home',
+    goBack: 'Go Back',
   },
 }

@@ -7,7 +7,7 @@
                 type="button"
                 class="icon-action icon-action--plain"
                 :aria-label="t('fileDisk.root')"
-                @click="requestDirectoryRoot(false)"
+                @click="requestDirectoryRoot()"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house" viewBox="0 0 16 16">
                   <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L2 8.207V13.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V8.207l.646.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM13 7.207V13.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V7.207l5-5z"/>
@@ -33,9 +33,10 @@
                 :aria-label="t('fileDisk.openUploadDialog')"
                 @click="openUploadDialog"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-cloud-plus" viewBox="0 0 16 16">
-                  <path fill-rule="evenodd" d="M8 5.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V10a.5.5 0 0 1-1 0V8.5H6a.5.5 0 0 1 0-1h1.5V6a.5.5 0 0 1 .5-.5"/>
-                  <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383m.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+                  <path d="M7 9l5 -5l5 5" />
+                  <path d="M12 4l0 12" />
                 </svg>
               </button>
               <button
@@ -46,13 +47,11 @@
                 :title="mobile_sort_trigger_label"
                 @click="openMobileSortSheet"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 4.5h5.2"/>
-                  <path d="M3 8h3.6"/>
-                  <path d="M3 11.5h6.1"/>
-                  <path d="M11.5 3.2v9.6"/>
-                  <path d="M10.45 4.25 11.5 3.2l1.05 1.05"/>
-                  <path d="M10.45 11.75 11.5 12.8l1.05-1.05"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 9l3 -3l3 3" />
+                  <path d="M5 5.5a.5 .5 0 0 1 .5 -.5h4a.5 .5 0 0 1 .5 .5v4a.5 .5 0 0 1 -.5 .5h-4a.5 .5 0 0 1 -.5 -.5l0 -4" />
+                  <path d="M5 14.5a.5 .5 0 0 1 .5 -.5h4a.5 .5 0 0 1 .5 .5v4a.5 .5 0 0 1 -.5 .5h-4a.5 .5 0 0 1 -.5 -.5l0 -4" />
+                  <path d="M17 6v12" />
                 </svg>
               </button>
               <el-divider direction="vertical" />
@@ -62,9 +61,9 @@
                 :aria-label="t('fileDisk.refreshDirectory')"
                 @click="refreshCurrentPath"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
-                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
-                  <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" />
+                  <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" />
                 </svg>
               </button>
             </div>
@@ -353,13 +352,10 @@
               >
                 <span class="entry-sort-button__label">{{ t('common.name') }}</span>
                 <span class="entry-sort-button__indicator" :class="`is-${getSortDirection(sort_keys.NAME) || 'none'}`" aria-hidden="true">
-                  <svg v-if="getSortDirection(sort_keys.NAME) === sort_directions.ASC" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M8 12a.5.5 0 0 1-.5-.5V4.707L5.354 6.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 4.707V11.5A.5.5 0 0 1 8 12"/>
-                  </svg>
-                  <svg v-else-if="getSortDirection(sort_keys.NAME) === sort_directions.DESC" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                  <svg v-if="getSortDirection(sort_keys.NAME) === sort_directions.DESC" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v6.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 11.293V4.5A.5.5 0 0 1 8 4"/>
                   </svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                  <svg v-else-if="!isSortActive(sort_keys.NAME)" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M8 2.5a.5.5 0 0 1 .5.5v8.293l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 11.293V3a.5.5 0 0 1 .5-.5"/>
                     <path fill-rule="evenodd" d="M8 13.5a.5.5 0 0 1-.5-.5V4.707L5.354 6.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 4.707V13a.5.5 0 0 1-.5.5"/>
                   </svg>
@@ -1245,26 +1241,19 @@ export default {
     const refreshCurrentDirectory = () => {
       const currentPath = getCurrentPath();
       if (!currentPath) {
-        requestDirectoryRoot(false);
+        requestDirectoryRoot();
         return;
       }
       requestDirectoryById(currentPath.id);
     }
 
-    const requestDirectoryRoot = (showWelcome, resetSort = true) => {
+    const requestDirectoryRoot = (resetSort = true) => {
       loadDirectory({
         url: `${BASE_URL}/api/directory/init/`,
         data: {
           username: store.state.user.username,
         },
         onSuccess(resp) {
-          if (showWelcome) {
-            ElMessage({
-              message: t('fileDisk.welcomeBack'),
-              type: 'success',
-            });
-          }
-
           store.dispatch("refreshPathsInfo", {
             path_level: 0,
             paths: [{
@@ -1310,7 +1299,7 @@ export default {
     const judgeDiskOrToLogin = () => {
       if(is_logined.value){
         if(store.state.firstLogin){
-          requestDirectoryRoot(true);
+          requestDirectoryRoot();
           store.commit("cleanFirstLogin");
         }else refreshCurrentDirectory();
       }
@@ -1834,23 +1823,13 @@ div.content-field.login-reminder-field :deep(.card) {
   word-break: break-word;
 }
 
-.directory-feedback--loading {
-}
-
 .directory-feedback--loading .directory-feedback__message {
   color: var(--text-muted);
   animation: directory-feedback-pulse 1.15s ease-in-out infinite alternate;
 }
 
-.directory-feedback--error {
-}
-
 .directory-feedback--error .directory-feedback__message {
   color: color-mix(in srgb, var(--danger) 88%, var(--text-primary));
-}
-
-.directory-feedback--empty .directory-feedback__message {
-  color: var(--text-secondary);
 }
 
 .entry-card + .entry-card {
@@ -1894,8 +1873,7 @@ div.content-field.login-reminder-field :deep(.card) {
   box-shadow: none;
 }
 
-.entry-name,
-.entry-name-cell {
+.entry-name {
   min-width: 0;
 }
 
@@ -2860,10 +2838,6 @@ div.content-field.login-reminder-field :deep(.card) {
   div.content-field.file-disk-page {
     margin-top: 4px;
     padding: 8px;
-  }
-
-  .entry-actions {
-    gap: 0;
   }
 
   .disk-action-heading {

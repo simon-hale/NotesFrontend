@@ -22,6 +22,7 @@ export default createStore({
     },
     firstLogin: false,
     autoLogin: false,
+    welcomeBackPending: false,
     file: {
       path_level: -1,
       paths: [],
@@ -67,6 +68,12 @@ export default createStore({
     },
     cleanAutoLogin(state) {
       state.autoLogin = false;
+    },
+    setWelcomeBackPending(state) {
+      state.welcomeBackPending = true;
+    },
+    cleanWelcomeBackPending(state) {
+      state.welcomeBackPending = false;
     },
     refreshPathLevel(state, path_level) {
       state.file.path_level = path_level;

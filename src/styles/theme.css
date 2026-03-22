@@ -532,10 +532,6 @@ a {
   align-items: flex-start;
 }
 
-.el-message.app-message::before {
-  content: none;
-}
-
 .el-message.app-message .el-message__icon {
   margin-top: 2px;
   font-size: 1rem;
@@ -570,10 +566,6 @@ a {
     );
 }
 
-.el-message.app-message.el-message--success::before {
-  background: var(--success);
-}
-
 .el-message.app-message.el-message--success .el-message__icon {
   color: var(--success);
 }
@@ -586,10 +578,6 @@ a {
       color-mix(in srgb, var(--warning) 12%, var(--surface-card-strong)),
       color-mix(in srgb, var(--surface-overlay) 90%, transparent)
     );
-}
-
-.el-message.app-message.el-message--warning::before {
-  background: var(--warning);
 }
 
 .el-message.app-message.el-message--warning .el-message__icon {
@@ -606,10 +594,6 @@ a {
     );
 }
 
-.el-message.app-message.el-message--error::before {
-  background: var(--danger);
-}
-
 .el-message.app-message.el-message--error .el-message__icon {
   color: var(--danger);
 }
@@ -620,9 +604,6 @@ a {
 
 @media (max-width: 640px) {
   .el-message.app-message {
-    left: auto !important;
-    right: var(--app-message-right) !important;
-    width: fit-content;
     max-width: min(18rem, calc(100vw - 24px));
     padding: 11px 12px;
     border-radius: 16px;
