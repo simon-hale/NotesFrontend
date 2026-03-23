@@ -191,9 +191,11 @@
                   :title="directory.name"
                   @click="refresh(path_level, directory.id, directory.name, false)"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-folder-fill entry-icon" viewBox="0 0 16 16">
-                    <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3m-8.322.12q.322-.119.684-.12h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981z"/>
-                  </svg>
+                  <span class="entry-icon entry-icon--directory" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="entry-icon__svg">
+                      <path d="M3 19a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-8a2 2 0 0 0 -2 -2h-8l-2 -3h-4a2 2 0 0 0 -2 2z" />
+                    </svg>
+                  </span>
                   <span class="entry-name__text">{{ directory.name }}</span>
                 </button>
                 <div class="entry-meta entry-meta--created entry-meta--placeholder" aria-hidden="true">
@@ -211,9 +213,10 @@
                     :aria-label="t('fileDisk.renameDirectory')"
                     @click="openRenameDialog('directory', directory.id, directory.name)"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
-                      <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                      <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-action__svg">
+                      <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                      <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415" />
+                      <path d="M16 5l3 3" />
                     </svg>
                   </button>
                   <button
@@ -222,9 +225,12 @@
                     :aria-label="t('fileDisk.deleteDirectory')"
                     @click="openDeleteDialog('directory', directory.id, directory.name)"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder-x" viewBox="0 0 16 16">
-                      <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181L15.546 8H14.54l.265-2.91A1 1 0 0 0 13.81 4H2.19a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91H9v1H2.826a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31zm6.339-1.577A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139q.323-.119.684-.12h5.396z"/>
-                      <path d="M11.854 10.146a.5.5 0 0 0-.707.708L12.293 12l-1.146 1.146a.5.5 0 0 0 .707.708L13 12.707l1.146 1.147a.5.5 0 0 0 .708-.708L13.707 12l1.147-1.146a.5.5 0 0 0-.707-.708L13 11.293z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-action__svg">
+                      <path d="M4 7h16" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                      <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                      <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
                     </svg>
                   </button>
                 </div>
@@ -257,9 +263,10 @@
                     :aria-label="t('fileDisk.renameFile')"
                     @click="openRenameDialog('file', file.id, file.name)"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
-                      <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                      <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-action__svg">
+                      <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                      <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415" />
+                      <path d="M16 5l3 3" />
                     </svg>
                   </button>
                   <button
@@ -268,9 +275,12 @@
                     :aria-label="t('fileDisk.deleteFile')"
                     @click="openDeleteDialog('file', file.id, file.name)"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-x" viewBox="0 0 16 16">
-                      <path d="M6.854 7.146a.5.5 0 1 0-.708.708L7.293 9l-1.147 1.146a.5.5 0 0 0 .708.708L8 9.707l1.146 1.147a.5.5 0 0 0 .708-.708L8.707 9l1.147-1.146a.5.5 0 0 0-.708-.708L8 8.293z"/>
-                      <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-action__svg">
+                      <path d="M4 7h16" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                      <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                      <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
                     </svg>
                   </button>
                   <button
@@ -279,9 +289,10 @@
                     :aria-label="t('fileDisk.downloadFile')"
                     @click="downloadFile(file.id, file.name)"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
-                      <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
-                      <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-action__svg">
+                      <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+                      <path d="M7 11l5 5l5 -5" />
+                      <path d="M12 4l0 12" />
                     </svg>
                   </button>
                 </div>
@@ -291,10 +302,11 @@
         </div>
     </div>
     <Teleport v-if="is_logined" to="body">
-      <Transition name="disk-modal-pop" @after-leave="resetUploadDialogState">
+      <Transition name="disk-modal-pop" :duration="disk_modal_transition_duration" @after-leave="handleUploadDialogAfterLeave">
         <div
           v-if="upload_dialog_visible"
           class="disk-modal"
+          :style="disk_modal_transition_style"
         >
           <div class="disk-modal__backdrop" aria-hidden="true"></div>
           <div
@@ -397,10 +409,11 @@
         </div>
       </Transition>
 
-      <Transition name="disk-modal-pop" @after-leave="handleRenameDialogClosed">
+      <Transition name="disk-modal-pop" :duration="disk_modal_transition_duration" @after-leave="handleRenameDialogAfterLeave">
         <div
           v-if="rename_dialog_visible"
           class="disk-modal"
+          :style="disk_modal_transition_style"
           @click.self="cancelRenameDialog"
         >
           <div class="disk-modal__backdrop" aria-hidden="true"></div>
@@ -459,10 +472,11 @@
         </div>
       </Transition>
 
-      <Transition name="disk-modal-pop" @after-leave="resetDeleteDialogState">
+      <Transition name="disk-modal-pop" :duration="disk_modal_transition_duration" @after-leave="handleDeleteDialogAfterLeave">
         <div
           v-if="delete_dialog_visible"
           class="disk-modal"
+          :style="disk_modal_transition_style"
           @click.self="closeDeleteDialog"
         >
           <div class="disk-modal__backdrop" aria-hidden="true"></div>
@@ -596,6 +610,22 @@ export default {
         delete_dialog_visible.value
       )
     ));
+    const DISK_MODAL_TRANSITION_DURATION = Object.freeze({
+      enter: 280,
+      leave: 220,
+    });
+    const DISK_MODAL_TRANSITION_STYLE = Object.freeze({
+      '--disk-dialog-pop-enter-duration': `${DISK_MODAL_TRANSITION_DURATION.enter}ms`,
+      '--disk-dialog-pop-leave-duration': `${DISK_MODAL_TRANSITION_DURATION.leave}ms`,
+    });
+    const setDiskModalBodyLock = (locked) => {
+      if (typeof document === 'undefined') return;
+      document.body.classList.toggle('disk-modal-open', locked);
+    };
+    const releaseDiskModalBodyLockIfIdle = () => {
+      if (has_active_disk_modal.value) return;
+      setDiskModalBodyLock(false);
+    };
 
     let new_dir_name = ref('');
     let show_upload_progress = ref(false);
@@ -959,6 +989,10 @@ export default {
       percentage.value = 0;
       show_upload_progress.value = false;
     }
+    const handleUploadDialogAfterLeave = () => {
+      resetUploadDialogState();
+      releaseDiskModalBodyLockIfIdle();
+    }
 
     const openUploadDialog = () => {
       upload_dialog_visible.value = true;
@@ -1014,6 +1048,10 @@ export default {
       rename_draft.value = '';
       rename_validation_message.value = '';
       rename_dialog_close_intent.value = 'dismiss';
+    }
+    const handleRenameDialogAfterLeave = () => {
+      handleRenameDialogClosed();
+      releaseDiskModalBodyLockIfIdle();
     }
 
     const requestModifyDirectoryName = (id, value) => {
@@ -1100,14 +1138,6 @@ export default {
       }
     }
 
-    const submitModifyDirectory = (id, name) => {
-      openRenameDialog('directory', id, name);
-    }
-
-    const submitModifyFileName = (id, name) => {
-      openRenameDialog('file', id, name);
-    }
-
     const openDeleteDialog = (type, id, name) => {
       delete_dialog_type.value = type;
       delete_target_id.value = id;
@@ -1123,6 +1153,10 @@ export default {
       delete_dialog_type.value = 'directory';
       delete_target_id.value = null;
       delete_target_name.value = '';
+    }
+    const handleDeleteDialogAfterLeave = () => {
+      resetDeleteDialogState();
+      releaseDiskModalBodyLockIfIdle();
     }
 
     const confirmDeleteDialog = () => {
@@ -1309,9 +1343,15 @@ export default {
         judgeDiskOrToLogin();
       }
     })
-    watch(has_active_disk_modal, (active) => {
-      if (typeof document === 'undefined') return;
-      document.body.classList.toggle('disk-modal-open', active);
+    watch(has_active_disk_modal, (active, previousActive) => {
+      if (active) {
+        setDiskModalBodyLock(true);
+        return;
+      }
+
+      if (previousActive === undefined) {
+        setDiskModalBodyLock(false);
+      }
     }, { immediate: true })
     watch(rename_draft, () => {
       if (rename_validation_message.value) {
@@ -1544,6 +1584,8 @@ export default {
       directory_feedback_message,
       directory_feedback_detail,
       directory_feedback_tone,
+      disk_modal_transition_duration: DISK_MODAL_TRANSITION_DURATION,
+      disk_modal_transition_style: DISK_MODAL_TRANSITION_STYLE,
       new_dir_name,
       show_upload_progress,
       upload_dialog_visible,
@@ -1566,20 +1608,16 @@ export default {
       go_to_login,
       openUploadDialog,
       closeUploadDialog,
-      resetUploadDialogState,
+      handleUploadDialogAfterLeave,
       openRenameDialog,
       cancelRenameDialog,
       confirmRenameDialog,
-      handleRenameDialogClosed,
+      handleRenameDialogAfterLeave,
       openDeleteDialog,
       closeDeleteDialog,
-      resetDeleteDialogState,
+      handleDeleteDialogAfterLeave,
       confirmDeleteDialog,
       submitCreateDirectory,
-      submitDeleteDirectory,
-      submitModifyDirectory,
-      submitModifyFileName,
-      submitDeleteFile,
       requestDirectoryRoot,
       refresh,
       refreshCurrentPath,
@@ -1711,6 +1749,7 @@ div.content-field.login-reminder-field :deep(.card) {
   font-size: 1rem;
   line-height: 1.5;
   color: var(--text-secondary);
+  cursor: pointer;
   transition: color 0.15s ease;
 }
 
@@ -1734,6 +1773,7 @@ div.content-field.login-reminder-field :deep(.card) {
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.5;
+  cursor: pointer;
 }
 
 .page-actions {
@@ -1748,6 +1788,7 @@ div.content-field.login-reminder-field :deep(.card) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   width: 2.5rem;
   height: 2.5rem;
   padding: 0;
@@ -1879,10 +1920,6 @@ div.content-field.login-reminder-field :deep(.card) {
   box-shadow: none;
 }
 
-.entry-name {
-  min-width: 0;
-}
-
 .entry-sort-button {
   display: inline-flex;
   align-items: center;
@@ -1951,6 +1988,7 @@ div.content-field.login-reminder-field :deep(.card) {
 .entry-name {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 8px;
   width: 100%;
   padding: 0;
@@ -1971,10 +2009,56 @@ div.content-field.login-reminder-field :deep(.card) {
   white-space: nowrap;
   font-size: 0.93rem;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .entry-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+}
+
+.entry-icon--directory {
+  width: 1.125rem;
+  height: 1.125rem;
+  line-height: 0;
+}
+
+.entry-card--directory .entry-icon--directory {
+  width: 1rem;
+  height: 1rem;
+  position: relative;
+  top: -1px;
+}
+
+.entry-icon__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.icon-action__svg {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.entry-actions .icon-action {
+  position: relative;
+}
+
+.entry-actions .icon-action__svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.entry-card--directory .entry-name__text {
+  line-height: 1.25;
 }
 
 .entry-type-badge {
@@ -2309,9 +2393,14 @@ div.content-field.login-reminder-field :deep(.card) {
 
 .disk-action-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 8px;
   width: 100%;
+}
+
+.disk-action-footer > .disk-dialog-button {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .disk-dialog-button {
@@ -2646,14 +2735,6 @@ div.content-field.login-reminder-field :deep(.card) {
     padding: 8px;
   }
 
-  .disk-action-footer {
-    flex-direction: column-reverse;
-  }
-
-  .disk-dialog-button {
-    width: 100%;
-  }
-
 }
 
 @media (max-width: 340px) {
@@ -2713,8 +2794,6 @@ body.disk-modal-open {
 }
 
 .disk-modal {
-  --disk-dialog-pop-enter-duration: 500ms;
-  --disk-dialog-pop-leave-duration: 500ms;
   --disk-dialog-pop-enter-timing: cubic-bezier(0.22, 0.72, 0.2, 1);
   --disk-dialog-pop-leave-timing: cubic-bezier(0.32, 0.08, 0.24, 1);
   position: fixed;
@@ -2723,7 +2802,7 @@ body.disk-modal-open {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: clamp(18px, 8vh, 72px) 16px 20px;
+  padding: 8vh 16px 20px;
   overflow-y: auto;
   overscroll-behavior: contain;
   isolation: isolate;
@@ -2751,11 +2830,7 @@ body.disk-modal-open {
   border: 1px solid color-mix(in srgb, var(--border-soft) 92%, transparent);
   overflow: hidden;
   background: color-mix(in srgb, var(--surface-card-strong) 96%, transparent);
-  backdrop-filter: blur(18px) saturate(165%);
-  -webkit-backdrop-filter: blur(18px) saturate(165%);
-  transform-origin: center 18%;
-  will-change: transform, opacity, filter;
-  backface-visibility: hidden;
+  will-change: opacity;
 }
 
 .disk-modal__panel.upload-dialog {
@@ -2865,17 +2940,11 @@ body.disk-modal-open {
 }
 
 .disk-modal-pop-enter-active .disk-modal__panel {
-  transition:
-    opacity var(--disk-dialog-pop-enter-duration) var(--disk-dialog-pop-enter-timing),
-    transform var(--disk-dialog-pop-enter-duration) var(--disk-dialog-pop-enter-timing),
-    filter var(--disk-dialog-pop-enter-duration) var(--disk-dialog-pop-enter-timing);
+  transition: opacity var(--disk-dialog-pop-enter-duration) var(--disk-dialog-pop-enter-timing);
 }
 
 .disk-modal-pop-leave-active .disk-modal__panel {
-  transition:
-    opacity var(--disk-dialog-pop-leave-duration) var(--disk-dialog-pop-leave-timing),
-    transform var(--disk-dialog-pop-leave-duration) var(--disk-dialog-pop-leave-timing),
-    filter var(--disk-dialog-pop-leave-duration) var(--disk-dialog-pop-leave-timing);
+  transition: opacity var(--disk-dialog-pop-leave-duration) var(--disk-dialog-pop-leave-timing);
 }
 
 .disk-modal-pop-enter-from .disk-modal__backdrop,
@@ -2890,21 +2959,15 @@ body.disk-modal-open {
 
 .disk-modal-pop-enter-from .disk-modal__panel {
   opacity: 0;
-  transform: translate3d(0, 72px, 0) scale3d(0.74, 0.8, 1);
-  filter: blur(16px);
 }
 
 .disk-modal-pop-enter-to .disk-modal__panel,
 .disk-modal-pop-leave-from .disk-modal__panel {
   opacity: 1;
-  transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
-  filter: blur(0);
 }
 
 .disk-modal-pop-leave-to .disk-modal__panel {
   opacity: 0;
-  transform: translate3d(0, 56px, 0) scale3d(0.8, 0.86, 1);
-  filter: blur(14px);
 }
 
 @media (max-width: 640px) {
@@ -2916,7 +2979,7 @@ body.disk-modal-open {
 
 @media (max-width: 480px) {
   .disk-modal {
-    padding: 12px 8px 16px;
+    padding: 8vh 8px 16px;
   }
 
   .upload-dialog__header {
