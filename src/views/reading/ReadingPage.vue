@@ -952,31 +952,23 @@ div.content-field.login-reminder-field :deep(.card) {
   .reading-toolbar {
     padding: 7px 8px;
     flex-wrap: nowrap;
-    align-items: center;
   }
 
   .toolbar-actions {
-    width: auto;
-    margin-left: 0;
     flex-wrap: nowrap;
-    flex-shrink: 0;
     gap: 4px;
   }
 
   .reading-title-wrap {
     flex: 1 1 auto;
-    min-width: 0;
     flex-wrap: nowrap;
     align-items: center;
     gap: 0;
   }
 
   .reading-title {
-    width: auto;
     flex: 1 1 auto;
-    min-width: 0;
     font-size: 0.9rem;
-    white-space: nowrap;
   }
 
   .file-tip {
@@ -991,7 +983,6 @@ div.content-field.login-reminder-field :deep(.card) {
   }
 
   .toolbar-actions {
-    width: auto;
     justify-content: flex-end;
   }
 

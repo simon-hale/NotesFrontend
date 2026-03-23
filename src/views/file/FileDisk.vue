@@ -54,7 +54,6 @@
                   <path d="M17 6v12" />
                 </svg>
               </button>
-              <el-divider direction="vertical" />
               <button
                 type="button"
                 class="icon-action"
@@ -76,7 +75,7 @@
             size="min(78vh, 26rem)"
             :with-header="false"
             class="mobile-sort-drawer"
-            modal-class="disk-action-dialog-mask"
+            modal-class="mobile-sort-mask"
           >
             <div class="mobile-sort-sheet">
               <div class="mobile-sort-sheet__handle" aria-hidden="true"></div>
@@ -104,230 +103,6 @@
               </div>
             </div>
           </el-drawer>
-
-          <el-dialog
-            v-model="upload_dialog_visible"
-            append-to-body
-            width="min(92vw, 700px)"
-            class="upload-dialog"
-            modal-class="disk-action-dialog-mask"
-            :title="t('fileDisk.uploadTitle')"
-            :close-on-click-modal="false"
-            :close-on-press-escape="false"
-            @closed="resetUploadDialogState"
-          >
-            <div class="upload-dialog__shell">
-              <div class="upload-switcher">
-                <div class="upload-switcher__frame">
-                  <el-segmented
-                    v-model="selection_value"
-                    :options="selection_options"
-                    size="large"
-                    class="upload-switcher__control"
-                  />
-                </div>
-              </div>
-
-              <div class="upload-glass-card" v-if="selection_value === 'Dir'">
-                <div class="upload-glass-card__header">
-                  <div class="upload-glass-card__icon upload-glass-card__icon--directory" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3m-8.322.12q.322-.119.684-.12h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981z"/>
-                    </svg>
-                  </div>
-                  <div class="upload-glass-card__heading">
-                    <h4 class="upload-glass-card__title">{{ t('common.create') }}</h4>
-                    <span class="upload-glass-card__chip">{{ t('fileDisk.uploadTypeDirectory') }}</span>
-                  </div>
-                </div>
-
-                <div class="upload-glass-card__body">
-                  <el-form-item class="upload-form-item" :label="t('fileDisk.dirName')">
-                    <el-input v-model="new_dir_name" class="upload-dialog__input" />
-                  </el-form-item>
-
-                  <div class="upload-actions">
-                    <button
-                      type="button"
-                      class="disk-dialog-button disk-dialog-button--accent upload-dialog-button"
-                      :disabled="new_dir_name.length === 0"
-                      @click="submitCreateDirectory"
-                    >
-                      {{ t('common.create') }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="upload-glass-card upload-glass-card--file" v-if="selection_value === 'File'">
-                <div class="upload-glass-card__header">
-                  <div class="upload-glass-card__icon upload-glass-card__icon--file" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5z"/>
-                      <path d="M9.5 0v3A1.5 1.5 0 0 0 11 4.5h3z"/>
-                    </svg>
-                  </div>
-                  <div class="upload-glass-card__heading">
-                    <h4 class="upload-glass-card__title">{{ t('common.upload') }}</h4>
-                    <span class="upload-glass-card__chip">{{ t('fileDisk.uploadTypeFile') }}</span>
-                  </div>
-                </div>
-
-                <div class="upload-glass-card__body">
-                  <el-upload
-                    class="upload-demo upload-demo--glass"
-                    drag
-                    multiple
-                    :auto-upload="false"
-                    :show-file-list="true"
-                    :file-list="elFileList"
-                    :on-change="handleChange"
-                    :on-remove="handleRemove"
-                  >
-                    <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-                    <div class="el-upload__text">
-                      {{ t('fileDisk.uploadPrompt') }}
-                    </div>
-                    <template #tip>
-                      <div class="el-upload__tip text-center">
-                        {{ t('fileDisk.uploadTip') }}
-                      </div>
-                    </template>
-                  </el-upload>
-
-                  <div class="upload-actions upload-actions--file">
-                    <div class="upload-progress" v-show="show_upload_progress">
-                      <el-progress :percentage="percentage" />
-                    </div>
-                    <button
-                      type="button"
-                      class="disk-dialog-button disk-dialog-button--accent upload-dialog-button"
-                      :disabled="elFileList.length === 0"
-                      @click="uploadAll()"
-                    >
-                      {{ t('common.upload') }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </el-dialog>
-
-          <el-dialog
-            v-model="rename_dialog_visible"
-            append-to-body
-            width="min(92vw, 460px)"
-            :show-close="false"
-            :close-on-click-modal="true"
-            :close-on-press-escape="false"
-            modal-class="disk-action-dialog-mask"
-            class="disk-action-dialog"
-            @closed="handleRenameDialogClosed"
-          >
-            <div class="disk-action-shell">
-              <div class="disk-action-header">
-                <div class="disk-action-icon" :class="`disk-action-icon--${rename_dialog_type}`" aria-hidden="true">
-                  <svg v-if="rename_dialog_type === 'directory'" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3m-8.322.12q.322-.119.684-.12h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981z"/>
-                  </svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5z"/>
-                    <path d="M9.5 0v3A1.5 1.5 0 0 0 11 4.5h3z"/>
-                    <path d="M11.854 7.146a.5.5 0 0 1 0 .708L9.707 10l2.147 2.146a.5.5 0 0 1-.708.708L9 10.707l-2.146 2.147a.5.5 0 1 1-.708-.708L8.293 10 6.146 7.854a.5.5 0 1 1 .708-.708L9 9.293l2.146-2.147a.5.5 0 0 1 .708 0"/>
-                  </svg>
-                </div>
-                <div class="disk-action-heading">
-                  <h3 class="disk-action-title">{{ rename_dialog_title }}</h3>
-                  <span class="disk-action-chip">{{ rename_dialog_target_label }}</span>
-                </div>
-              </div>
-
-              <div class="disk-action-panel">
-                <div class="disk-action-row">
-                  <span class="disk-action-row__label">{{ t('fileDisk.renameCurrentName') }}</span>
-                  <span class="disk-action-row__value" :title="rename_original_name">{{ rename_original_name }}</span>
-                </div>
-
-                <div class="disk-action-field">
-                  <label class="disk-action-field__label" for="disk-rename-input">{{ t('fileDisk.renameNewName') }}</label>
-                  <el-input
-                    id="disk-rename-input"
-                    ref="rename_input_ref"
-                    v-model="rename_draft"
-                    maxlength="255"
-                    class="disk-action-input"
-                    @keyup.enter="confirmRenameDialog"
-                  />
-                  <p v-if="rename_validation_message" class="disk-action-error">{{ rename_validation_message }}</p>
-                </div>
-              </div>
-            </div>
-
-            <template #footer>
-              <div class="disk-action-footer">
-                <button type="button" class="disk-dialog-button disk-dialog-button--ghost" @click="cancelRenameDialog">
-                  {{ t('common.cancel') }}
-                </button>
-                <button type="button" class="disk-dialog-button disk-dialog-button--accent" @click="confirmRenameDialog">
-                  {{ t('common.confirm') }}
-                </button>
-              </div>
-            </template>
-          </el-dialog>
-
-          <el-dialog
-            v-model="delete_dialog_visible"
-            append-to-body
-            width="min(92vw, 420px)"
-            :show-close="false"
-            :close-on-click-modal="true"
-            :close-on-press-escape="false"
-            modal-class="disk-action-dialog-mask"
-            class="disk-action-dialog"
-            @closed="resetDeleteDialogState"
-          >
-            <div class="disk-action-shell">
-              <div class="disk-action-header">
-                <div class="disk-action-icon disk-action-icon--danger" aria-hidden="true">
-                  <svg v-if="delete_dialog_type === 'directory'" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181L15.546 8H14.54l.265-2.91A1 1 0 0 0 13.81 4H2.19a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91H9v1H2.826a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31zm6.339-1.577A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139q.323-.119.684-.12h5.396z"/>
-                    <path d="M11.854 10.146a.5.5 0 0 0-.707.708L12.293 12l-1.146 1.146a.5.5 0 0 0 .707.708L13 12.707l1.146 1.147a.5.5 0 0 0 .708-.708L13.707 12l1.147-1.146a.5.5 0 0 0-.707-.708L13 11.293z"/>
-                  </svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M6.854 7.146a.5.5 0 1 0-.708.708L7.293 9l-1.147 1.146a.5.5 0 0 0 .708.708L8 9.707l1.146 1.147a.5.5 0 0 0 .708-.708L8.707 9l1.147-1.146a.5.5 0 0 0-.708-.708L8 8.293z"/>
-                    <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
-                  </svg>
-                </div>
-                <div class="disk-action-heading">
-                  <h3 class="disk-action-title">{{ delete_dialog_title }}</h3>
-                  <span class="disk-action-chip disk-action-chip--danger">{{ delete_dialog_target_label }}</span>
-                </div>
-              </div>
-
-              <div class="disk-action-panel disk-action-panel--danger">
-                <div class="disk-action-warning">
-                  {{ t('fileDisk.deleteDialogWarning') }}
-                </div>
-
-                <div class="disk-action-row">
-                  <span class="disk-action-row__label">{{ t('fileDisk.deleteTargetName') }}</span>
-                  <span class="disk-action-row__value" :title="delete_target_name">{{ delete_target_name }}</span>
-                </div>
-              </div>
-            </div>
-
-            <template #footer>
-              <div class="disk-action-footer">
-                <button type="button" class="disk-dialog-button disk-dialog-button--ghost-danger" @click="closeDeleteDialog">
-                  {{ t('common.cancel') }}
-                </button>
-                <button type="button" class="disk-dialog-button disk-dialog-button--danger" @click="confirmDeleteDialog">
-                  {{ t('fileDisk.confirmDelete') }}
-                </button>
-              </div>
-            </template>
-          </el-dialog>
 
           <div
             v-if="show_directory_feedback"
@@ -441,7 +216,6 @@
                       <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
                     </svg>
                   </button>
-                  <el-divider direction="vertical" />
                   <button
                     type="button"
                     class="icon-action icon-action--danger"
@@ -488,7 +262,6 @@
                       <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
                     </svg>
                   </button>
-                  <el-divider direction="vertical" />
                   <button
                     type="button"
                     class="icon-action icon-action--danger"
@@ -500,7 +273,6 @@
                       <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
                     </svg>
                   </button>
-                  <el-divider direction="vertical" />
                   <button
                     type="button"
                     class="icon-action"
@@ -518,6 +290,227 @@
           </template>
         </div>
     </div>
+    <Teleport v-if="is_logined" to="body">
+      <Transition name="disk-modal-pop" @after-leave="resetUploadDialogState">
+        <div
+          v-if="upload_dialog_visible"
+          class="disk-modal"
+        >
+          <div class="disk-modal__backdrop" aria-hidden="true"></div>
+          <div
+            class="disk-modal__panel upload-dialog"
+            role="dialog"
+            aria-modal="true"
+            :aria-label="t('fileDisk.uploadTitle')"
+            @click.stop
+          >
+            <div class="disk-modal__header upload-dialog__header">
+              <h2 class="disk-modal__title">{{ t('fileDisk.uploadTitle') }}</h2>
+              <button
+                type="button"
+                class="disk-modal__close"
+                :aria-label="t('common.close')"
+                @click="closeUploadDialog"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="disk-modal__body upload-dialog__body">
+              <div class="upload-dialog__shell">
+                <div class="upload-switcher" :aria-label="t('fileDisk.uploadTitle')">
+                  <button
+                    v-for="option in selection_options"
+                    :key="option.value"
+                    type="button"
+                    class="upload-switcher__option"
+                    :class="{ 'is-active': selection_value === option.value }"
+                    :aria-pressed="selection_value === option.value"
+                    @click="selection_value = option.value"
+                  >
+                    {{ option.label }}
+                  </button>
+                </div>
+
+                <div class="disk-simple-card disk-simple-card--upload" v-if="selection_value === 'Dir'">
+                  <el-input
+                    id="disk-create-directory-input"
+                    v-model="new_dir_name"
+                    class="upload-dialog__input"
+                    maxlength="255"
+                    :aria-label="t('fileDisk.dirName')"
+                    :placeholder="t('fileDisk.dirName')"
+                  />
+
+                  <div class="upload-actions upload-actions--compact">
+                    <button
+                      type="button"
+                      class="disk-dialog-button disk-dialog-button--accent upload-dialog-button"
+                      :disabled="new_dir_name.length === 0"
+                      @click="submitCreateDirectory"
+                    >
+                      {{ t('common.create') }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="disk-simple-card disk-simple-card--upload" v-if="selection_value === 'File'">
+                  <div class="disk-simple-card__dropzone">
+                    <el-upload
+                      class="upload-demo upload-demo--simple"
+                      drag
+                      multiple
+                      :auto-upload="false"
+                      :show-file-list="true"
+                      :file-list="elFileList"
+                      :on-change="handleChange"
+                      :on-remove="handleRemove"
+                    >
+                      <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                      <div class="el-upload__text">
+                        {{ t('fileDisk.uploadPrompt') }}
+                      </div>
+                    </el-upload>
+                  </div>
+
+                  <div class="upload-progress" v-show="show_upload_progress">
+                    <el-progress :percentage="percentage" />
+                  </div>
+
+                  <div class="upload-actions upload-actions--compact">
+                    <button
+                      type="button"
+                      class="disk-dialog-button disk-dialog-button--accent upload-dialog-button"
+                      :disabled="elFileList.length === 0"
+                      @click="uploadAll()"
+                    >
+                      {{ t('common.upload') }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
+      <Transition name="disk-modal-pop" @after-leave="handleRenameDialogClosed">
+        <div
+          v-if="rename_dialog_visible"
+          class="disk-modal"
+          @click.self="cancelRenameDialog"
+        >
+          <div class="disk-modal__backdrop" aria-hidden="true"></div>
+          <div
+            class="disk-modal__panel disk-action-dialog disk-action-dialog--rename"
+            role="dialog"
+            aria-modal="true"
+            :aria-label="rename_dialog_title"
+            @click.stop
+          >
+            <div class="disk-modal__body disk-action-dialog__body">
+              <div class="disk-simple-card">
+                <div class="disk-simple-card__header">
+                  <div class="disk-simple-card__icon" :class="`disk-simple-card__icon--${rename_dialog_type}`" aria-hidden="true">
+                    <svg v-if="rename_dialog_type === 'directory'" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3m-8.322.12q.322-.119.684-.12h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981z"/>
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5z"/>
+                      <path d="M9.5 0v3A1.5 1.5 0 0 0 11 4.5h3z"/>
+                      <path d="M11.854 7.146a.5.5 0 0 1 0 .708L9.707 10l2.147 2.146a.5.5 0 0 1-.708.708L9 10.707l-2.146 2.147a.5.5 0 1 1-.708-.708L8.293 10 6.146 7.854a.5.5 0 1 1 .708-.708L9 9.293l2.146-2.147a.5.5 0 0 1 .708 0"/>
+                    </svg>
+                  </div>
+                  <h3 class="disk-simple-card__title">{{ rename_dialog_title }}</h3>
+                </div>
+
+                <div class="disk-simple-card__meta" :title="rename_original_name">
+                  {{ t('fileDisk.renameCurrentName') }}: {{ rename_original_name }}
+                </div>
+
+                <el-input
+                  id="disk-rename-input"
+                  ref="rename_input_ref"
+                  v-model="rename_draft"
+                  maxlength="255"
+                  class="disk-action-input"
+                  :aria-label="t('fileDisk.renameNewName')"
+                  :placeholder="t('fileDisk.renameNewName')"
+                  @keyup.enter="confirmRenameDialog"
+                />
+                <p v-if="rename_validation_message" class="disk-simple-card__error">{{ rename_validation_message }}</p>
+              </div>
+            </div>
+
+            <div class="disk-modal__footer disk-action-dialog__footer">
+              <div class="disk-action-footer">
+                <button type="button" class="disk-dialog-button disk-dialog-button--ghost" @click="cancelRenameDialog">
+                  {{ t('common.cancel') }}
+                </button>
+                <button type="button" class="disk-dialog-button disk-dialog-button--accent" @click="confirmRenameDialog">
+                  {{ t('common.confirm') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
+      <Transition name="disk-modal-pop" @after-leave="resetDeleteDialogState">
+        <div
+          v-if="delete_dialog_visible"
+          class="disk-modal"
+          @click.self="closeDeleteDialog"
+        >
+          <div class="disk-modal__backdrop" aria-hidden="true"></div>
+          <div
+            class="disk-modal__panel disk-action-dialog disk-action-dialog--delete"
+            role="dialog"
+            aria-modal="true"
+            :aria-label="delete_dialog_title"
+            @click.stop
+          >
+            <div class="disk-modal__body disk-action-dialog__body">
+              <div class="disk-simple-card">
+                <div class="disk-simple-card__header">
+                  <div class="disk-simple-card__icon disk-simple-card__icon--danger" aria-hidden="true">
+                    <svg v-if="delete_dialog_type === 'directory'" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181L15.546 8H14.54l.265-2.91A1 1 0 0 0 13.81 4H2.19a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91H9v1H2.826a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31zm6.339-1.577A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139q.323-.119.684-.12h5.396z"/>
+                      <path d="M11.854 10.146a.5.5 0 0 0-.707.708L12.293 12l-1.146 1.146a.5.5 0 0 0 .707.708L13 12.707l1.146 1.147a.5.5 0 0 0 .708-.708L13.707 12l1.147-1.146a.5.5 0 0 0-.707-.708L13 11.293z"/>
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M6.854 7.146a.5.5 0 1 0-.708.708L7.293 9l-1.147 1.146a.5.5 0 0 0 .708.708L8 9.707l1.146 1.147a.5.5 0 0 0 .708-.708L8.707 9l1.147-1.146a.5.5 0 0 0-.708-.708L8 8.293z"/>
+                      <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+                    </svg>
+                  </div>
+                  <h3 class="disk-simple-card__title">{{ delete_dialog_title }}</h3>
+                </div>
+
+                <div class="disk-simple-card__meta disk-simple-card__meta--danger" :title="delete_target_name">
+                  {{ t('fileDisk.deleteTargetName') }}: {{ delete_target_name }}
+                </div>
+
+                <p class="disk-simple-card__hint disk-simple-card__hint--danger">{{ t('fileDisk.deleteDialogWarning') }}</p>
+              </div>
+            </div>
+
+            <div class="disk-modal__footer disk-action-dialog__footer">
+              <div class="disk-action-footer">
+                <button type="button" class="disk-dialog-button disk-dialog-button--ghost-danger" @click="closeDeleteDialog">
+                  {{ t('common.cancel') }}
+                </button>
+                <button type="button" class="disk-dialog-button disk-dialog-button--danger" @click="confirmDeleteDialog">
+                  {{ t('fileDisk.confirmDelete') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
     <ContentField v-else class="text-center login-reminder-field">
         <div class="login-reminder-content">
           <div>{{ t('auth.loginFirst') }}</div>
@@ -596,6 +589,13 @@ export default {
       if (directory_view_state.value === DIRECTORY_VIEW_STATES.LOADING) return 'directory-feedback--loading';
       return 'directory-feedback--empty';
     });
+    const has_active_disk_modal = computed(() => (
+      is_logined.value && (
+        upload_dialog_visible.value ||
+        rename_dialog_visible.value ||
+        delete_dialog_visible.value
+      )
+    ));
 
     let new_dir_name = ref('');
     let show_upload_progress = ref(false);
@@ -618,20 +618,10 @@ export default {
       { label: t('fileDisk.uploadTypeDirectory'), value: 'Dir' },
       { label: t('fileDisk.uploadTypeFile'), value: 'File' },
     ]);
-    const rename_dialog_target_label = computed(() => (
-      rename_dialog_type.value === 'directory'
-        ? t('fileDisk.uploadTypeDirectory')
-        : t('fileDisk.uploadTypeFile')
-    ));
     const rename_dialog_title = computed(() => (
       rename_dialog_type.value === 'directory'
         ? t('fileDisk.changeDirectoryTitle')
         : t('fileDisk.changeFileTitle')
-    ));
-    const delete_dialog_target_label = computed(() => (
-      delete_dialog_type.value === 'directory'
-        ? t('fileDisk.uploadTypeDirectory')
-        : t('fileDisk.uploadTypeFile')
     ));
     const delete_dialog_title = computed(() => (
       delete_dialog_type.value === 'directory'
@@ -962,12 +952,20 @@ export default {
     }
 
     const resetUploadDialogState = () => {
+      new_dir_name.value = '';
+      selection_value.value = 'Dir';
+      fileList.value = [];
+      elFileList.value = [];
       percentage.value = 0;
       show_upload_progress.value = false;
     }
 
     const openUploadDialog = () => {
       upload_dialog_visible.value = true;
+    }
+
+    const closeUploadDialog = () => {
+      upload_dialog_visible.value = false;
     }
 
     const validateRenameValue = (type, value) => {
@@ -1311,6 +1309,10 @@ export default {
         judgeDiskOrToLogin();
       }
     })
+    watch(has_active_disk_modal, (active) => {
+      if (typeof document === 'undefined') return;
+      document.body.classList.toggle('disk-modal-open', active);
+    }, { immediate: true })
     watch(rename_draft, () => {
       if (rename_validation_message.value) {
         rename_validation_message.value = '';
@@ -1318,7 +1320,12 @@ export default {
     })
 
     onMounted(() => { judgeDiskOrToLogin(); })
-    onBeforeUnmount(() => { abortActiveDirectoryRequest(); })
+    onBeforeUnmount(() => {
+      abortActiveDirectoryRequest();
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('disk-modal-open');
+      }
+    })
 
     const fileList = ref([]);
     const elFileList = ref([]);
@@ -1543,14 +1550,12 @@ export default {
       rename_input_ref,
       rename_dialog_visible,
       rename_dialog_type,
-      rename_dialog_target_label,
       rename_dialog_title,
       rename_original_name,
       rename_draft,
       rename_validation_message,
       delete_dialog_visible,
       delete_dialog_type,
-      delete_dialog_target_label,
       delete_dialog_title,
       delete_target_name,
       selection_value,
@@ -1560,6 +1565,7 @@ export default {
       percentage,
       go_to_login,
       openUploadDialog,
+      closeUploadDialog,
       resetUploadDialogState,
       openRenameDialog,
       cancelRenameDialog,
@@ -1734,7 +1740,7 @@ div.content-field.login-reminder-field :deep(.card) {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 2px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -2019,7 +2025,7 @@ div.content-field.login-reminder-field :deep(.card) {
   align-items: center;
   justify-content: flex-end;
   flex-wrap: nowrap;
-  gap: 0;
+  gap: 6px;
   min-width: max-content;
 }
 
@@ -2039,155 +2045,169 @@ div.content-field.login-reminder-field :deep(.card) {
   justify-content: center;
 }
 
-:deep(.el-divider--vertical) {
-  height: 14px;
-  margin: 0 1px;
-}
-
 .upload-dialog__shell {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  --upload-switcher-radius: 18px;
+  width: 100%;
+  --upload-switcher-radius: 999px;
   --upload-accent-surface: color-mix(in srgb, var(--accent) 6%, var(--surface-accent-strong));
   --upload-accent-surface-hover: color-mix(in srgb, var(--accent) 10%, var(--surface-soft-hover));
   --upload-accent-surface-disabled: color-mix(in srgb, var(--accent) 5%, var(--surface-card-muted));
 }
 
 .upload-switcher {
-  display: flex;
-  justify-content: center;
-  padding: 2px 0 0;
-}
-
-.upload-switcher__frame {
-  padding: 6px;
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 4px;
+  padding: 4px;
   border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
   border-radius: var(--upload-switcher-radius);
-  background: var(--upload-accent-surface);
+  background: color-mix(in srgb, var(--surface-card-muted) 94%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 18%, transparent);
 }
 
-.upload-glass-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 16px;
-  border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--surface-card-strong) 92%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 28%, transparent);
+.upload-switcher__option {
+  min-width: 5.2rem;
+  min-height: 2.1rem;
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    transform 0.16s ease,
+    color 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
-.upload-glass-card__header {
+.upload-switcher__option:hover {
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-soft-hover));
+}
+
+.upload-switcher__option.is-active {
+  background: color-mix(in srgb, var(--surface-card-strong) 94%, transparent);
+  color: var(--text-primary);
+  box-shadow:
+    0 8px 16px color-mix(in srgb, var(--accent-soft) 36%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 38%, transparent);
+}
+
+.upload-switcher__option:active {
+  transform: translateY(1px);
+}
+
+.upload-switcher__option:focus {
+  outline: none;
+}
+
+.upload-switcher__option:focus-visible {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent-soft) 82%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 38%, transparent);
+}
+
+.disk-simple-card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.disk-simple-card--upload {
   gap: 12px;
 }
 
-.upload-glass-card__icon {
+.disk-simple-card__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.disk-simple-card__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 15px;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 24%, transparent);
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-card-muted) 78%, transparent);
 }
 
-.upload-glass-card__icon--directory {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--accent) 14%, transparent),
-    color-mix(in srgb, var(--surface-card-strong) 70%, transparent)
-  );
+.disk-simple-card__icon--directory {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-card-muted));
   color: var(--accent-strong);
 }
 
-.upload-glass-card__icon--file {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--accent-soft) 82%, transparent),
-    color-mix(in srgb, var(--surface-card-strong) 68%, transparent)
-  );
+.disk-simple-card__icon--file {
+  background: color-mix(in srgb, var(--accent-soft) 72%, var(--surface-card-muted));
   color: var(--text-accent);
 }
 
-.upload-glass-card__heading {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+.disk-simple-card__icon--danger {
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface-card-muted));
+  color: color-mix(in srgb, var(--danger) 88%, var(--text-primary));
 }
 
-.upload-glass-card__title {
+.disk-simple-card__title {
   margin: 0;
-  font-size: 1.04rem;
+  font-size: 0.98rem;
   font-weight: 700;
   line-height: 1.2;
   color: var(--text-primary);
 }
 
-.upload-glass-card__chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 1.5rem;
-  padding: 0 0.55rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border-soft));
-  border-radius: 999px;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--accent) 10%, transparent),
-    color-mix(in srgb, var(--surface-card-strong) 60%, transparent)
-  );
-  color: var(--accent-strong);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.disk-simple-card__dropzone {
+  width: 100%;
 }
 
-.upload-glass-card__body {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+.disk-simple-card__meta,
+.disk-simple-card__hint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
 }
 
-.upload-glass-card--file .upload-glass-card__body {
-  gap: 0px;
+.disk-simple-card__meta--danger,
+.disk-simple-card__hint--danger {
+  color: color-mix(in srgb, var(--danger) 82%, var(--text-primary));
 }
 
-.upload-form-item {
-  margin-bottom: 0;
+.disk-simple-card__error {
+  margin: -2px 2px 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--danger);
+  font-weight: 600;
 }
 
 .upload-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
-.upload-actions--file {
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+.upload-actions--compact {
+  padding-top: 0;
 }
 
 .upload-progress {
-  flex: 1 1 12rem;
-  min-width: min(100%, 12rem);
-}
-
-.upload-actions--file .upload-progress {
-  flex: 0 0 auto;
   width: 100%;
-  min-width: 0;
-  margin-right: 0;
 }
 
 .mobile-sort-sheet {
@@ -2287,182 +2307,6 @@ div.content-field.login-reminder-field :deep(.card) {
   height: 1.15rem;
 }
 
-.disk-action-shell {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.disk-action-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.disk-action-heading {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.disk-action-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 14px;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 36%, transparent);
-}
-
-.disk-action-icon--directory {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--accent) 16%, transparent),
-    color-mix(in srgb, var(--surface-card-strong) 72%, transparent)
-  );
-  color: var(--accent-strong);
-}
-
-.disk-action-icon--file {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--accent-soft) 80%, transparent),
-    color-mix(in srgb, var(--surface-card-strong) 70%, transparent)
-  );
-  color: var(--text-accent);
-}
-
-.disk-action-icon--danger {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--danger) 16%, transparent),
-    color-mix(in srgb, var(--surface-card-strong) 72%, transparent)
-  );
-  color: color-mix(in srgb, var(--danger) 90%, var(--text-primary));
-}
-
-.disk-action-title {
-  margin: 0;
-  font-size: 1.08rem;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--text-primary);
-}
-
-.disk-action-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 1.5rem;
-  padding: 0 0.55rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border-soft));
-  border-radius: 999px;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--accent) 12%, transparent),
-    color-mix(in srgb, var(--surface-card-strong) 62%, transparent)
-  );
-  color: var(--accent-strong);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.disk-action-chip--danger {
-  border-color: color-mix(in srgb, var(--danger) 22%, var(--border-soft));
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--danger) 12%, transparent),
-    color-mix(in srgb, var(--surface-card-strong) 62%, transparent)
-  );
-  color: color-mix(in srgb, var(--danger) 86%, var(--text-primary));
-}
-
-.disk-action-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface-card-strong) 92%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 28%, transparent);
-}
-
-.disk-action-panel--danger {
-  border-color: color-mix(in srgb, var(--danger) 16%, var(--border-soft));
-}
-
-.disk-action-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.disk-action-row__label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.disk-action-row__value {
-  min-width: 0;
-  max-width: 70%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  text-align: right;
-}
-
-.disk-action-field {
-  display: flex;
-  flex-direction: column;
-}
-
-.disk-action-field__label {
-  margin-bottom: 5px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.disk-action-error {
-  margin: 6px 2px 0;
-  font-size: 0.76rem;
-  line-height: 1.45;
-  color: var(--danger);
-  font-weight: 600;
-}
-
-.disk-action-warning {
-  padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--danger) 16%, var(--border-soft));
-  border-radius: 12px;
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--danger) 12%, transparent),
-      color-mix(in srgb, var(--surface-card-strong) 56%, transparent)
-    );
-  backdrop-filter: blur(10px) saturate(145%);
-  -webkit-backdrop-filter: blur(10px) saturate(145%);
-  color: color-mix(in srgb, var(--danger) 84%, var(--text-primary));
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
 .disk-action-footer {
   display: flex;
   justify-content: flex-end;
@@ -2474,14 +2318,14 @@ div.content-field.login-reminder-field :deep(.card) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 6.75rem;
-  min-height: 2.6rem;
-  padding: 0.58rem 0.95rem;
+  min-width: 5.5rem;
+  min-height: 2.2rem;
+  padding: 0.42rem 0.78rem;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   background: var(--surface-card-muted);
   color: var(--text-primary);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 700;
   line-height: 1;
   transition:
@@ -2567,57 +2411,11 @@ div.content-field.login-reminder-field :deep(.card) {
   );
 }
 
-:deep(.upload-switcher__control.el-segmented) {
-  --el-segmented-bg-color: transparent;
-  --el-segmented-item-selected-bg-color: color-mix(in srgb, var(--surface-card-strong) 52%, transparent);
-  --el-segmented-item-selected-color: var(--text-primary);
-  --el-segmented-item-hover-color: var(--text-accent);
-  --el-segmented-item-hover-bg-color: color-mix(in srgb, var(--accent) 10%, var(--surface-soft-hover));
-  --el-segmented-item-active-bg-color: color-mix(in srgb, var(--accent) 18%, var(--surface-soft-hover));
-}
-
-:deep(.upload-switcher__control.el-segmented .el-segmented__item-selected) {
-  border-radius: var(--upload-switcher-radius);
-}
-
-:deep(.upload-switcher__control.el-segmented .el-segmented__item) {
-  min-width: 7rem;
-  min-height: 2.5rem;
-  border-radius: var(--upload-switcher-radius);
-  color: var(--text-secondary);
-  font-weight: 700;
-  transition: color 0.16s ease, transform 0.16s ease;
-}
-
-:deep(.upload-switcher__control.el-segmented .el-segmented__item:not(.is-disabled):not(.is-selected):hover) {
-  color: var(--text-accent);
-}
-
-:deep(.upload-switcher__control.el-segmented .el-segmented__item.is-selected) {
-  color: var(--text-primary);
-}
-
-:deep(.upload-form-item .el-form-item__label) {
-  display: flex;
-  align-items: center;
-  min-height: 2.9rem;
-  padding-bottom: 0;
-  color: var(--text-secondary);
-  font-size: 0.78rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-:deep(.upload-form-item .el-form-item__content) {
-  width: 100%;
-  align-items: center;
-}
-
 :deep(.upload-dialog__input .el-input__wrapper) {
-  min-height: 2.9rem;
-  padding: 0 12px;
-  border-radius: 14px;
-  background: transparent;
+  min-height: 2.7rem;
+  padding: 0 11px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-card-muted) 86%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--border-soft) 82%, transparent) inset;
   transition: box-shadow 0.16s ease, background 0.16s ease;
 }
@@ -2638,43 +2436,66 @@ div.content-field.login-reminder-field :deep(.card) {
   color: var(--text-primary);
 }
 
-:deep(.upload-demo--glass .el-upload) {
+:deep(.upload-demo--simple .el-upload) {
   width: 100%;
 }
 
-:deep(.upload-demo--glass .el-upload-dragger) {
+:deep(.upload-demo--simple .el-upload-dragger) {
   width: 100%;
-  min-height: 12.75rem;
-  border-radius: 16px;
+  min-height: 9.5rem;
+  padding: 18px 14px;
+  border-radius: 12px;
   border: 1px dashed color-mix(in srgb, var(--border-accent) 68%, var(--border-soft));
   background: transparent;
+  transition: border-color 0.16s ease, background 0.16s ease;
 }
 
-:deep(.upload-demo--glass .el-upload-dragger:hover) {
+:deep(.upload-demo--simple .el-upload-dragger:hover) {
   border-color: var(--border-accent);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
 }
 
-:deep(.upload-demo--glass .el-icon--upload) {
-  margin-bottom: 10px;
+:deep(.upload-demo--simple .el-icon--upload) {
+  margin-bottom: 8px;
   color: var(--accent-strong);
 }
 
-:deep(.upload-demo--glass .el-upload__text) {
+:deep(.upload-demo--simple .el-upload__text) {
   color: var(--text-primary);
-  font-size: 0.96rem;
+  font-size: 0.9rem;
   font-weight: 700;
 }
 
-:deep(.upload-demo--glass .el-upload__tip) {
-  margin-top: 10px;
+:deep(.upload-demo--simple .el-upload__tip) {
+  margin-top: 8px;
   color: var(--text-muted);
   line-height: 1.5;
 }
 
-:deep(.upload-demo--glass .el-upload-list__item) {
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--surface-card) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border-soft) 78%, transparent);
+:deep(.upload-demo--simple .el-upload-list__item) {
+  padding-left: 4px;
+  padding-right: 4px;
+  border-radius: 10px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+:deep(.upload-progress .el-progress-bar__outer) {
+  background: color-mix(in srgb, var(--surface-soft) 90%, transparent);
+}
+
+:deep(.upload-progress .el-progress-bar__inner) {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 86%, transparent) 0%,
+    color-mix(in srgb, var(--accent-strong) 100%, transparent) 100%
+  );
+}
+
+:deep(.upload-progress .el-progress__text) {
+  color: var(--text-secondary);
+  font-weight: 700;
 }
 
 .upload-dialog-button.disk-dialog-button--accent {
@@ -2691,9 +2512,9 @@ div.content-field.login-reminder-field :deep(.card) {
 }
 
 :deep(.disk-action-input .el-input__wrapper) {
-  min-height: 2.8rem;
-  padding: 0 12px;
-  border-radius: 14px;
+  min-height: 2.7rem;
+  padding: 0 11px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--surface-card-muted) 94%, transparent);
   box-shadow: 0 0 0 1px var(--border-soft) inset;
   transition: box-shadow 0.16s ease, background 0.16s ease, transform 0.16s ease;
@@ -2817,50 +2638,12 @@ div.content-field.login-reminder-field :deep(.card) {
     font-size: 0.62rem;
   }
 
-  .upload-glass-card {
-    padding: 14px;
-  }
-
-  .upload-progress {
-    width: 100%;
-  }
-
-  .disk-action-row {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .disk-action-row__value {
-    max-width: 100%;
-    text-align: left;
-  }
 }
 
 @media (max-width: 480px) {
   div.content-field.file-disk-page {
     margin-top: 4px;
     padding: 8px;
-  }
-
-  .disk-action-heading {
-    align-items: flex-start;
-  }
-
-  .upload-glass-card__header,
-  .upload-glass-card__heading {
-    align-items: center;
-    flex-direction: row;
-    flex-wrap: nowrap;
-  }
-
-  .upload-glass-card__chip {
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-
-  .upload-actions--file {
-    align-items: flex-start;
-    flex-direction: column;
   }
 
   .disk-action-footer {
@@ -2873,116 +2656,275 @@ div.content-field.login-reminder-field :deep(.card) {
 
 }
 
-@media (max-width: 380px) {
-  .upload-glass-card__chip {
-    display: none;
-  }
-}
-
 @media (max-width: 340px) {
-  .upload-glass-card__header {
+  .disk-simple-card__header {
     gap: 8px;
-  }
-
-  .upload-glass-card__heading {
-    gap: 6px;
+    flex-wrap: wrap;
   }
 }
 
 @media (max-width: 300px) {
-  .upload-glass-card__header {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .upload-glass-card__heading {
-    flex-wrap: wrap;
+  .disk-simple-card__icon {
+    width: 2.5rem;
+    height: 2.5rem;
   }
 }
 </style>
 
 <style>
-.el-overlay.disk-action-dialog-mask {
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 42%, transparent), transparent 42%),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--surface-overlay) 28%, transparent),
-      color-mix(in srgb, var(--surface-card) 18%, transparent)
-    ) !important;
-  backdrop-filter: blur(8px) saturate(120%);
-  -webkit-backdrop-filter: blur(8px) saturate(120%);
+body.disk-modal-open {
+  overflow: hidden;
 }
 
-.el-dialog.upload-dialog {
-  --el-dialog-margin-top: 8vh;
+.el-overlay.mobile-sort-mask {
+  background: transparent !important;
+  overflow: hidden;
+}
+
+.el-overlay.mobile-sort-mask::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 34%, transparent), transparent 46%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-overlay) 18%, transparent),
+      color-mix(in srgb, var(--surface-card) 10%, transparent)
+    );
+  backdrop-filter: blur(10px) saturate(126%);
+  -webkit-backdrop-filter: blur(10px) saturate(126%);
+  pointer-events: none;
+}
+
+.el-overlay.mobile-sort-mask .el-drawer {
+  z-index: 1;
+}
+
+.el-overlay.mobile-sort-mask.el-drawer-fade-enter-active::before,
+.el-overlay.mobile-sort-mask.el-drawer-fade-leave-active::before {
+  transition: opacity var(--el-transition-duration) var(--el-transition-function-fast-bezier);
+  will-change: opacity;
+}
+
+.el-overlay.mobile-sort-mask.el-drawer-fade-enter-from::before,
+.el-overlay.mobile-sort-mask.el-drawer-fade-leave-to::before {
+  opacity: 0;
+}
+
+.disk-modal {
+  --disk-dialog-pop-enter-duration: 500ms;
+  --disk-dialog-pop-leave-duration: 500ms;
+  --disk-dialog-pop-enter-timing: cubic-bezier(0.22, 0.72, 0.2, 1);
+  --disk-dialog-pop-leave-timing: cubic-bezier(0.32, 0.08, 0.24, 1);
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(18px, 8vh, 72px) 16px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  isolation: isolate;
+}
+
+.disk-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 34%, transparent), transparent 46%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-overlay) 18%, transparent),
+      color-mix(in srgb, var(--surface-card) 10%, transparent)
+    );
+  backdrop-filter: blur(10px) saturate(126%);
+  -webkit-backdrop-filter: blur(10px) saturate(126%);
+  pointer-events: none;
+}
+
+.disk-modal__panel {
   position: relative;
+  z-index: 1;
+  width: min(92vw, 540px);
   border: 1px solid color-mix(in srgb, var(--border-soft) 92%, transparent);
-  border-radius: 20px;
   overflow: hidden;
   background: color-mix(in srgb, var(--surface-card-strong) 96%, transparent);
+  backdrop-filter: blur(18px) saturate(165%);
+  -webkit-backdrop-filter: blur(18px) saturate(165%);
+  transform-origin: center 18%;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+}
+
+.disk-modal__panel.upload-dialog {
+  width: min(92vw, 28rem);
+  border-radius: 20px;
   box-shadow:
     var(--shadow-medium),
     inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 22%, transparent);
-  backdrop-filter: blur(18px) saturate(165%);
-  -webkit-backdrop-filter: blur(18px) saturate(165%);
 }
 
-.el-dialog.upload-dialog .el-dialog__header,
-.el-dialog.upload-dialog .el-dialog__body {
-  position: relative;
-  z-index: 1;
-}
-
-.el-dialog.upload-dialog .el-dialog__header {
-  margin-right: 0;
-  padding: 16px 18px 0;
-}
-
-.el-dialog.upload-dialog .el-dialog__body {
-  padding: 6px 18px 18px;
-}
-
-.el-dialog.disk-action-dialog {
-  --el-dialog-margin-top: 8vh;
-  --el-dialog-border-radius: 16px;
-  position: relative;
-  border: 1px solid color-mix(in srgb, var(--border-soft) 92%, transparent);
+.disk-modal__panel.disk-action-dialog {
   border-radius: 16px;
-  overflow: hidden;
-  background: color-mix(in srgb, var(--surface-card-strong) 96%, transparent);
   box-shadow:
     var(--shadow-soft),
     inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 22%, transparent);
-  backdrop-filter: blur(18px) saturate(165%);
-  -webkit-backdrop-filter: blur(18px) saturate(165%);
 }
 
-.el-dialog.disk-action-dialog .el-dialog__header {
-  display: none;
+.disk-action-dialog--rename {
+  width: min(92vw, 320px);
 }
 
-.el-dialog.disk-action-dialog .el-dialog__body,
-.el-dialog.disk-action-dialog .el-dialog__footer {
+.disk-action-dialog--delete {
+  width: min(92vw, 288px);
+}
+
+.disk-modal__header,
+.disk-modal__body,
+.disk-modal__footer {
   position: relative;
   z-index: 1;
 }
 
-.el-dialog.disk-action-dialog .el-dialog__body {
-  padding: 14px 14px 6px;
+.disk-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.el-dialog.disk-action-dialog .el-dialog__footer {
-  padding: 0 14px 14px;
+.disk-modal__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.disk-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-card-muted) 94%, transparent);
+  color: var(--text-secondary);
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.disk-modal__close:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-soft-hover));
+  color: var(--text-primary);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--accent-soft) 26%, transparent);
+}
+
+.disk-modal__close:focus {
+  outline: none;
+}
+
+.disk-modal__close:focus-visible {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent-soft) 84%, transparent),
+    0 10px 20px color-mix(in srgb, var(--accent-soft) 22%, transparent);
+}
+
+.upload-dialog__header {
+  padding: 14px 16px 0;
+}
+
+.upload-dialog__body {
+  padding: 6px 16px 16px;
+}
+
+.disk-action-dialog__body {
+  padding: 12px 12px 4px;
+}
+
+.disk-action-dialog__footer {
+  padding: 8px 12px 12px;
+}
+
+.disk-modal-pop-enter-active .disk-modal__backdrop {
+  transition: opacity var(--disk-dialog-pop-enter-duration) var(--disk-dialog-pop-enter-timing);
+}
+
+.disk-modal-pop-leave-active .disk-modal__backdrop {
+  transition: opacity var(--disk-dialog-pop-leave-duration) var(--disk-dialog-pop-leave-timing);
+}
+
+.disk-modal-pop-enter-active .disk-modal__panel {
+  transition:
+    opacity var(--disk-dialog-pop-enter-duration) var(--disk-dialog-pop-enter-timing),
+    transform var(--disk-dialog-pop-enter-duration) var(--disk-dialog-pop-enter-timing),
+    filter var(--disk-dialog-pop-enter-duration) var(--disk-dialog-pop-enter-timing);
+}
+
+.disk-modal-pop-leave-active .disk-modal__panel {
+  transition:
+    opacity var(--disk-dialog-pop-leave-duration) var(--disk-dialog-pop-leave-timing),
+    transform var(--disk-dialog-pop-leave-duration) var(--disk-dialog-pop-leave-timing),
+    filter var(--disk-dialog-pop-leave-duration) var(--disk-dialog-pop-leave-timing);
+}
+
+.disk-modal-pop-enter-from .disk-modal__backdrop,
+.disk-modal-pop-leave-to .disk-modal__backdrop {
+  opacity: 0;
+}
+
+.disk-modal-pop-enter-to .disk-modal__backdrop,
+.disk-modal-pop-leave-from .disk-modal__backdrop {
+  opacity: 1;
+}
+
+.disk-modal-pop-enter-from .disk-modal__panel {
+  opacity: 0;
+  transform: translate3d(0, 72px, 0) scale3d(0.74, 0.8, 1);
+  filter: blur(16px);
+}
+
+.disk-modal-pop-enter-to .disk-modal__panel,
+.disk-modal-pop-leave-from .disk-modal__panel {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  filter: blur(0);
+}
+
+.disk-modal-pop-leave-to .disk-modal__panel {
+  opacity: 0;
+  transform: translate3d(0, 56px, 0) scale3d(0.8, 0.86, 1);
+  filter: blur(14px);
+}
+
+@media (max-width: 640px) {
+  .disk-action-dialog--rename,
+  .disk-action-dialog--delete {
+    width: min(92vw, 28rem);
+  }
 }
 
 @media (max-width: 480px) {
-  .el-dialog.disk-action-dialog .el-dialog__body {
-    padding: 12px 12px 4px;
+  .disk-modal {
+    padding: 12px 8px 16px;
   }
 
-  .el-dialog.disk-action-dialog .el-dialog__footer {
-    padding: 0 12px 12px;
+  .upload-dialog__header {
+    padding: 14px 14px 0;
+  }
+
+  .upload-dialog__body {
+    padding: 6px 14px 14px;
   }
 }
 </style>

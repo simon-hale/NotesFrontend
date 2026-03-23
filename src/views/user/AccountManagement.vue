@@ -565,10 +565,6 @@ export default {
     flex: 1 1 auto;
 }
 
-.auth-entry {
-    margin-top: 0;
-}
-
 .auth-switcher {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
