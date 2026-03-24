@@ -102,10 +102,6 @@ export default {
 </script>
 
 <style scoped>
-.auth-page {
-    margin-top: 20px;
-}
-
 .login-shell {
     display: flex;
     justify-content: center;

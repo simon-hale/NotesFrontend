@@ -357,7 +357,7 @@
                     :placeholder="t('fileDisk.dirName')"
                   />
 
-                  <div class="upload-actions upload-actions--compact">
+                  <div class="upload-actions">
                     <button
                       type="button"
                       class="disk-dialog-button disk-dialog-button--accent upload-dialog-button"
@@ -372,7 +372,7 @@
                 <div class="disk-simple-card disk-simple-card--upload" v-if="selection_value === 'File'">
                   <div class="disk-simple-card__dropzone">
                     <el-upload
-                      class="upload-demo upload-demo--simple"
+                      class="upload-demo--simple"
                       drag
                       multiple
                       :auto-upload="false"
@@ -381,7 +381,35 @@
                       :on-change="handleChange"
                       :on-remove="handleRemove"
                     >
-                      <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                      <el-icon class="el-icon--upload">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path
+                            stroke="none"
+                            d="M0 0h24v24H0z"
+                            fill="none"
+                          />
+                          <path
+                            d="M7 18a4.6 4.4 0 0 1 0 -9a5 4.5 0 0 1 11 2h1a3.5 3.5 0 0 1 0 7h-1"
+                          />
+                          <path
+                            d="M9 15l3 -3l3 3"
+                          />
+                          <path
+                            d="M12 12l0 9"
+                          />
+                        </svg>
+                      </el-icon>
                       <div class="el-upload__text">
                         {{ t('fileDisk.uploadPrompt') }}
                       </div>
@@ -392,7 +420,7 @@
                     <el-progress :percentage="percentage" />
                   </div>
 
-                  <div class="upload-actions upload-actions--compact">
+                  <div class="upload-actions">
                     <button
                       type="button"
                       class="disk-dialog-button disk-dialog-button--accent upload-dialog-button"
@@ -535,7 +563,6 @@
 
 <script>
 import ContentField from '@/components/ContentField.vue';
-import { UploadFilled } from '@element-plus/icons-vue'
 import { computed, nextTick, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
@@ -550,7 +577,6 @@ export default {
   name: "FileDisk",
   components: {
     ContentField,
-    UploadFilled,
   },
   setup(){
     const store = useStore();
@@ -2286,10 +2312,6 @@ div.content-field.login-reminder-field :deep(.card) {
   flex-wrap: wrap;
 }
 
-.upload-actions--compact {
-  padding-top: 0;
-}
-
 .upload-progress {
   width: 100%;
 }
@@ -2549,16 +2571,16 @@ div.content-field.login-reminder-field :deep(.card) {
   color: var(--accent-strong);
 }
 
+:deep(.upload-demo--simple .el-icon--upload svg) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 :deep(.upload-demo--simple .el-upload__text) {
   color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 700;
-}
-
-:deep(.upload-demo--simple .el-upload__tip) {
-  margin-top: 8px;
-  color: var(--text-muted);
-  line-height: 1.5;
 }
 
 :deep(.upload-demo--simple .el-upload-list__item) {

@@ -76,10 +76,6 @@ export default {
 </script>
 
 <style scoped>
-.auth-page {
-    margin-top: 20px;
-}
-
 .register-shell {
     display: flex;
     justify-content: center;

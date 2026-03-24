@@ -1,5 +1,5 @@
 <template>
-  <div class="app-shell">
+  <div :class="['app-shell', { 'app-shell--reading': is_reading_route }]">
     <NavBar></NavBar>
     <router-view v-slot="{ Component }">
       <keep-alive include="ReadingPage">
@@ -32,6 +32,7 @@ export default {
     const { t } = useI18n();
     const theme_state = computed(() => store.state.theme);
     const show_navbar = computed(() => store.state.navbar.show_navbar);
+    const is_reading_route = computed(() => route.name === 'readingpage');
 
     const username = ref('');
     const access = ref('');
@@ -128,14 +129,21 @@ export default {
       window.removeEventListener('resize', handleViewportChange);
     });
 
-    return {};
+    return {
+      is_reading_route,
+    };
   },
 }
 </script>
 
 <style>
 .app-shell {
+  display: flow-root;
   min-height: 100vh;
   padding-bottom: 18px;
+}
+
+.app-shell--reading {
+  padding-bottom: 0;
 }
 </style>

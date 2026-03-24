@@ -609,10 +609,6 @@ export default {
     color: var(--accent-strong);
 }
 
-.auth-entry :deep(.auth-page) {
-    margin-top: 20px;
-}
-
 .logout-trigger {
     min-width: 140px;
     border-color: color-mix(in srgb, var(--warning) 28%, var(--border-strong));

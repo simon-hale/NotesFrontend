@@ -1,5 +1,9 @@
 <template>
-    <div ref="readingPageRef" class="container content-field reading-page" v-show="is_logined">
+    <div
+      ref="readingPageRef"
+      :class="['container content-field reading-page', { 'reading-page--navbar-hidden': !show_navbar }]"
+      v-show="is_logined"
+    >
       <div class="viewer-shell" :style="{ minHeight: content_height }">
         <vue-pdf-app v-show="is_pdf" class="reading-viewer" :pdf="pdf_url" :style="{ height: content_height }" />
         <div class="markdown-body reading-viewer reading-viewer--markdown" v-if="is_markdown" v-html="html" :style="{ height: content_height, overflowY: 'auto' }"></div>
@@ -670,6 +674,10 @@ div.content-field.reading-page {
   box-shadow: var(--shadow-medium);
   backdrop-filter: blur(18px) saturate(145%);
   -webkit-backdrop-filter: blur(18px) saturate(145%);
+}
+
+div.content-field.reading-page.reading-page--navbar-hidden {
+  margin-top: 0;
 }
 
 div.content-field.login-reminder-field {
