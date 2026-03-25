@@ -1,9 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import AccountManagement from '../views/user/AccountManagement.vue'
-import RegisterView from '../views/user/RegisterView.vue'
-import NotFound from '../views/NotFound.vue'
 import FileDisk from '../views/file/FileDisk.vue'
 import ReadingPage from '../views/reading/ReadingPage.vue'
+
+const AccountManagement = () => import(
+  /* webpackChunkName: "user-routes" */
+  '../views/user/AccountManagement.vue'
+)
+const RegisterView = () => import(
+  /* webpackChunkName: "user-routes" */
+  '../views/user/RegisterView.vue'
+)
+const NotFound = () => import(
+  /* webpackChunkName: "not-found" */
+  '../views/NotFound.vue'
+)
 
 const routes = [
   {

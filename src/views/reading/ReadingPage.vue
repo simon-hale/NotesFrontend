@@ -5,28 +5,51 @@
       v-show="is_logined"
     >
       <div class="viewer-shell" :style="{ minHeight: content_height }">
-        <vue-pdf-app v-show="is_pdf" class="reading-viewer" :pdf="pdf_url" :style="{ height: content_height }" />
-        <div class="markdown-body reading-viewer reading-viewer--markdown" v-if="is_markdown" v-html="html" :style="{ height: content_height, overflowY: 'auto' }"></div>
-        <vue-office-docx
-            class="reading-viewer"
-            :src="word_url"
-            v-else-if="is_word"
-            :style="{ height: content_height }"
-        />
-        <vue-office-excel
-            class="reading-viewer"
-            :src="excel_url"
-            v-else-if="is_excel"
-            :style="{ height: content_height }"
-        />
-        <vue-office-pptx
-            class="reading-viewer"
-            :src="ppt_url"
-            v-else-if="is_ppt"
-            :style="{ height: content_height }"
+        <component
+          :is="pdfViewerComponent"
+          v-if="pdfViewerComponent && pdf_url"
+          v-show="is_pdf && !isPreviewLoading"
+          class="reading-viewer"
+          :pdf="pdf_url"
+          :style="{ height: content_height }"
         />
         <div
-          v-if="!has_preview"
+          v-if="isPreviewLoading"
+          class="reading-loading-state"
+          :style="{ minHeight: content_height }"
+        >
+          <span class="reading-loading-state__spinner" aria-hidden="true"></span>
+          <span class="reading-loading-state__text">{{ loadingPreviewLabel }}</span>
+        </div>
+        <div
+          class="markdown-body reading-viewer reading-viewer--markdown"
+          v-else-if="is_markdown"
+          v-html="html"
+          :style="{ height: content_height, overflowY: 'auto' }"
+        ></div>
+        <component
+          :is="wordViewerComponent"
+          v-else-if="is_word && wordViewerComponent"
+          class="reading-viewer"
+          :src="word_url"
+          :style="{ height: content_height }"
+        />
+        <component
+          :is="excelViewerComponent"
+          v-else-if="is_excel && excelViewerComponent"
+          class="reading-viewer"
+          :src="excel_url"
+          :style="{ height: content_height }"
+        />
+        <component
+          :is="pptViewerComponent"
+          v-else-if="is_ppt && pptViewerComponent"
+          class="reading-viewer"
+          :src="ppt_url"
+          :style="{ height: content_height }"
+        />
+        <div
+          v-if="!has_preview && !isPreviewLoading"
           class="empty-state"
           :style="{ minHeight: content_height }"
         >
@@ -131,21 +154,8 @@
 
 <script>
 import ContentField from '@/components/ContentField.vue';
-import VuePdfApp from 'vue3-pdf-app';
-import MarkdownIt from 'markdown-it';
-import VueOfficeDocx from '@vue-office/docx'
-import '@vue-office/docx/lib/index.css'
-import VueOfficeExcel from '@vue-office/excel'
-import '@vue-office/excel/lib/index.css'
-import VueOfficePptx from '@vue-office/pptx'
-import texmath from 'markdown-it-texmath';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
-import hljs from 'highlight.js'
-import 'highlight.js/styles/github.css'
-import DOMPurify from 'dompurify';
 import { RefreshRight, Picture, ArrowUp, ArrowDown, FullScreen } from '@element-plus/icons-vue'
-import { computed, ref, onActivated, onDeactivated, onBeforeUnmount, nextTick } from 'vue';
+import { computed, ref, shallowRef, onActivated, onDeactivated, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import $ from 'jquery';
@@ -153,15 +163,18 @@ import router from '@/router';
 import ElMessage from '@/utils/message';
 import { BASE_URL } from "@/config"
 import { getCurrentLanguage, getHttpErrorMessage } from '@/utils/http';
+import {
+  loadDocxViewer,
+  loadExcelViewer,
+  loadMarkdownRenderer,
+  loadPdfViewer,
+  loadPptxViewer,
+} from './previewLoaders';
 
 export default {
   name: "ReadingPage",
   components: {
     ContentField,
-    VuePdfApp,
-    VueOfficeDocx,
-    VueOfficeExcel,
-    VueOfficePptx,
   },
   setup(){
     const store = useStore();
@@ -179,7 +192,11 @@ export default {
     let word_url = ref('');
     let excel_url = ref('');
     let ppt_url = ref('');
-    let file_type = ref('');
+    let pdfViewerComponent = shallowRef(null);
+    let wordViewerComponent = shallowRef(null);
+    let excelViewerComponent = shallowRef(null);
+    let pptViewerComponent = shallowRef(null);
+    let isPreviewLoading = ref(false);
 
     let content_height = ref('60vh');
     let imageDialogVisible = ref(false);
@@ -193,8 +210,11 @@ export default {
     const has_preview = computed(() => is_pdf.value || is_markdown.value || is_word.value || is_excel.value || is_ppt.value);
     const display_file_name = computed(() => file_name.value || t('reading.emptyState'));
     const fullscreenLabel = computed(() => t(isFullscreen.value ? 'reading.exitFullscreen' : 'reading.enterFullscreen'));
+    const loadingPreviewLabel = computed(() => t('reading.loadingPreview'));
 
     let toolbarResizeObserver = null;
+    let markdownRenderer = null;
+    let previewLoadToken = 0;
 
     const updateContentHeight = () => {
       const pageStyles = readingPageRef.value ? window.getComputedStyle(readingPageRef.value) : null;
@@ -394,6 +414,138 @@ export default {
       is_ppt.value = false;
     }
 
+    const clearMarkdownPreviewState = () => {
+      markdown_url.value = '';
+      html.value = '';
+    }
+
+    const normalizePreviewType = (type) => {
+      if (type === 'pdf') return 'pdf';
+      if (type === 'md') return 'markdown';
+      if (type === 'docx') return 'word';
+      if (type === 'xlsx' || type === 'xls') return 'excel';
+      if (type === 'pptx') return 'ppt';
+      return '';
+    }
+
+    const ensurePdfViewer = async () => {
+      if (!pdfViewerComponent.value) {
+        pdfViewerComponent.value = await loadPdfViewer();
+      }
+    }
+
+    const ensureWordViewer = async () => {
+      if (!wordViewerComponent.value) {
+        wordViewerComponent.value = await loadDocxViewer();
+      }
+    }
+
+    const ensureExcelViewer = async () => {
+      if (!excelViewerComponent.value) {
+        excelViewerComponent.value = await loadExcelViewer();
+      }
+    }
+
+    const ensurePptViewer = async () => {
+      if (!pptViewerComponent.value) {
+        pptViewerComponent.value = await loadPptxViewer();
+      }
+    }
+
+    const ensureMarkdownRenderer = async () => {
+      if (!markdownRenderer) {
+        markdownRenderer = await loadMarkdownRenderer();
+      }
+
+      return markdownRenderer;
+    }
+
+    const refreshMarkdown = async (requestToken) => {
+      try {
+        const renderer = await ensureMarkdownRenderer();
+        if (requestToken !== previewLoadToken) return;
+
+        const resp = await fetch(markdown_url.value);
+        if (!resp.ok) {
+          throw new Error(`Markdown request failed with status ${resp.status}`);
+        }
+
+        const text = await resp.text();
+        if (requestToken !== previewLoadToken) return;
+
+        html.value = renderer.renderMarkdown(text);
+        is_markdown.value = true;
+      } catch (e) {
+        if (requestToken !== previewLoadToken) return;
+
+        html.value = t('reading.markdownLoadFailed');
+        is_markdown.value = true;
+      }
+    }
+
+    const preparePreview = async (previewType, url) => {
+      const requestToken = ++previewLoadToken;
+      isPreviewLoading.value = true;
+      resetPreviewFlags();
+
+      if (previewType !== 'markdown') {
+        clearMarkdownPreviewState();
+      }
+
+      try {
+        if (previewType === 'pdf') {
+          pdf_url.value = url;
+          await ensurePdfViewer();
+          if (requestToken !== previewLoadToken) return;
+
+          is_pdf.value = true;
+          return;
+        }
+
+        if (previewType === 'markdown') {
+          markdown_url.value = url;
+          await refreshMarkdown(requestToken);
+          return;
+        }
+
+        if (previewType === 'word') {
+          await ensureWordViewer();
+          if (requestToken !== previewLoadToken) return;
+
+          word_url.value = url;
+          is_word.value = true;
+          return;
+        }
+
+        if (previewType === 'excel') {
+          await ensureExcelViewer();
+          if (requestToken !== previewLoadToken) return;
+
+          excel_url.value = url;
+          is_excel.value = true;
+          return;
+        }
+
+        if (previewType === 'ppt') {
+          await ensurePptViewer();
+          if (requestToken !== previewLoadToken) return;
+
+          ppt_url.value = url;
+          is_ppt.value = true;
+          return;
+        }
+      } catch (error) {
+        if (requestToken !== previewLoadToken) return;
+
+        ElMessage.error(t('reading.previewLoadFailed'));
+      } finally {
+        if (requestToken === previewLoadToken) {
+          isPreviewLoading.value = false;
+          scheduleContentHeightUpdate();
+        }
+      }
+    }
+
     const imgUrl = ref('');
 
     const handlePaste = (e) => {  
@@ -516,6 +668,8 @@ export default {
       dialogWidth.value = `${imageBoxWidth.value}px`;
     }
     
+    let html = ref('loading...');
+
     const getFileURL = () => {
       $.ajax({
         url: `${BASE_URL}/api/file/url/`,
@@ -528,38 +682,26 @@ export default {
           username: store.state.user.username,
           language: getCurrentLanguage(),
         },
-        success(resp){
+        async success(resp){
             if(resp.error_message !== 'success'){
               ElMessage({
                 message: resp.error_message,
                 type: 'error',
               })
             }else{
-              file_type.value = resp.type;
-              resetPreviewFlags();
-              if (file_type.value === 'pdf') {
-                pdf_url.value = resp.url;
-                is_pdf.value = true;
-              }else if (file_type.value === 'md') {
-                markdown_url.value = resp.url;
-                is_markdown.value = true;
-                refreshMarkdown();
-              }else if (file_type.value === 'docx') {
-                word_url.value = resp.url;
-                is_word.value = true;
-              }else if (file_type.value === 'xlsx' || file_type.value === 'xls') {
-                excel_url.value = resp.url;
-                is_excel.value = true;
-              }else if (file_type.value === 'pptx') {
-                ppt_url.value = resp.url;
-                is_ppt.value = true;
-              }else{
+              const previewType = normalizePreviewType(resp.type);
+              if (!previewType) {
+                resetPreviewFlags();
+                clearMarkdownPreviewState();
+                isPreviewLoading.value = false;
                 ElMessage({
                   message: t('reading.unsupportedFileType'),
                   type: 'error',
                 })
+                return;
               }
-              scheduleContentHeightUpdate();
+
+              await preparePreview(previewType, resp.url);
             }
         },
         error(resp) {
@@ -569,47 +711,6 @@ export default {
           })
         }
      })
-    }
-
-    const md = new MarkdownIt({
-      html: true,
-      linkify: true,
-      breaks: true,
-      highlight(code, lang) {
-        if (lang && hljs.getLanguage(lang)) {
-          try {
-            return `<pre class="hljs"><code>${
-              hljs.highlight(code, { language: lang }).value
-            }</code></pre>`
-          } catch (__) {
-            // Fall back to auto highlighting below.
-          }
-        }
-        return `<pre class="hljs"><code>${
-          hljs.highlightAuto(code).value
-        }</code></pre>`
-      }
-    })
-
-    md.use(texmath, {
-      engine: katex,
-      delimiters: 'dollars',
-    })
-
-    let html = ref('loading...');
-
-    const refreshMarkdown = async () => {
-      try {
-        const resp = await fetch(markdown_url.value)
-        const text = await resp.text()
-
-        html.value = DOMPurify.sanitize(md.render(text), {
-          ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn'],
-          ADD_ATTR: ['class', 'style']
-        })
-      } catch (e) {
-        html.value = t('reading.markdownLoadFailed')
-      }
     }
 
     return{
@@ -637,9 +738,15 @@ export default {
       isPageActive,
       isFullscreen,
       IMAGE_BOX_Z_INDEX,
+      pdfViewerComponent,
+      wordViewerComponent,
+      excelViewerComponent,
+      pptViewerComponent,
+      isPreviewLoading,
       has_preview,
       display_file_name,
       fullscreenLabel,
+      loadingPreviewLabel,
       showNavbar,
       unshowNavbar,
       toggleFullscreen,
@@ -851,6 +958,31 @@ div.content-field.login-reminder-field :deep(.card) {
   background: var(--reading-markdown-bg);
 }
 
+.reading-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  background: var(--reading-empty-bg);
+}
+
+.reading-loading-state__spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid color-mix(in srgb, var(--border-soft) 80%, transparent);
+  border-top-color: var(--accent-strong);
+  border-radius: 999px;
+  animation: reading-spinner 0.9s linear infinite;
+}
+
+.reading-loading-state__text {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -946,6 +1078,16 @@ div.content-field.login-reminder-field :deep(.card) {
   text-align: center;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+@keyframes reading-spinner {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 768px) {

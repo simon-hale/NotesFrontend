@@ -163,6 +163,7 @@
   reading: {
     emptyState: '请选择一个文件开始阅读',
     fileTip: '仅支持 PDF、Office 和 Markdown',
+    loadingPreview: '正在准备预览...',
     imageBox: '图片盒子',
     enterFullscreen: '进入全屏',
     exitFullscreen: '退出全屏',
@@ -171,6 +172,7 @@
     onlyOne: '一次只能粘贴一张图片',
     onlyImage: '只支持粘贴图片',
     unsupportedFileType: '暂不支持该文件类型',
+    previewLoadFailed: '预览器加载失败，请稍后重试',
     markdownLoadFailed: 'Markdown 加载失败',
   },
   notFound: {

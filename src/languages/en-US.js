@@ -163,6 +163,7 @@
   reading: {
     emptyState: 'Select a file to start reading',
     fileTip: 'PDF, Office, and Markdown only.',
+    loadingPreview: 'Preparing preview...',
     imageBox: 'Image Box',
     enterFullscreen: 'Enter fullscreen',
     exitFullscreen: 'Exit fullscreen',
@@ -171,6 +172,7 @@
     onlyOne: 'Only one image is supported.',
     onlyImage: 'Only image paste is supported.',
     unsupportedFileType: 'This file type is not supported.',
+    previewLoadFailed: 'Failed to load the previewer. Please try again later.',
     markdownLoadFailed: 'Markdown failed to load.',
   },
   notFound: {
