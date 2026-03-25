@@ -569,7 +569,6 @@ import { useStore } from 'vuex';
 import router from '@/router';
 import ElMessage from '@/utils/message';
 import $ from 'jquery';
-import OSS from 'ali-oss';
 import { BASE_URL } from "@/config"
 import { getCurrentLanguage, getHttpErrorMessage } from '@/utils/http';
 
@@ -1396,6 +1395,18 @@ export default {
     const fileList = ref([]);
     const elFileList = ref([]);
     let percentage = ref(0);
+    let ossUploadModulePromise = null;
+
+    const loadOssUploadModule = () => {
+      if (!ossUploadModulePromise) {
+        ossUploadModulePromise = import(
+          /* webpackChunkName: "oss-uploader" */
+          './ossUpload.async'
+        );
+      }
+
+      return ossUploadModulePromise;
+    }
 
     const getSTS = (string_of_path, filename) => {
       return new Promise((resolve, reject) => {
@@ -1428,16 +1439,6 @@ export default {
             reject(new Error(message))
           },
         })
-      })
-    }
-
-    const createOssClient = (sts) => {
-      return new OSS({
-        region: sts.region,
-        bucket: sts.bucket,
-        accessKeyId: sts.accessKeyId,
-        accessKeySecret: sts.accessKeySecret,
-        stsToken: sts.securityToken,
       })
     }
 
@@ -1517,9 +1518,8 @@ export default {
           throw new Error('STS not ready')
         }
 
-        let client = createOssClient(sts);
-
-        await client.multipartUpload(sts.objectKey, file)
+        const { uploadFileToOss } = await loadOssUploadModule();
+        await uploadFileToOss(sts, file);
 
         await insertFileInfo(string_of_path, file.name);
 
