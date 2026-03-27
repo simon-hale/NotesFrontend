@@ -1,6 +1,6 @@
 import OSS from 'ali-oss';
 
-export const createOssClient = (sts) => new OSS({
+const createOssClient = (sts) => new OSS({
   region: sts.region,
   bucket: sts.bucket,
   accessKeyId: sts.accessKeyId,
@@ -8,7 +8,4 @@ export const createOssClient = (sts) => new OSS({
   stsToken: sts.securityToken,
 });
 
-export const uploadFileToOss = async (sts, file) => {
-  const client = createOssClient(sts);
-  return client.multipartUpload(sts.objectKey, file);
-};
+export const uploadFileToOss = (sts, file) => createOssClient(sts).multipartUpload(sts.objectKey, file);
