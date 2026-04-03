@@ -23,7 +23,10 @@
         </div>
 
         <div class="account-panel__actions">
-            <button v-on:click.prevent="change_password" class="btn change-password-trigger">
+            <button
+                v-on:click.prevent="change_password"
+                class="btn account-action-button account-action-button--accent account-action-button--full-mobile"
+            >
                 {{ t('changePassword.submit') }}
             </button>
         </div>
@@ -127,23 +130,4 @@ export default {
     line-height: 1.5;
 }
 
-.change-password-trigger {
-    min-width: 140px;
-    border-color: var(--border-accent);
-    background: var(--surface-soft-hover);
-    color: var(--text-accent);
-    font-weight: 700;
-}
-
-.change-password-trigger:hover {
-    border-color: var(--border-accent);
-    background: var(--surface-soft-hover);
-    color: var(--text-accent);
-}
-
-@media (max-width: 576px) {
-    .change-password-trigger {
-        width: 100%;
-    }
-}
 </style>

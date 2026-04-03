@@ -9,7 +9,11 @@
         </div>
 
         <div class="account-panel__actions">
-            <button type="button" class="btn delete-account-trigger" @click="dialog_visible = true">
+            <button
+                type="button"
+                class="btn account-action-button account-action-button--danger account-action-button--full-mobile"
+                @click="dialog_visible = true"
+            >
                 {{ t('deleteAccount.confirmFirst') }}
             </button>
         </div>
@@ -29,10 +33,10 @@
 
         <template #footer>
             <div class="delete-account-dialog__actions">
-                <button type="button" class="btn btn-outline-secondary" @click="dialog_visible = false">
+                <button type="button" class="btn account-action-button account-action-button--neutral" @click="dialog_visible = false">
                     {{ t('common.close') }}
                 </button>
-                <button type="button" class="btn btn-danger" @click="confirm_delete">
+                <button type="button" class="btn account-action-button account-action-button--danger" @click="confirm_delete">
                     {{ t('deleteAccount.confirmSecond') }}
                 </button>
             </div>
@@ -104,20 +108,6 @@ export default {
     justify-content: flex-start;
 }
 
-.delete-account-trigger {
-    min-width: 140px;
-    border-color: color-mix(in srgb, var(--danger) 26%, var(--border-strong));
-    background: color-mix(in srgb, var(--danger) 8%, var(--surface-card-strong));
-    color: color-mix(in srgb, var(--danger) 88%, var(--text-primary));
-    font-weight: 700;
-}
-
-.delete-account-trigger:hover {
-    border-color: color-mix(in srgb, var(--danger) 34%, var(--border-strong));
-    background: color-mix(in srgb, var(--danger) 12%, var(--surface-soft-hover));
-    color: color-mix(in srgb, var(--danger) 90%, var(--text-primary));
-}
-
 .delete-account-dialog__body {
     line-height: 1.6;
     color: color-mix(in srgb, var(--danger) 88%, var(--text-primary));
@@ -145,10 +135,6 @@ export default {
 }
 
 @media (max-width: 576px) {
-    .delete-account-trigger {
-        width: 100%;
-    }
-
     .delete-account-dialog__actions {
         flex-direction: column-reverse;
     }

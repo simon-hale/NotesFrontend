@@ -55,6 +55,9 @@
   --shadow-medium: 0 12px 28px rgba(15, 23, 42, 0.06);
   --shadow-accent: 0 10px 24px rgba(13, 110, 253, 0.1);
   --shadow-warning: 0 12px 26px rgba(148, 107, 28, 0.08);
+  --account-action-neutral-surface-hover: #f0f2f4;
+  --account-action-neutral-border-hover: #c8cdd3;
+  --account-action-neutral-focus-ring: rgba(110, 118, 127, 0.18);
   --app-message-offset: 86px;
   --app-message-right: 24px;
   --close-filter: none;
@@ -126,6 +129,9 @@
   --shadow-medium: 0 16px 36px rgba(0, 0, 0, 0.24);
   --shadow-accent: 0 12px 26px rgba(57, 123, 221, 0.22);
   --shadow-warning: 0 14px 28px rgba(0, 0, 0, 0.28);
+  --account-action-neutral-surface-hover: #2b3036;
+  --account-action-neutral-border-hover: #4b525b;
+  --account-action-neutral-focus-ring: rgba(142, 149, 158, 0.24);
   --close-filter: invert(1) grayscale(100%) brightness(180%);
 }
 
@@ -682,6 +688,95 @@ a {
 .form-select:-moz-autofill {
   color: var(--text-primary);
   box-shadow: 0 0 0 1000px var(--surface-card-strong) inset;
+}
+
+.account-action-button {
+  --bs-btn-border-width: 1px;
+  --bs-btn-border-radius: 999px;
+  --bs-btn-font-weight: 700;
+  --bs-btn-focus-box-shadow: 0 0 0 0.25rem var(--account-action-focus-ring, var(--accent-soft));
+  min-width: 140px;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.account-action-button:hover,
+.account-action-button:focus-visible {
+  transform: translateY(-1px);
+}
+
+.account-action-button--accent {
+  --bs-btn-color: var(--text-accent);
+  --bs-btn-bg: var(--surface-soft-hover);
+  --bs-btn-border-color: var(--border-accent);
+  --bs-btn-hover-color: var(--text-accent);
+  --bs-btn-hover-bg: var(--surface-soft-hover);
+  --bs-btn-hover-border-color: var(--border-accent);
+  --bs-btn-active-color: var(--text-accent);
+  --bs-btn-active-bg: var(--surface-soft-hover);
+  --bs-btn-active-border-color: var(--border-accent);
+  --account-action-focus-ring: var(--accent-soft);
+}
+
+.account-action-button--neutral {
+  --bs-btn-color: var(--text-primary);
+  --bs-btn-bg: var(--surface-card-strong);
+  --bs-btn-border-color: var(--border-strong);
+  --bs-btn-hover-color: var(--text-primary);
+  --bs-btn-hover-bg: var(--account-action-neutral-surface-hover);
+  --bs-btn-hover-border-color: var(--account-action-neutral-border-hover);
+  --bs-btn-active-color: var(--text-primary);
+  --bs-btn-active-bg: var(--account-action-neutral-surface-hover);
+  --bs-btn-active-border-color: var(--account-action-neutral-border-hover);
+  --account-action-focus-ring: var(--account-action-neutral-focus-ring);
+}
+
+.account-action-button--danger {
+  --account-action-danger-surface: color-mix(in srgb, var(--danger) 8%, var(--surface-card-strong));
+  --account-action-danger-surface-hover: color-mix(in srgb, var(--danger) 12%, var(--surface-card-strong));
+  --account-action-danger-border: color-mix(in srgb, var(--danger) 26%, var(--border-strong));
+  --account-action-danger-border-hover: color-mix(in srgb, var(--danger) 34%, var(--border-strong));
+  --account-action-danger-text: color-mix(in srgb, var(--danger) 88%, var(--text-primary));
+  --account-action-danger-text-hover: color-mix(in srgb, var(--danger) 90%, var(--text-primary));
+  --bs-btn-color: var(--account-action-danger-text);
+  --bs-btn-bg: var(--account-action-danger-surface);
+  --bs-btn-border-color: var(--account-action-danger-border);
+  --bs-btn-hover-color: var(--account-action-danger-text-hover);
+  --bs-btn-hover-bg: var(--account-action-danger-surface-hover);
+  --bs-btn-hover-border-color: var(--account-action-danger-border-hover);
+  --bs-btn-active-color: var(--account-action-danger-text-hover);
+  --bs-btn-active-bg: var(--account-action-danger-surface-hover);
+  --bs-btn-active-border-color: var(--account-action-danger-border-hover);
+  --account-action-focus-ring: color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
+.account-action-button--warning {
+  --account-action-warning-surface: color-mix(in srgb, var(--warning) 10%, var(--surface-card-strong));
+  --account-action-warning-surface-hover: color-mix(in srgb, var(--warning) 14%, var(--surface-card-strong));
+  --account-action-warning-border: color-mix(in srgb, var(--warning) 28%, var(--border-strong));
+  --account-action-warning-border-hover: color-mix(in srgb, var(--warning) 36%, var(--border-strong));
+  --account-action-warning-text: color-mix(in srgb, var(--warning) 88%, var(--text-primary));
+  --account-action-warning-text-hover: color-mix(in srgb, var(--warning) 90%, var(--text-primary));
+  --bs-btn-color: var(--account-action-warning-text);
+  --bs-btn-bg: var(--account-action-warning-surface);
+  --bs-btn-border-color: var(--account-action-warning-border);
+  --bs-btn-hover-color: var(--account-action-warning-text-hover);
+  --bs-btn-hover-bg: var(--account-action-warning-surface-hover);
+  --bs-btn-hover-border-color: var(--account-action-warning-border-hover);
+  --bs-btn-active-color: var(--account-action-warning-text-hover);
+  --bs-btn-active-bg: var(--account-action-warning-surface-hover);
+  --bs-btn-active-border-color: var(--account-action-warning-border-hover);
+  --account-action-focus-ring: color-mix(in srgb, var(--warning) 20%, transparent);
+}
+
+@media (max-width: 576px) {
+  .account-action-button--full-mobile {
+    width: 100%;
+  }
 }
 
 .modal-content {

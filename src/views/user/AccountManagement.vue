@@ -133,7 +133,11 @@
                             {{ t('account.currentAccount') }}: <strong>{{ username }}</strong>
                         </div>
                         <div class="settings-actions">
-                            <button type="button" class="btn logout-trigger" v-on:click="logout">
+                            <button
+                                type="button"
+                                class="btn account-action-button account-action-button--warning account-action-button--full-mobile"
+                                v-on:click="logout"
+                            >
                                 {{ t('account.logoutButton') }}
                             </button>
                         </div>
@@ -609,20 +613,6 @@ export default {
     color: var(--accent-strong);
 }
 
-.logout-trigger {
-    min-width: 140px;
-    border-color: color-mix(in srgb, var(--warning) 28%, var(--border-strong));
-    background: color-mix(in srgb, var(--warning) 10%, var(--surface-card-strong));
-    color: color-mix(in srgb, var(--warning) 88%, var(--text-primary));
-    font-weight: 700;
-}
-
-.logout-trigger:hover {
-    border-color: color-mix(in srgb, var(--warning) 36%, var(--border-strong));
-    background: color-mix(in srgb, var(--warning) 14%, var(--surface-soft-hover));
-    color: color-mix(in srgb, var(--warning) 90%, var(--text-primary));
-}
-
 @media (max-width: 991px) {
     .account-layout {
         grid-template-columns: 1fr;
@@ -635,8 +625,7 @@ export default {
 }
 
 @media (max-width: 576px) {
-    .setting-chip,
-    .logout-trigger {
+    .setting-chip {
         width: 100%;
     }
 
