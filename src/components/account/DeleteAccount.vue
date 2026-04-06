@@ -33,7 +33,7 @@
 
         <template #footer>
             <div class="delete-account-dialog__actions">
-                <button type="button" class="btn account-action-button account-action-button--neutral" @click="dialog_visible = false">
+                <button type="button" class="btn account-action-button account-action-button--close" @click="dialog_visible = false">
                     {{ t('common.close') }}
                 </button>
                 <button type="button" class="btn account-action-button account-action-button--danger" @click="confirm_delete">

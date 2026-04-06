@@ -442,7 +442,9 @@
           v-if="rename_dialog_visible"
           class="disk-modal"
           :style="disk_modal_transition_style"
-          @click.self="cancelRenameDialog"
+          @pointerdown.self="handleRenameBackdropPointerDown"
+          @pointerup.self="handleRenameBackdropPointerUp"
+          @pointercancel="resetRenameBackdropPointer"
         >
           <div class="disk-modal__backdrop" aria-hidden="true"></div>
           <div
@@ -450,6 +452,9 @@
             role="dialog"
             aria-modal="true"
             :aria-label="rename_dialog_title"
+            @pointerdown="resetRenameBackdropPointer"
+            @pointerup="resetRenameBackdropPointer"
+            @pointercancel="resetRenameBackdropPointer"
             @click.stop
           >
             <div class="disk-modal__body disk-action-dialog__body">
@@ -505,7 +510,9 @@
           v-if="delete_dialog_visible"
           class="disk-modal"
           :style="disk_modal_transition_style"
-          @click.self="closeDeleteDialog"
+          @pointerdown.self="handleDeleteBackdropPointerDown"
+          @pointerup.self="handleDeleteBackdropPointerUp"
+          @pointercancel="resetDeleteBackdropPointer"
         >
           <div class="disk-modal__backdrop" aria-hidden="true"></div>
           <div
@@ -513,6 +520,9 @@
             role="dialog"
             aria-modal="true"
             :aria-label="delete_dialog_title"
+            @pointerdown="resetDeleteBackdropPointer"
+            @pointerup="resetDeleteBackdropPointer"
+            @pointercancel="resetDeleteBackdropPointer"
             @click.stop
           >
             <div class="disk-modal__body disk-action-dialog__body">
@@ -651,6 +661,43 @@ export default {
       if (has_active_disk_modal.value) return;
       setDiskModalBodyLock(false);
     };
+    const createBackdropPointerGuard = (pointer_id_ref, on_confirm) => {
+      const clearBackdropPointer = () => {
+        pointer_id_ref.value = null;
+      };
+
+      const handleBackdropPointerDown = (event) => {
+        pointer_id_ref.value = event.pointerId;
+      };
+
+      const handleBackdropPointerUp = (event) => {
+        const shouldConfirm = pointer_id_ref.value === event.pointerId;
+        clearBackdropPointer();
+
+        if (shouldConfirm) {
+          on_confirm();
+        }
+      };
+
+      const resetBackdropPointer = (event) => {
+        if (
+          event &&
+          pointer_id_ref.value !== null &&
+          pointer_id_ref.value !== event.pointerId
+        ) {
+          return;
+        }
+
+        clearBackdropPointer();
+      };
+
+      return {
+        clearBackdropPointer,
+        handleBackdropPointerDown,
+        handleBackdropPointerUp,
+        resetBackdropPointer,
+      };
+    };
 
     let new_dir_name = ref('');
     let show_upload_progress = ref(false);
@@ -663,10 +710,12 @@ export default {
     const rename_draft = ref('');
     const rename_validation_message = ref('');
     const rename_dialog_close_intent = ref('dismiss');
+    const rename_backdrop_pointer_id = ref(null);
     const delete_dialog_visible = ref(false);
     const delete_dialog_type = ref('directory');
     const delete_target_id = ref(null);
     const delete_target_name = ref('');
+    const delete_backdrop_pointer_id = ref(null);
 
     const selection_value = ref('Dir');
     const selection_options = computed(() => [
@@ -1052,12 +1101,20 @@ export default {
 
     const closeRenameDialog = (intent = 'dismiss') => {
       rename_dialog_close_intent.value = intent;
+      clearRenameBackdropPointer();
       rename_dialog_visible.value = false;
     }
 
     const cancelRenameDialog = () => {
       closeRenameDialog('cancel');
     }
+
+    const {
+      clearBackdropPointer: clearRenameBackdropPointer,
+      handleBackdropPointerDown: handleRenameBackdropPointerDown,
+      handleBackdropPointerUp: handleRenameBackdropPointerUp,
+      resetBackdropPointer: resetRenameBackdropPointer,
+    } = createBackdropPointerGuard(rename_backdrop_pointer_id, cancelRenameDialog);
 
     const handleRenameDialogClosed = () => {
       if (rename_dialog_close_intent.value !== 'confirm') {
@@ -1073,6 +1130,7 @@ export default {
       rename_draft.value = '';
       rename_validation_message.value = '';
       rename_dialog_close_intent.value = 'dismiss';
+      clearRenameBackdropPointer();
     }
     const handleRenameDialogAfterLeave = () => {
       handleRenameDialogClosed();
@@ -1167,17 +1225,27 @@ export default {
       delete_dialog_type.value = type;
       delete_target_id.value = id;
       delete_target_name.value = name;
+      clearDeleteBackdropPointer();
       delete_dialog_visible.value = true;
     }
 
     const closeDeleteDialog = () => {
+      clearDeleteBackdropPointer();
       delete_dialog_visible.value = false;
     }
+
+    const {
+      clearBackdropPointer: clearDeleteBackdropPointer,
+      handleBackdropPointerDown: handleDeleteBackdropPointerDown,
+      handleBackdropPointerUp: handleDeleteBackdropPointerUp,
+      resetBackdropPointer: resetDeleteBackdropPointer,
+    } = createBackdropPointerGuard(delete_backdrop_pointer_id, closeDeleteDialog);
 
     const resetDeleteDialogState = () => {
       delete_dialog_type.value = 'directory';
       delete_target_id.value = null;
       delete_target_name.value = '';
+      clearDeleteBackdropPointer();
     }
     const handleDeleteDialogAfterLeave = () => {
       resetDeleteDialogState();
@@ -1622,10 +1690,16 @@ export default {
       rename_original_name,
       rename_draft,
       rename_validation_message,
+      handleRenameBackdropPointerDown,
+      handleRenameBackdropPointerUp,
+      resetRenameBackdropPointer,
       delete_dialog_visible,
       delete_dialog_type,
       delete_dialog_title,
       delete_target_name,
+      handleDeleteBackdropPointerDown,
+      handleDeleteBackdropPointerUp,
+      resetDeleteBackdropPointer,
       selection_value,
       selection_options,
       displayPathName,
@@ -2464,15 +2538,27 @@ div.content-field.login-reminder-field :deep(.card) {
 }
 
 .disk-dialog-button--ghost-danger {
-  border-color: color-mix(in srgb, var(--danger) 22%, var(--border-strong));
-  background: color-mix(in srgb, var(--danger) 4%, var(--surface-card-muted));
-  color: color-mix(in srgb, var(--danger) 78%, var(--text-primary));
+  border-color: var(--disk-delete-ghost-border);
+  background: linear-gradient(
+    180deg,
+    var(--disk-delete-ghost-surface-top) 0%,
+    var(--disk-delete-ghost-surface-bottom) 100%
+  );
+  color: var(--disk-delete-ghost-text);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 52%, transparent);
 }
 
 .disk-dialog-button--ghost-danger:hover {
-  border-color: color-mix(in srgb, var(--danger) 36%, var(--border-strong));
-  background: color-mix(in srgb, var(--danger) 8%, var(--surface-soft-hover));
-  color: color-mix(in srgb, var(--danger) 88%, var(--text-primary));
+  border-color: var(--disk-delete-ghost-border-hover);
+  background: linear-gradient(
+    180deg,
+    var(--disk-delete-ghost-surface-top-hover) 0%,
+    var(--disk-delete-ghost-surface-bottom-hover) 100%
+  );
+  color: var(--disk-delete-ghost-text-hover);
+  box-shadow:
+    0 10px 20px color-mix(in srgb, var(--danger) 10%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 60%, transparent);
 }
 
 .disk-dialog-button--accent {
@@ -2503,23 +2589,48 @@ div.content-field.login-reminder-field :deep(.card) {
 }
 
 .disk-dialog-button--danger {
-  border-color: color-mix(in srgb, var(--danger) 34%, var(--border-strong));
+  border-color: var(--disk-delete-solid-border);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--danger) 14%, var(--surface-card-strong)) 0%,
-    color-mix(in srgb, var(--danger) 11%, var(--surface-card-muted)) 100%
+    var(--disk-delete-solid-surface-top) 0%,
+    var(--disk-delete-solid-surface-bottom) 100%
   );
-  color: color-mix(in srgb, var(--danger) 90%, var(--text-primary));
-  box-shadow: 0 12px 22px color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--disk-delete-solid-text);
+  box-shadow:
+    var(--disk-delete-solid-shadow),
+    inset 0 1px 0 color-mix(in srgb, white 28%, transparent);
 }
 
 .disk-dialog-button--danger:hover {
-  border-color: color-mix(in srgb, var(--danger) 52%, var(--border-strong));
+  border-color: color-mix(
+    in srgb,
+    var(--disk-delete-solid-surface-bottom-hover) 82%,
+    var(--disk-delete-solid-surface-top-hover)
+  );
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--danger) 18%, var(--surface-card-strong)) 0%,
-    color-mix(in srgb, var(--danger) 15%, var(--surface-soft-hover)) 100%
+    var(--disk-delete-solid-surface-top-hover) 0%,
+    var(--disk-delete-solid-surface-bottom-hover) 100%
   );
+  box-shadow:
+    var(--disk-delete-solid-shadow-hover),
+    inset 0 1px 0 color-mix(in srgb, white 36%, transparent);
+}
+
+.disk-dialog-button--danger:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--disk-delete-focus-ring),
+    var(--disk-delete-solid-shadow),
+    inset 0 1px 0 color-mix(in srgb, white 28%, transparent);
+}
+
+.disk-dialog-button--ghost-danger:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--disk-delete-focus-ring),
+    0 10px 20px color-mix(in srgb, var(--danger) 10%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 60%, transparent);
 }
 
 :deep(.upload-dialog__input .el-input__wrapper) {
@@ -2870,12 +2981,46 @@ body.disk-modal-open {
     inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 22%, transparent);
 }
 
+:root[data-theme-mode='dark'] .disk-action-dialog--delete {
+  --disk-delete-ghost-border: color-mix(in srgb, var(--danger) 30%, var(--border-strong));
+  --disk-delete-ghost-border-hover: color-mix(in srgb, var(--danger) 46%, var(--border-strong));
+  --disk-delete-ghost-surface-top: color-mix(in srgb, var(--danger) 15%, var(--surface-card-strong));
+  --disk-delete-ghost-surface-bottom: color-mix(in srgb, var(--danger) 12%, var(--surface-card-muted));
+  --disk-delete-ghost-surface-top-hover: color-mix(in srgb, var(--danger) 19%, var(--surface-card-strong));
+  --disk-delete-ghost-surface-bottom-hover: color-mix(in srgb, var(--danger) 15%, var(--surface-card-muted));
+  --disk-delete-solid-border: color-mix(in srgb, var(--danger) 74%, white);
+  --disk-delete-solid-surface-top: color-mix(in srgb, var(--danger) 72%, white);
+  --disk-delete-solid-surface-bottom: color-mix(in srgb, var(--danger) 90%, white);
+  --disk-delete-solid-surface-top-hover: color-mix(in srgb, var(--danger) 66%, white);
+  --disk-delete-solid-surface-bottom-hover: color-mix(in srgb, var(--danger) 84%, white);
+  --disk-delete-solid-shadow: 0 18px 32px color-mix(in srgb, var(--danger) 20%, transparent);
+  --disk-delete-solid-shadow-hover: 0 20px 36px color-mix(in srgb, var(--danger) 24%, transparent);
+  --disk-delete-focus-ring: color-mix(in srgb, var(--danger) 26%, transparent);
+}
+
 .disk-action-dialog--rename {
   width: min(92vw, 320px);
 }
 
 .disk-action-dialog--delete {
   width: min(92vw, 288px);
+  --disk-delete-ghost-border: color-mix(in srgb, var(--danger) 24%, var(--border-strong));
+  --disk-delete-ghost-border-hover: color-mix(in srgb, var(--danger) 40%, var(--border-strong));
+  --disk-delete-ghost-surface-top: color-mix(in srgb, var(--danger) 7%, var(--surface-card-strong));
+  --disk-delete-ghost-surface-bottom: color-mix(in srgb, var(--danger) 5%, var(--surface-card-muted));
+  --disk-delete-ghost-surface-top-hover: color-mix(in srgb, var(--danger) 11%, var(--surface-card-strong));
+  --disk-delete-ghost-surface-bottom-hover: color-mix(in srgb, var(--danger) 9%, var(--surface-card-muted));
+  --disk-delete-ghost-text: color-mix(in srgb, var(--danger) 78%, var(--text-primary));
+  --disk-delete-ghost-text-hover: color-mix(in srgb, var(--danger) 88%, var(--text-primary));
+  --disk-delete-solid-border: color-mix(in srgb, var(--danger) 62%, var(--text-primary));
+  --disk-delete-solid-surface-top: color-mix(in srgb, var(--danger) 78%, white);
+  --disk-delete-solid-surface-bottom: var(--danger);
+  --disk-delete-solid-surface-top-hover: color-mix(in srgb, var(--danger) 72%, white);
+  --disk-delete-solid-surface-bottom-hover: color-mix(in srgb, var(--danger) 86%, var(--text-primary));
+  --disk-delete-solid-text: var(--accent-contrast);
+  --disk-delete-solid-shadow: 0 14px 26px color-mix(in srgb, var(--danger) 22%, transparent);
+  --disk-delete-solid-shadow-hover: 0 16px 30px color-mix(in srgb, var(--danger) 28%, transparent);
+  --disk-delete-focus-ring: color-mix(in srgb, var(--danger) 22%, transparent);
 }
 
 .disk-modal__header,

@@ -58,6 +58,19 @@
   --account-action-neutral-surface-hover: #f0f2f4;
   --account-action-neutral-border-hover: #c8cdd3;
   --account-action-neutral-focus-ring: rgba(110, 118, 127, 0.18);
+  --account-action-close-surface: #f3f5f8;
+  --account-action-close-surface-hover: #e8edf3;
+  --account-action-close-border: #c7d0db;
+  --account-action-close-border-hover: #b3becb;
+  --account-action-close-text: #344154;
+  --account-action-close-text-hover: #202a38;
+  --account-action-close-focus-ring: rgba(107, 118, 133, 0.2);
+  --account-action-close-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 8px 18px rgba(31, 41, 55, 0.06);
+  --account-action-close-shadow-hover:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 10px 22px rgba(31, 41, 55, 0.1);
   --app-message-offset: 86px;
   --app-message-right: 24px;
   --close-filter: none;
@@ -132,6 +145,19 @@
   --account-action-neutral-surface-hover: #2b3036;
   --account-action-neutral-border-hover: #4b525b;
   --account-action-neutral-focus-ring: rgba(142, 149, 158, 0.24);
+  --account-action-close-surface: #2a3647;
+  --account-action-close-surface-hover: #344459;
+  --account-action-close-border: #556a85;
+  --account-action-close-border-hover: #6c84a2;
+  --account-action-close-text: #eef4fb;
+  --account-action-close-text-hover: #ffffff;
+  --account-action-close-focus-ring: rgba(168, 184, 204, 0.28);
+  --account-action-close-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 14px 28px rgba(0, 0, 0, 0.28);
+  --account-action-close-shadow-hover:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 16px 32px rgba(0, 0, 0, 0.34);
   --close-filter: invert(1) grayscale(100%) brightness(180%);
 }
 
@@ -733,6 +759,25 @@ a {
   --bs-btn-active-bg: var(--account-action-neutral-surface-hover);
   --bs-btn-active-border-color: var(--account-action-neutral-border-hover);
   --account-action-focus-ring: var(--account-action-neutral-focus-ring);
+}
+
+.account-action-button--close {
+  --bs-btn-color: var(--account-action-close-text);
+  --bs-btn-bg: var(--account-action-close-surface);
+  --bs-btn-border-color: var(--account-action-close-border);
+  --bs-btn-hover-color: var(--account-action-close-text-hover);
+  --bs-btn-hover-bg: var(--account-action-close-surface-hover);
+  --bs-btn-hover-border-color: var(--account-action-close-border-hover);
+  --bs-btn-active-color: var(--account-action-close-text-hover);
+  --bs-btn-active-bg: var(--account-action-close-surface-hover);
+  --bs-btn-active-border-color: var(--account-action-close-border-hover);
+  --account-action-focus-ring: var(--account-action-close-focus-ring);
+  box-shadow: var(--account-action-close-shadow);
+}
+
+.account-action-button--close:hover,
+.account-action-button--close:focus-visible {
+  box-shadow: var(--account-action-close-shadow-hover);
 }
 
 .account-action-button--danger {
