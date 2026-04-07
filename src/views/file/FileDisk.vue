@@ -334,14 +334,20 @@
             <div class="disk-modal__body upload-dialog__body">
               <div class="upload-dialog__shell">
                 <div class="upload-switcher" :aria-label="t('fileDisk.uploadTitle')">
+                  <span
+                    class="upload-switcher__thumb"
+                    :style="selection_thumb_style"
+                    aria-hidden="true"
+                  ></span>
                   <button
-                    v-for="option in selection_options"
+                    v-for="(option, index) in selection_options"
                     :key="option.value"
+                    :ref="(element) => setSelectionOptionRef(element, index)"
                     type="button"
                     class="upload-switcher__option"
                     :class="{ 'is-active': selection_value === option.value }"
                     :aria-pressed="selection_value === option.value"
-                    @click="selection_value = option.value"
+                    @click="setSelectionValue(option.value)"
                   >
                     {{ option.label }}
                   </button>
@@ -722,6 +728,46 @@ export default {
       { label: t('fileDisk.uploadTypeDirectory'), value: 'Dir' },
       { label: t('fileDisk.uploadTypeFile'), value: 'File' },
     ]);
+    const selection_option_refs = ref([]);
+    const createSelectionThumbStyle = (option = null) => {
+      if (!option) {
+        return {
+          width: '0px',
+          transform: 'translateX(0px)',
+        };
+      }
+
+      return {
+        width: `${option.offsetWidth}px`,
+        transform: `translateX(${option.offsetLeft}px)`,
+      };
+    };
+    const selection_thumb_style = ref(createSelectionThumbStyle());
+    const selection_active_index = computed(() => {
+      const active_index = selection_options.value.findIndex((option) => option.value === selection_value.value);
+      return active_index === -1 ? 0 : active_index;
+    });
+    const setSelectionOptionRef = (element, index) => {
+      if (!element) {
+        selection_option_refs.value[index] = null;
+        return;
+      }
+
+      selection_option_refs.value[index] = element;
+    };
+    const updateSelectionThumb = () => {
+      const active_option = selection_option_refs.value[selection_active_index.value];
+      selection_thumb_style.value = createSelectionThumbStyle(active_option);
+    };
+    const syncSelectionThumb = () => {
+      nextTick(() => {
+        updateSelectionThumb();
+      });
+    };
+    const setSelectionValue = (value) => {
+      if (selection_value.value === value) return;
+      selection_value.value = value;
+    };
     const rename_dialog_title = computed(() => (
       rename_dialog_type.value === 'directory'
         ? t('fileDisk.changeDirectoryTitle')
@@ -1451,10 +1497,39 @@ export default {
         rename_validation_message.value = '';
       }
     })
+    watch(selection_value, () => {
+      if (!upload_dialog_visible.value) return;
+      syncSelectionThumb();
+    })
+    watch(upload_dialog_visible, (visible) => {
+      if (visible) {
+        syncSelectionThumb();
+        return;
+      }
 
-    onMounted(() => { judgeDiskOrToLogin(); })
+      selection_option_refs.value = [];
+      selection_thumb_style.value = createSelectionThumbStyle();
+    })
+    watch(() => selection_options.value.map((option) => option.label).join('|'), () => {
+      if (!upload_dialog_visible.value) return;
+      syncSelectionThumb();
+    })
+
+    const handleWindowResize = () => {
+      if (!upload_dialog_visible.value) return;
+      updateSelectionThumb();
+    };
+    onMounted(() => {
+      judgeDiskOrToLogin();
+      if (typeof window !== 'undefined') {
+        window.addEventListener('resize', handleWindowResize);
+      }
+    })
     onBeforeUnmount(() => {
       abortActiveDirectoryRequest();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', handleWindowResize);
+      }
       if (typeof document !== 'undefined') {
         document.body.classList.remove('disk-modal-open');
       }
@@ -1702,6 +1777,9 @@ export default {
       resetDeleteBackdropPointer,
       selection_value,
       selection_options,
+      selection_thumb_style,
+      setSelectionOptionRef,
+      setSelectionValue,
       displayPathName,
       elFileList,
       percentage,
@@ -2241,6 +2319,7 @@ div.content-field.login-reminder-field :deep(.card) {
 }
 
 .upload-switcher {
+  position: relative;
   display: inline-flex;
   align-items: center;
   align-self: center;
@@ -2252,7 +2331,26 @@ div.content-field.login-reminder-field :deep(.card) {
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 18%, transparent);
 }
 
+.upload-switcher__thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-card-strong) 94%, transparent);
+  box-shadow:
+    0 8px 16px color-mix(in srgb, var(--accent-soft) 36%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 38%, transparent);
+  pointer-events: none;
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, width;
+}
+
 .upload-switcher__option {
+  position: relative;
+  z-index: 1;
   min-width: 5.2rem;
   min-height: 2.1rem;
   padding: 0 0.9rem;
@@ -2277,11 +2375,13 @@ div.content-field.login-reminder-field :deep(.card) {
 }
 
 .upload-switcher__option.is-active {
-  background: color-mix(in srgb, var(--surface-card-strong) 94%, transparent);
+  background: transparent;
   color: var(--text-primary);
-  box-shadow:
-    0 8px 16px color-mix(in srgb, var(--accent-soft) 36%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 38%, transparent);
+  box-shadow: none;
+}
+
+.upload-switcher__option.is-active:hover {
+  background: transparent;
 }
 
 .upload-switcher__option:active {
