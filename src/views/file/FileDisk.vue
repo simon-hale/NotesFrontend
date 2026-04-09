@@ -3,16 +3,35 @@
         <div class="card-body disk-card-body">
           <div class="disk-toolbar">
             <div class="breadcrumb-wrapper">
-              <button
-                type="button"
-                class="icon-action icon-action--plain"
-                :aria-label="t('fileDisk.root')"
-                @click="requestDirectoryRoot()"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house" viewBox="0 0 16 16">
-                  <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L2 8.207V13.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V8.207l.646.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM13 7.207V13.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V7.207l5-5z"/>
-                </svg>
-              </button>
+              <div class="breadcrumb-actions">
+                <button
+                  type="button"
+                  class="icon-action icon-action--plain desktop-parent-action"
+                  :aria-label="t('fileDisk.goParentDirectory')"
+                  :disabled="!can_go_parent_directory"
+                  @click="goToParentDirectory"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-arrow-up">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M12 5l0 14" />
+                    <path d="M18 11l-6 -6" />
+                    <path d="M6 11l6 -6" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="icon-action icon-action--plain"
+                  :aria-label="t('fileDisk.root')"
+                  @click="requestDirectoryRoot()"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-home">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M5 12l-2 0l9 -9l9 9l-2 0" />
+                    <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+                    <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+                  </svg>
+                </button>
+              </div>
               <div class="breadcrumb-scroll">
                 <el-breadcrumb separator=">">
                   <el-breadcrumb-item
@@ -52,6 +71,19 @@
                   <path d="M5 5.5a.5 .5 0 0 1 .5 -.5h4a.5 .5 0 0 1 .5 .5v4a.5 .5 0 0 1 -.5 .5h-4a.5 .5 0 0 1 -.5 -.5l0 -4" />
                   <path d="M5 14.5a.5 .5 0 0 1 .5 -.5h4a.5 .5 0 0 1 .5 .5v4a.5 .5 0 0 1 -.5 .5h-4a.5 .5 0 0 1 -.5 -.5l0 -4" />
                   <path d="M17 6v12" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="icon-action mobile-parent-action"
+                :aria-label="t('fileDisk.goParentDirectory')"
+                :disabled="!can_go_parent_directory"
+                @click="goToParentDirectory"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-action__svg">
+                  <path d="M12 5l0 14" />
+                  <path d="M18 11l-6 -6" />
+                  <path d="M6 11l6 -6" />
                 </svg>
               </button>
               <button
@@ -628,6 +660,9 @@ export default {
     const directory_status_detail = ref('');
     let active_directory_request = null;
     const show_directory_feedback = computed(() => directory_view_state.value !== DIRECTORY_VIEW_STATES.READY);
+    const can_go_parent_directory = computed(() => (
+      path_level.value > 0 && directory_view_state.value !== DIRECTORY_VIEW_STATES.LOADING
+    ));
     const directory_feedback_message = computed(() => {
       if (directory_view_state.value === DIRECTORY_VIEW_STATES.LOADING) return t('fileDisk.directoryLoading');
       if (directory_view_state.value === DIRECTORY_VIEW_STATES.ERROR) return t('fileDisk.directoryLoadFailed');
@@ -1467,6 +1502,15 @@ export default {
       refreshCurrentDirectory();
     }
 
+    const goToParentDirectory = () => {
+      if (!can_go_parent_directory.value) return;
+
+      const parentPath = paths.value[path_level.value - 1];
+      if (!parentPath) return;
+
+      refresh(parentPath.level, parentPath.id, parentPath.name, true);
+    }
+
     const judgeDiskOrToLogin = () => {
       if(is_logined.value){
         if(store.state.firstLogin){
@@ -1749,6 +1793,7 @@ export default {
       openMobileSortSheet,
       applyMobileSortOption,
       toggleSort,
+      can_go_parent_directory,
       show_directory_feedback,
       directory_feedback_message,
       directory_feedback_detail,
@@ -1799,6 +1844,7 @@ export default {
       requestDirectoryRoot,
       refresh,
       refreshCurrentPath,
+      goToParentDirectory,
       handleChange,
       handleRemove,
       uploadAll,
@@ -1890,6 +1936,21 @@ div.content-field.login-reminder-field :deep(.card) {
   min-width: 0;
 }
 
+.breadcrumb-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.page-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .breadcrumb-scroll {
   display: flex;
   align-items: center;
@@ -1954,12 +2015,10 @@ div.content-field.login-reminder-field :deep(.card) {
   cursor: pointer;
 }
 
-.page-actions {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  flex-shrink: 0;
+@media (min-width: 641px) {
+  .breadcrumb-actions {
+    gap: 3px;
+  }
 }
 
 .icon-action {
@@ -1985,12 +2044,25 @@ div.content-field.login-reminder-field :deep(.card) {
   transform: translateY(-1px);
 }
 
+.icon-action:disabled,
+.icon-action:disabled:hover {
+  cursor: not-allowed;
+  transform: none;
+  border-color: var(--border-soft);
+  background: var(--surface-soft);
+  color: var(--text-muted);
+}
+
 .icon-action--plain {
   width: 2.25rem;
   height: 2.25rem;
 }
 
 .mobile-sort-trigger {
+  display: none;
+}
+
+.mobile-parent-action {
   display: none;
 }
 
@@ -2929,6 +3001,14 @@ div.content-field.login-reminder-field :deep(.card) {
 }
 
 @media (max-width: 640px) {
+  .desktop-parent-action {
+    display: none;
+  }
+
+  .mobile-parent-action {
+    display: inline-flex;
+  }
+
   :deep(.login-reminder-button.el-button) {
     width: 100%;
   }

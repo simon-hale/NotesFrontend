@@ -111,6 +111,7 @@
     created: 'Created',
     updated: 'Updated',
     openUploadDialog: 'Open upload dialog',
+    goParentDirectory: 'Go to parent directory',
     refreshDirectory: 'Refresh current directory',
     renameDirectory: 'Rename folder',
     deleteDirectory: 'Delete folder',

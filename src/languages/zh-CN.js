@@ -111,6 +111,7 @@
     created: '创建于',
     updated: '更新于',
     openUploadDialog: '打开上传窗口',
+    goParentDirectory: '切换至上一级目录',
     refreshDirectory: '刷新当前目录',
     renameDirectory: '重命名文件夹',
     deleteDirectory: '删除文件夹',
