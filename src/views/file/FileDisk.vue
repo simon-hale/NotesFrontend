@@ -22,7 +22,7 @@
                   type="button"
                   class="icon-action icon-action--plain"
                   :aria-label="t('fileDisk.root')"
-                  @click="requestDirectoryRoot()"
+                  @click="goToRootDirectory"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-home">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none" />
@@ -1045,6 +1045,35 @@ export default {
     }
 
     const getCurrentPath = () => paths.value[path_level.value] ?? null;
+    const createRootPathsInfo = (root_id) => ({
+      path_level: 0,
+      paths: [{
+        level: 0,
+        id: Number(root_id),
+        name: 'root',
+      }],
+    });
+    const applyPathsInfo = (nextPathsInfo) => {
+      const currentPathLevel = store.state.file.path_level;
+      const currentPaths = store.state.file.paths;
+      const nextPaths = nextPathsInfo?.paths ?? [];
+      const isSamePath = (
+        currentPathLevel === nextPathsInfo?.path_level &&
+        currentPaths.length === nextPaths.length &&
+        currentPaths.every((path, index) => {
+          const nextPath = nextPaths[index];
+          return (
+            nextPath &&
+            path.level === nextPath.level &&
+            Number(path.id) === Number(nextPath.id) &&
+            path.name === nextPath.name
+          );
+        })
+      );
+
+      if (isSamePath) return;
+      store.dispatch("refreshPathsInfo", nextPathsInfo);
+    }
 
     const abortActiveDirectoryRequest = () => {
       if (active_directory_request && active_directory_request.readyState !== 4) {
@@ -1460,14 +1489,7 @@ export default {
           username: store.state.user.username,
         },
         onSuccess(resp) {
-          store.dispatch("refreshPathsInfo", {
-            path_level: 0,
-            paths: [{
-              level: 0,
-              id: Number(resp.root_id),
-              name: "root",
-            }],
-          });
+          applyPathsInfo(createRootPathsInfo(resp.root_id));
         },
         resetSort,
       });
@@ -1493,13 +1515,23 @@ export default {
 
     const refresh = (path_level, directory_id, directory_name, go_back) => {
       const nextPathsInfo = buildNextPathsInfo(path_level, directory_id, directory_name, go_back);
-      requestDirectoryById(directory_id, () => {
-        store.dispatch("refreshPathsInfo", nextPathsInfo);
-      }, true);
+      applyPathsInfo(nextPathsInfo);
+      requestDirectoryById(directory_id, undefined, true);
     }
 
     const refreshCurrentPath = () => {
       refreshCurrentDirectory();
+    }
+
+    const goToRootDirectory = () => {
+      const rootPath = paths.value[0];
+      if (!rootPath) {
+        requestDirectoryRoot();
+        return;
+      }
+
+      applyPathsInfo(createRootPathsInfo(rootPath.id));
+      requestDirectoryRoot();
     }
 
     const goToParentDirectory = () => {
@@ -1841,6 +1873,7 @@ export default {
       handleDeleteDialogAfterLeave,
       confirmDeleteDialog,
       submitCreateDirectory,
+      goToRootDirectory,
       requestDirectoryRoot,
       refresh,
       refreshCurrentPath,
