@@ -17,20 +17,6 @@
                 </form>
             </div>
         </div>
-
-        <!-- Teacher Notes Start: remove this entire block when no longer needed -->
-        <div class="teacher-notes">
-            <div class="teacher-notes__eyebrow">老师提示</div>
-            <div class="teacher-notes__title">老师您好，以下是专门为您注册的测试账号</div>
-            <div class="teacher-notes__account">账号：test  密码：KAOYAN@success</div>
-            <div class="teacher-notes__section-title">主要功能</div>
-            <div class="teacher-notes__list">
-                <div class="teacher-notes__item">Disk 页面：Disk 页面是云盘，支持创建文件夹、上传文件、删除、改名等基础操作</div>
-                <div class="teacher-notes__item">Read 页面：点击文档名称后可在 Read 页面在线阅读对应文件，部分场景需要手动点击“刷新”</div>
-            </div>
-        </div>
-        <!-- Teacher Notes End -->
-
     </div>
 </template>
 
@@ -238,77 +224,6 @@ export default {
         inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 64%, transparent);
 }
 
-/* Teacher Notes Styles Start: remove together with the teacher notes block above when no longer needed */
-.teacher-notes {
-    position: relative;
-    width: min(100%, 36rem);
-    margin: 0 auto;
-    padding: 16px 18px;
-    border: 1px solid var(--warning-border);
-    border-radius: 16px;
-    background: var(--warning-surface);
-    box-shadow:
-        var(--shadow-warning),
-        inset 0 1px 0 rgba(255, 255, 255, 0.12);
-    text-align: center;
-}
-
-.teacher-notes__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 24px;
-    padding: 0 10px;
-    margin-bottom: 8px;
-    border-radius: 999px;
-    background: var(--warning-pill);
-    color: var(--warning-ink);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-}
-
-.teacher-notes__title {
-    color: var(--warning-ink-strong);
-    font-size: 0.96rem;
-    font-weight: 700;
-    line-height: 1.4;
-}
-
-.teacher-notes__account {
-    margin-top: 9px;
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: var(--warning-surface-soft);
-    color: var(--warning-ink);
-    font-weight: 700;
-    box-shadow: inset 0 0 0 1px var(--warning-inset);
-}
-
-.teacher-notes__section-title {
-    margin-top: 12px;
-    color: var(--warning-ink-strong);
-    font-size: 0.86rem;
-    font-weight: 700;
-}
-
-.teacher-notes__list {
-    margin-top: 8px;
-    display: grid;
-    gap: 6px;
-}
-
-.teacher-notes__item {
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: var(--warning-surface-soft);
-    color: var(--warning-ink-soft);
-    line-height: 1.5;
-    font-size: 0.9rem;
-    box-shadow: inset 0 0 0 1px var(--warning-inset-strong);
-}
-/* Teacher Notes Styles End */
-
 @media (max-width: 768px) {
     .login-shell {
         margin-bottom: 16px;
@@ -322,19 +237,6 @@ export default {
         padding: 16px;
         border-radius: 16px;
     }
-
-    /* Teacher Notes Styles Start: remove together with the teacher notes block above when no longer needed */
-    .teacher-notes {
-        width: min(100%, 34rem);
-        padding: 13px;
-        border-radius: 16px;
-    }
-
-    .teacher-notes__account,
-    .teacher-notes__item {
-        padding: 8px 9px;
-    }
-    /* Teacher Notes Styles End */
 
 }
 </style>
