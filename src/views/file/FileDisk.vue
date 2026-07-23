@@ -1728,7 +1728,7 @@ export default {
     }
 
     const uploadFile = async (file) => {
-      const string_of_path = paths.value.map((path) => `${path.name}/`).join('');
+      const string_of_path = paths.value.map((path) => `${path.id}/`).join('');
 
       try {
         const sts = await getSTS(string_of_path, file.name);
