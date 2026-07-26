@@ -19,8 +19,8 @@ const PART_SIZE = 5 * 1024 * 1024;
 // 同时上传3个分片，在速度和稳定性之间取平衡。
 const PARALLEL_PARTS = 3;
 
-// OSS SDK的timeout单位为秒，默认是60秒。
-const REQUEST_TIMEOUT_SECONDS = 180;
+// 当前项目使用的 OSS SDK timeout 单位为毫秒，设置为180秒。
+const REQUEST_TIMEOUT_MS = 180 * 1000;
 
 // 首次上传失败后，最多再自动尝试两次。
 const MAX_RETRY_COUNT = 2;
@@ -35,7 +35,7 @@ const createOssClient = (sts) => new OSS({
 
   secure: true,
   // 单个OSS请求最长允许180秒。
-  timeout: REQUEST_TIMEOUT_SECONDS,
+  timeout: REQUEST_TIMEOUT_MS,
 });
 
 const sleep = (milliseconds) =>
