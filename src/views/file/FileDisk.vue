@@ -354,6 +354,7 @@
                 type="button"
                 class="disk-modal__close"
                 :aria-label="t('common.close')"
+                :disabled="isUploading"
                 @click="closeUploadDialog"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -379,6 +380,7 @@
                     class="upload-switcher__option"
                     :class="{ 'is-active': selection_value === option.value }"
                     :aria-pressed="selection_value === option.value"
+                    :disabled="isUploading"
                     @click="setSelectionValue(option.value)"
                   >
                     {{ option.label }}
@@ -416,6 +418,7 @@
                       :auto-upload="false"
                       :show-file-list="true"
                       :file-list="elFileList"
+                      :disabled="isUploading"
                       :on-change="handleChange"
                       :on-remove="handleRemove"
                     >
@@ -462,7 +465,7 @@
                     <button
                       type="button"
                       class="disk-dialog-button disk-dialog-button--accent upload-dialog-button"
-                      :disabled="elFileList.length === 0"
+                      :disabled="elFileList.length === 0 || isUploading"
                       @click="uploadAll()"
                     >
                       {{ t('common.upload') }}
@@ -742,6 +745,7 @@ export default {
 
     let new_dir_name = ref('');
     let show_upload_progress = ref(false);
+    const isUploading = ref(false);
     let upload_dialog_visible = ref(false);
     const rename_input_ref = ref(null);
     const rename_dialog_visible = ref(false);
@@ -1183,6 +1187,9 @@ export default {
     }
 
     const closeUploadDialog = () => {
+      if (isUploading.value) {
+        return;
+      }
       upload_dialog_visible.value = false;
     }
 
@@ -1627,39 +1634,90 @@ export default {
       return ossUploadModulePromise;
     }
 
+    // 新getSTS：小幅修正reject逻辑
     const getSTS = (string_of_path, filename) => {
       return new Promise((resolve, reject) => {
         $.ajax({
           url: `${BASE_URL}/api/oss/sts/`,
           type: 'GET',
           headers: {
-            Authorization: 'Bearer ' + store.state.user.access,
+            Authorization:
+              'Bearer ' + store.state.user.access,
           },
           data: {
             username: store.state.user.username,
-            string_of_path: string_of_path,
-            filename: filename,
+            string_of_path,
+            filename,
             parent_id: paths.value[path_level.value].id,
             language: getCurrentLanguage(),
           },
           success(resp) {
-            if (resp.error_message !== 'success'&& resp.error_message !== 'same_file_name'){
-              ElMessage.error(resp.error_message)
-              reject(new Error('STS error'))
+            const result = resp.error_message;
+
+            if (
+              result !== 'success' &&
+              result !== 'same_file_name'
+            ) {
+              ElMessage.error(result);
+              reject(new Error('STS error'));
+              return;
             }
-            if (resp.error_message === 'same_file_name') {
-              ElMessage.warning(t('fileDisk.overwriteSameName'))
+
+            if (result === 'same_file_name') {
+              ElMessage.warning(
+                t('fileDisk.overwriteSameName')
+              );
             }
-            resolve(resp)
+
+            resolve(resp);
           },
           error(resp) {
-            const message = getHttpErrorMessage(t, resp.status)
-            ElMessage.error(message)
-            reject(new Error(message))
+            const message = getHttpErrorMessage(
+              t,
+              resp.status
+            );
+
+            ElMessage.error(message);
+            reject(new Error(message));
           },
-        })
-      })
-    }
+        });
+      });
+    };
+
+    // // 原getSTS
+    // const getSTS = (string_of_path, filename) => {
+    //   return new Promise((resolve, reject) => {
+    //     $.ajax({
+    //       url: `${BASE_URL}/api/oss/sts/`,
+    //       type: 'GET',
+    //       headers: {
+    //         Authorization: 'Bearer ' + store.state.user.access,
+    //       },
+    //       data: {
+    //         username: store.state.user.username,
+    //         string_of_path: string_of_path,
+    //         filename: filename,
+    //         parent_id: paths.value[path_level.value].id,
+    //         language: getCurrentLanguage(),
+    //       },
+    //       success(resp) {
+    //         if (resp.error_message !== 'success'&& resp.error_message !== 'same_file_name'){
+    //           ElMessage.error(resp.error_message)
+    //           reject(new Error('STS error'))
+    //         }
+    //         if (resp.error_message === 'same_file_name') {
+    //           ElMessage.warning(t('fileDisk.overwriteSameName'))
+    //         }
+    //         resolve(resp)
+    //       },
+    //       error(resp) {
+    //         const message = getHttpErrorMessage(t, resp.status)
+    //         ElMessage.error(message)
+    //         reject(new Error(message))
+    //       },
+    //     })
+    //   })
+    // }
 
     const handleChange = (file, files) => {
       fileList.value = files.map(f => f.raw);
@@ -1671,29 +1729,198 @@ export default {
       elFileList.value = [...files];
     }
 
+    // 用于新uploadAll的函数
+    const removeUploadedFile = (file) => {
+      fileList.value = fileList.value.filter(
+        (item) => item !== file
+      );
+
+      elFileList.value = elFileList.value.filter(
+        (item) => item.raw !== file
+      );
+    };
+
+    // 新上传主接口，实现了显示分片上传、实时进度回调及补全部分兜底逻辑
     const uploadAll = async () => {
+      // 防止程序调用或快速重复点击造成重复上传。
+      if (isUploading.value) {
+        return;
+      }
+
+      const filesToUpload = [...fileList.value];
+
+      if (filesToUpload.length === 0) {
+        ElMessage.warning(
+          t('fileDisk.noFileSelected')
+        );
+        return;
+      }
+
       percentage.value = 0;
-      const total = fileList.value.length;
-      let uploadedCount = 0;
-      if (total === 0){
-        ElMessage.warning(t('fileDisk.noFileSelected'))
-      } else {
-        show_upload_progress.value = true
-        for (const file of [...fileList.value]) {
+      show_upload_progress.value = true;
+      isUploading.value = true;
+
+      // 空文件按1字节计算，避免全部为空文件时除以0。
+      const totalBytes = filesToUpload.reduce(
+        (sum, file) => sum + Math.max(file.size, 1),
+        0
+      );
+
+      let completedBytes = 0;
+      let failedCount = 0;
+
+      try {
+        // 保持你原来的串行文件上传逻辑。
+        // 每个文件内部的分片则由OSS SDK并发上传。
+        for (const file of filesToUpload) {
+          const currentFileBytes = Math.max(
+            file.size,
+            1
+          );
+
           try {
-            await uploadFile(file);
-            fileList.value = fileList.value.filter(f => f !== file);
-            elFileList.value = elFileList.value.filter(item => item.raw !== file);
-            uploadedCount += 1;
-            percentage.value = Math.floor(uploadedCount / total * 100);
-          } catch (err) {
-            console.warn('Upload failed but handled:', file.name)
+            await uploadFile(
+              file,
+              (currentFileProgress) => {
+                const normalizedProgress = Math.min(
+                  1,
+                  Math.max(
+                    0,
+                    Number(currentFileProgress) || 0
+                  )
+                );
+
+                const uploadedBytes =
+                  completedBytes +
+                  currentFileBytes * normalizedProgress;
+
+                const currentPercentage = Math.floor(
+                  uploadedBytes / totalBytes * 100
+                );
+
+                // 最后的1%留给insertFileInfo。
+                // 避免OSS上传完成但数据库写入失败时显示100%。
+                percentage.value = Math.min(
+                  99,
+                  currentPercentage
+                );
+              }
+            );
+
+            completedBytes += currentFileBytes;
+
+            percentage.value = Math.floor(
+              completedBytes / totalBytes * 100
+            );
+
+            // 只有OSS上传和数据库写入都成功，才从列表移除。
+            removeUploadedFile(file);
+          } catch (error) {
+            failedCount += 1;
+
+            // 当前文件失败后恢复到此前真正成功的字节进度。
+            percentage.value = Math.floor(
+              completedBytes / totalBytes * 100
+            );
+
+            console.warn(
+              'Upload failed but handled:',
+              file.name,
+              error
+            );
+
+            // 不throw，继续处理后面的文件。
+            // 失败文件仍保留在选择列表中，用户可以再次上传。
           }
         }
+
         refreshCurrentDirectory();
-        if (fileList.value.length !== 0) percentage.value = 0;
+
+        percentage.value = failedCount === 0 ? 100 : Math.floor(completedBytes / totalBytes * 100);
+      } finally {
+        isUploading.value = false;
       }
-    }
+    };
+
+    // 新单文件上传接口，实现了显示分片上传、实时进度回调及补全部分兜底逻辑
+    const uploadFile = async (
+      file,
+      onProgress
+    ) => {
+      const string_of_path = paths.value
+        .map((path) => `${path.id}/`)
+        .join('');
+
+      try {
+        const sts = await getSTS(
+          string_of_path,
+          file.name
+        );
+
+        if (!sts) {
+          throw new Error('STS not ready');
+        }
+
+        const { uploadFileToOss } =
+          await loadOssUploadModule();
+
+        await uploadFileToOss(
+          sts,
+          file,
+          onProgress
+        );
+
+        // OSS完整上传成功后，再写入数据库。
+        await insertFileInfo(
+          string_of_path,
+          file.name
+        );
+
+        ElMessage.success(
+          t('fileDisk.uploadSuccess', {
+            name: file.name,
+          })
+        );
+      } catch (error) {
+        console.error(
+          `Upload failed: ${file.name}`,
+          error
+        );
+
+        ElMessage.error(
+          t('fileDisk.uploadFailed', {
+            name: file.name,
+          })
+        );
+
+        throw error;
+      }
+    };
+
+    // // 原上传主接口
+    // const uploadAll = async () => {
+    //   percentage.value = 0;
+    //   const total = fileList.value.length;
+    //   let uploadedCount = 0;
+    //   if (total === 0){
+    //     ElMessage.warning(t('fileDisk.noFileSelected'))
+    //   } else {
+    //     show_upload_progress.value = true
+    //     for (const file of [...fileList.value]) {
+    //       try {
+    //         await uploadFile(file);
+    //         fileList.value = fileList.value.filter(f => f !== file);
+    //         elFileList.value = elFileList.value.filter(item => item.raw !== file);
+    //         uploadedCount += 1;
+    //         percentage.value = Math.floor(uploadedCount / total * 100);
+    //       } catch (err) {
+    //         console.warn('Upload failed but handled:', file.name)
+    //       }
+    //     }
+    //     refreshCurrentDirectory();
+    //     if (fileList.value.length !== 0) percentage.value = 0;
+    //   }
+    // }
 
     const insertFileInfo = (string_of_path, filename) => {
       return new Promise((resolve, reject) => {
@@ -1727,30 +1954,31 @@ export default {
       })
     }
 
-    const uploadFile = async (file) => {
-      const string_of_path = paths.value.map((path) => `${path.id}/`).join('');
+    // // 原单文件上传接口
+    // const uploadFile = async (file) => {
+    //   const string_of_path = paths.value.map((path) => `${path.id}/`).join('');
 
-      try {
-        const sts = await getSTS(string_of_path, file.name);
+    //   try {
+    //     const sts = await getSTS(string_of_path, file.name);
 
-        if (sts === null) {
-          throw new Error('STS not ready')
-        }
+    //     if (sts === null) {
+    //       throw new Error('STS not ready')
+    //     }
 
-        const { uploadFileToOss } = await loadOssUploadModule();
-        await uploadFileToOss(sts, file);
+    //     const { uploadFileToOss } = await loadOssUploadModule();
+    //     await uploadFileToOss(sts, file);
 
-        await insertFileInfo(string_of_path, file.name);
+    //     await insertFileInfo(string_of_path, file.name);
 
-        ElMessage.success(t('fileDisk.uploadSuccess', { name: file.name }))
+    //     ElMessage.success(t('fileDisk.uploadSuccess', { name: file.name }))
 
-      } catch (err) {
-        console.error(err)
-        show_upload_progress.value = false
-        ElMessage.error(t('fileDisk.uploadFailed', { name: file.name }))
-        throw err
-      }
-    }
+    //   } catch (err) {
+    //     console.error(err)
+    //     show_upload_progress.value = false
+    //     ElMessage.error(t('fileDisk.uploadFailed', { name: file.name }))
+    //     throw err
+    //   }
+    // }
 
     const setReadingFileInfo = (id, file_name) => {
         store.commit("setReadingFileId", id);
@@ -1880,6 +2108,7 @@ export default {
       goToParentDirectory,
       handleChange,
       handleRemove,
+      isUploading,
       uploadAll,
       setReadingFileInfo,
       downloadFile,
