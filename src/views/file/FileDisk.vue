@@ -1264,6 +1264,7 @@ export default {
         data: {
           id: id,
           name: value,
+          username: store.state.user.username,
           language: getCurrentLanguage(),
         },
         success(resp){
@@ -1299,18 +1300,25 @@ export default {
           language: getCurrentLanguage(),
         },
         success(resp){
-            if(resp.error_message !== 'success'){
-              ElMessage({
-                message: resp.error_message,
-                type: 'error',
-              })
-            }else{
+            if(resp.error_message === 'success'){
               ElMessage({
                 message: t('fileDisk.renamed'),
                 type: 'success',
               })
               refreshCurrentDirectory();
               store.commit("setReadingFileName", value);
+            }else if(resp.error_message === 'success_oss_error'){
+              ElMessage({
+                message: resp.warning_message,
+                type: 'warning',
+              })
+              refreshCurrentDirectory();
+              store.commit("setReadingFileName", value);
+            }else{
+              ElMessage({
+                message: resp.error_message,
+                type: 'error',
+              })
             }
         },
         error: showHttpError
@@ -1418,6 +1426,7 @@ export default {
         },
         data: {
           id: id,
+          username: store.state.user.username,
           language: getCurrentLanguage(),
         },
         success(resp){
