@@ -4,6 +4,11 @@
         <div class="account-panel__description">{{ t('changePassword.warning') }}</div>
 
         <div class="change-password-grid">
+            <label for="curPassword" class="change-password-field">
+                <span class="change-password-field__label">{{ t('changePassword.curPassword') }}</span>
+                <input v-model="cur_password" type="password" class="form-control change-password-field__input" id="curPassword">
+            </label>
+
             <label for="password" class="change-password-field">
                 <span class="change-password-field__label">{{ t('changePassword.newPassword') }}</span>
                 <input v-model="password" type="password" class="form-control change-password-field__input" id="password">
@@ -48,6 +53,7 @@ export default {
     },
     setup(_, context) {
         const { t } = useI18n();
+        let cur_password = ref('');
         let password = ref('');
         let confirmedPassword = ref('');
         const show_mismatch = computed(() => {
@@ -57,6 +63,7 @@ export default {
 
         const change_password = () => {
             context.emit("change_password", {
+                "cur_password": cur_password.value,
                 "password": password.value,
                 "confirmedPassword": confirmedPassword.value,
             })
@@ -64,6 +71,7 @@ export default {
 
         return {
             t,
+            cur_password,
             password,
             confirmedPassword,
             show_mismatch,

@@ -272,7 +272,7 @@ export default {
                     Authorization:"Bearer " + store.state.user.access,
                 },
                 data: {
-                    username: store.state.user.username,
+                    cur_password: data.cur_password,
                     password: data.password,
                     confirmedPassword: data.confirmedPassword,
                     language: getCurrentLanguage(),
@@ -291,7 +291,7 @@ export default {
             })
         }
 
-        const delete_account = () => {
+        const delete_account = (data) => {
             $.ajax({
                 url: `${BASE_URL}/api/user/delete/`,
                 type: "POST",
@@ -299,7 +299,7 @@ export default {
                     Authorization:"Bearer " + store.state.user.access,
                 },
                 data: {
-                    username: store.state.user.username,
+                    cur_password: data.cur_password,
                     language: getCurrentLanguage(),
                 },
                 success(resp) {

@@ -84,6 +84,7 @@
     currentLanguage: 'Current language',
   },
   changePassword: {
+    curPassword: 'Original Password',
     newPassword: 'New Password',
     confirmPassword: 'Confirm Password',
     mismatch: 'The two passwords do not match.',
@@ -91,7 +92,8 @@
     submit: 'Confirm changes',
   },
   deleteAccount: {
-    warning: 'Are you sure you want to delete this account? All your information will be deleted!',
+    curPassword: 'Current Password',
+    warning: 'Are you sure you want to delete this account? You can only delete your account after verifying your password, and all your information will be deleted!',
     confirmFirst: 'Confirm deletion',
     modalTitle: 'Second confirmation',
     modalBody: 'Please confirm again. Deleted accounts cannot be recovered.',

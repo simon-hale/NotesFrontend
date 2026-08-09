@@ -4,6 +4,16 @@
         <div class="account-panel__description">{{ t('deleteAccount.warning') }}</div>
         <div class="account-panel__note">{{ t('deleteAccount.modalBody') }}</div>
 
+        <div class="account-panel__field">
+            <span class="account-panel__field__label"> {{ t('deleteAccount.curPassword') }} </span>
+            <input
+                v-model="cur_password"
+                type="password"
+                class="form-control account-panel__input"
+                autocomplete="current-password"
+            />
+        </div>
+
         <div v-if="error_message" class="account-panel__error">
             {{ error_message }}
         </div>
@@ -60,15 +70,19 @@ export default {
     setup(_, context) {
         const { t } = useI18n();
         const dialog_visible = ref(false);
+        let cur_password = ref('');
 
         const confirm_delete = () => {
             dialog_visible.value = false;
-            context.emit('delete_account');
+            context.emit('delete_account', {
+                "cur_password": cur_password.value,
+            });
         }
 
         return {
             t,
             dialog_visible,
+            cur_password,
             confirm_delete,
         }
     }
@@ -118,6 +132,23 @@ export default {
     justify-content: flex-end;
     gap: 10px;
     width: 100%;
+}
+
+.account-panel__field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.account-panel__field__label {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.account-panel__input {
+    min-height: 48px;
+    border-radius: 14px;
 }
 
 :deep(.delete-account-dialog .el-dialog) {

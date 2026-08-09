@@ -84,6 +84,7 @@
     currentLanguage: '当前语言',
   },
   changePassword: {
+    curPassword: '原密码',
     newPassword: '新密码',
     confirmPassword: '确认密码',
     mismatch: '两次输入的密码不一致',
@@ -91,7 +92,8 @@
     submit: '确认修改',
   },
   deleteAccount: {
-    warning: '确定要删除这个账户吗？您的所有信息都会被删除',
+    curPassword: '当前密码',
+    warning: '确定要删除这个账户吗？验证密码后才可以删除账户，且您的所有信息都会被删除！',
     confirmFirst: '确认删除',
     modalTitle: '二次确认',
     modalBody: '请再次确认，删除后的账户无法恢复',
