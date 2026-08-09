@@ -1264,7 +1264,6 @@ export default {
         data: {
           id: id,
           name: value,
-          username: store.state.user.username,
           language: getCurrentLanguage(),
         },
         success(resp){
@@ -1293,7 +1292,6 @@ export default {
             Authorization:"Bearer " + store.state.user.access,
         },
         data: {
-          username: store.state.user.username,
           parentId: paths.value[path_level.value].id,
           fileId: id,
           filenameNew: value,
@@ -1399,7 +1397,6 @@ export default {
         data: {
           name: new_dir_name.value,
           parent_id: paths.value[path_level.value].id,
-          username: store.state.user.username,
           language: getCurrentLanguage(),
         },
         success(resp){
@@ -1426,7 +1423,6 @@ export default {
         },
         data: {
           id: id,
-          username: store.state.user.username,
           language: getCurrentLanguage(),
         },
         success(resp){
@@ -1456,7 +1452,6 @@ export default {
         },
         data: {
           id: id,
-          username: store.state.user.username,
           language: getCurrentLanguage(),
         },
         success(resp){
@@ -1482,7 +1477,6 @@ export default {
         url: `${BASE_URL}/api/directory/id/`,
         data: {
           parent_id: id,
-          username: store.state.user.username,
         },
         onSuccess,
         resetSort,
@@ -1501,9 +1495,6 @@ export default {
     const requestDirectoryRoot = (resetSort = true) => {
       loadDirectory({
         url: `${BASE_URL}/api/directory/init/`,
-        data: {
-          username: store.state.user.username,
-        },
         onSuccess(resp) {
           applyPathsInfo(createRootPathsInfo(resp.root_id));
         },
@@ -1654,11 +1645,11 @@ export default {
               'Bearer ' + store.state.user.access,
           },
           data: {
-            username: store.state.user.username,
             string_of_path,
             filename,
             parent_id: paths.value[path_level.value].id,
             language: getCurrentLanguage(),
+            usage: "SINGLE_FILE_UPLOAD",
           },
           success(resp) {
             const result = resp.error_message;
@@ -1692,41 +1683,6 @@ export default {
         });
       });
     };
-
-    // // 原getSTS
-    // const getSTS = (string_of_path, filename) => {
-    //   return new Promise((resolve, reject) => {
-    //     $.ajax({
-    //       url: `${BASE_URL}/api/oss/sts/`,
-    //       type: 'GET',
-    //       headers: {
-    //         Authorization: 'Bearer ' + store.state.user.access,
-    //       },
-    //       data: {
-    //         username: store.state.user.username,
-    //         string_of_path: string_of_path,
-    //         filename: filename,
-    //         parent_id: paths.value[path_level.value].id,
-    //         language: getCurrentLanguage(),
-    //       },
-    //       success(resp) {
-    //         if (resp.error_message !== 'success'&& resp.error_message !== 'same_file_name'){
-    //           ElMessage.error(resp.error_message)
-    //           reject(new Error('STS error'))
-    //         }
-    //         if (resp.error_message === 'same_file_name') {
-    //           ElMessage.warning(t('fileDisk.overwriteSameName'))
-    //         }
-    //         resolve(resp)
-    //       },
-    //       error(resp) {
-    //         const message = getHttpErrorMessage(t, resp.status)
-    //         ElMessage.error(message)
-    //         reject(new Error(message))
-    //       },
-    //     })
-    //   })
-    // }
 
     const handleChange = (file, files) => {
       fileList.value = files.map(f => f.raw);
@@ -1769,6 +1725,10 @@ export default {
       show_upload_progress.value = true;
       isUploading.value = true;
 
+      const string_of_path = paths.value
+        .map((path) => `${path.id}/`)
+        .join('');
+
       // 空文件按1字节计算，避免全部为空文件时除以0。
       const totalBytes = filesToUpload.reduce(
         (sum, file) => sum + Math.max(file.size, 1),
@@ -1790,6 +1750,7 @@ export default {
           try {
             await uploadFile(
               file,
+              string_of_path,
               (currentFileProgress) => {
                 const normalizedProgress = Math.min(
                   1,
@@ -1854,11 +1815,9 @@ export default {
     // 新单文件上传接口，实现了显示分片上传、实时进度回调及补全部分兜底逻辑
     const uploadFile = async (
       file,
+      string_of_path,
       onProgress
     ) => {
-      const string_of_path = paths.value
-        .map((path) => `${path.id}/`)
-        .join('');
 
       try {
         const sts = await getSTS(
@@ -1906,31 +1865,6 @@ export default {
       }
     };
 
-    // // 原上传主接口
-    // const uploadAll = async () => {
-    //   percentage.value = 0;
-    //   const total = fileList.value.length;
-    //   let uploadedCount = 0;
-    //   if (total === 0){
-    //     ElMessage.warning(t('fileDisk.noFileSelected'))
-    //   } else {
-    //     show_upload_progress.value = true
-    //     for (const file of [...fileList.value]) {
-    //       try {
-    //         await uploadFile(file);
-    //         fileList.value = fileList.value.filter(f => f !== file);
-    //         elFileList.value = elFileList.value.filter(item => item.raw !== file);
-    //         uploadedCount += 1;
-    //         percentage.value = Math.floor(uploadedCount / total * 100);
-    //       } catch (err) {
-    //         console.warn('Upload failed but handled:', file.name)
-    //       }
-    //     }
-    //     refreshCurrentDirectory();
-    //     if (fileList.value.length !== 0) percentage.value = 0;
-    //   }
-    // }
-
     const insertFileInfo = (string_of_path, filename) => {
       return new Promise((resolve, reject) => {
         $.ajax({
@@ -1940,7 +1874,6 @@ export default {
             Authorization: 'Bearer ' + store.state.user.access,
           },
           data: {
-            username: store.state.user.username,
             string_of_path: string_of_path,
             filename: filename,
             parent_id: paths.value[path_level.value].id,
@@ -1963,32 +1896,6 @@ export default {
       })
     }
 
-    // // 原单文件上传接口
-    // const uploadFile = async (file) => {
-    //   const string_of_path = paths.value.map((path) => `${path.id}/`).join('');
-
-    //   try {
-    //     const sts = await getSTS(string_of_path, file.name);
-
-    //     if (sts === null) {
-    //       throw new Error('STS not ready')
-    //     }
-
-    //     const { uploadFileToOss } = await loadOssUploadModule();
-    //     await uploadFileToOss(sts, file);
-
-    //     await insertFileInfo(string_of_path, file.name);
-
-    //     ElMessage.success(t('fileDisk.uploadSuccess', { name: file.name }))
-
-    //   } catch (err) {
-    //     console.error(err)
-    //     show_upload_progress.value = false
-    //     ElMessage.error(t('fileDisk.uploadFailed', { name: file.name }))
-    //     throw err
-    //   }
-    // }
-
     const setReadingFileInfo = (id, file_name) => {
         store.commit("setReadingFileId", id);
         store.commit("setReadingFileName", file_name);
@@ -2005,7 +1912,6 @@ export default {
           },
           data: {
             id: id,
-            username: store.state.user.username,
             language: getCurrentLanguage(),
           },
           success(resp) {

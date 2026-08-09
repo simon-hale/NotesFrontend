@@ -1,18 +1,5 @@
 import OSS from 'ali-oss';
 
-// 原上传js
-// const createOssClient = (sts) => new OSS({
-//   region: sts.region,
-//   bucket: sts.bucket,
-//   accessKeyId: sts.accessKeyId,
-//   accessKeySecret: sts.accessKeySecret,
-//   stsToken: sts.securityToken,
-// });
-
-// export const uploadFileToOss = (sts, file) => createOssClient(sts).multipartUpload(sts.objectKey, file);
-
-// 新上传js
-
 // 每个分片固定为5MB，避免大文件的单个分片过大。
 const PART_SIZE = 5 * 1024 * 1024;
 
