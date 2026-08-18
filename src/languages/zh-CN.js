@@ -158,6 +158,7 @@
     sortModifiedOldest: '修改时间 最旧优先',
     overwriteSameName: '将覆盖同名文件',
     noFileSelected: '未选择文件',
+    clearSelectedFiles: '清空',
     uploadSuccess: '上传成功：{name}',
     uploadFailed: '上传失败：{name}',
     selected: '已选中',

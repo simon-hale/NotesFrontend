@@ -464,6 +464,14 @@
                   <div class="upload-actions">
                     <button
                       type="button"
+                      class="disk-dialog-button disk-dialog-button--ghost upload-dialog-button upload-clear-button"
+                      :disabled="elFileList.length === 0 || isUploading"
+                      @click="clearSelectedFiles"
+                    >
+                      {{ t('fileDisk.clearSelectedFiles') }}
+                    </button>
+                    <button
+                      type="button"
                       class="disk-dialog-button disk-dialog-button--accent upload-dialog-button"
                       :disabled="elFileList.length === 0 || isUploading"
                       @click="uploadAll()"
@@ -1699,6 +1707,15 @@ export default {
       elFileList.value = [...files];
     }
 
+    const clearSelectedFiles = () => {
+      if (isUploading.value) return;
+
+      fileList.value = [];
+      elFileList.value = [];
+      percentage.value = 0;
+      show_upload_progress.value = false;
+    }
+
     // 用于新uploadAll的函数
     const removeUploadedFile = (file) => {
       fileList.value = fileList.value.filter(
@@ -2028,6 +2045,7 @@ export default {
       goToParentDirectory,
       handleChange,
       handleRemove,
+      clearSelectedFiles,
       isUploading,
       uploadAll,
       setReadingFileInfo,
@@ -2738,6 +2756,14 @@ div.content-field.login-reminder-field :deep(.card) {
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.upload-clear-button {
+  margin-right: auto;
+}
+
+.upload-progress {
+  width: 100%;
 }
 
 .upload-progress {

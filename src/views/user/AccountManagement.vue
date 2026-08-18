@@ -1,6 +1,77 @@
 ﻿<template>
     <ContentField v-if="is_logined">
         <div class="account-layout">
+            <div class="container account-mobile-nav-container">
+                <div
+                    class="account-mobile-nav"
+                    @focusout="close_mobile_nav_on_focusout"
+                >
+                    <button
+                        ref="mobile_nav_trigger"
+                        type="button"
+                        :class="[
+                            'account-mobile-nav__trigger',
+                            mobile_nav_open ? 'account-mobile-nav__trigger--open' : '',
+                        ]"
+                        :aria-expanded="mobile_nav_open"
+                        aria-haspopup="menu"
+                        aria-controls="account-mobile-nav-menu"
+                        @click="toggle_mobile_nav"
+                        @keydown="handle_mobile_nav_trigger_keydown"
+                    >
+                        <span
+                            class="account-mobile-nav__rail"
+                            aria-hidden="true"
+                        ></span>
+
+                        <span class="account-mobile-nav__current">
+                            {{ current_mobile_tab_label }}
+                        </span>
+
+                        <span
+                            class="account-mobile-nav__chevron"
+                            aria-hidden="true"
+                        ></span>
+                    </button>
+
+                    <transition name="account-mobile-menu">
+                        <div
+                            v-if="mobile_nav_open"
+                            ref="mobile_nav_menu"
+                            id="account-mobile-nav-menu"
+                            class="account-mobile-nav__menu"
+                            role="menu"
+                            @keydown="handle_mobile_nav_keydown"
+                        >
+                            <button
+                                v-for="tab in tabs"
+                                :key="tab.key"
+                                type="button"
+                                role="menuitem"
+                                tabindex="-1"
+                                :aria-current="active_tab === tab.key ? 'page' : undefined"
+                                :class="[
+                                    'account-mobile-nav__option',
+                                    active_tab === tab.key
+                                        ? 'account-mobile-nav__option--active'
+                                        : '',
+                                ]"
+                                @click="select_mobile_tab(tab.key)"
+                            >
+                                <span class="account-mobile-nav__option-label">
+                                    {{ t(tab.labelKey) }}
+                                </span>
+
+                                <span
+                                    v-if="active_tab === tab.key"
+                                    class="account-mobile-nav__check"
+                                    aria-hidden="true"
+                                ></span>
+                            </button>
+                        </div>
+                    </transition>
+                </div>
+            </div>
             <aside class="account-sidebar">
                 <button
                     v-for="tab in tabs"
@@ -178,7 +249,7 @@ import ChangePassword from '@/components/account/ChangePassword.vue';
 import DeleteAccount from '@/components/account/DeleteAccount.vue';
 import LoginView from './LoginView.vue'
 import RegisterView from './RegisterView.vue'
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import $ from 'jquery';
@@ -205,6 +276,9 @@ export default {
         let error_message = ref('');
         let active_tab = ref('language');
         let is_login_page = ref(true);
+        let mobile_nav_open = ref(false);
+        let mobile_nav_trigger = ref(null);
+        let mobile_nav_menu = ref(null);
 
         const tabs = [
             { key: 'language', labelKey: 'account.language' },
@@ -213,6 +287,195 @@ export default {
             { key: 'deleteAccount', labelKey: 'account.deleteAccount' },
             { key: 'logout', labelKey: 'account.logout' },
         ];
+
+        const current_mobile_tab_label = computed(() => {
+            const currentTab =
+                tabs.find((tab) => tab.key === active_tab.value) || tabs[0];
+
+            return t(currentTab.labelKey);
+        });
+
+        const get_mobile_nav_options = () => {
+            if (!mobile_nav_menu.value) {
+                return [];
+            }
+
+            return Array.from(
+                mobile_nav_menu.value.querySelectorAll('[role="menuitem"]')
+            );
+        }
+
+        const focus_mobile_nav_option = (index) => {
+            const options = get_mobile_nav_options();
+
+            if (options.length === 0) {
+                return;
+            }
+
+            const normalizedIndex =
+                (index + options.length) % options.length;
+
+            options[normalizedIndex].focus();
+        }
+
+        const close_mobile_nav = (restoreFocus = false) => {
+            mobile_nav_open.value = false;
+
+            if (restoreFocus) {
+                nextTick(() => {
+                    mobile_nav_trigger.value?.focus();
+                });
+            }
+        }
+
+        const open_mobile_nav_and_focus = async (target = 'current') => {
+            mobile_nav_open.value = true;
+
+            await nextTick();
+
+            const options = get_mobile_nav_options();
+
+            if (options.length === 0) {
+                return;
+            }
+
+            if (target === 'first') {
+                focus_mobile_nav_option(0);
+                return;
+            }
+
+            if (target === 'last') {
+                focus_mobile_nav_option(options.length - 1);
+                return;
+            }
+
+            const currentIndex = Math.max(
+                0,
+                tabs.findIndex((tab) => tab.key === active_tab.value),
+            );
+
+            focus_mobile_nav_option(currentIndex);
+        }
+
+        const toggle_mobile_nav = async () => {
+            if (mobile_nav_open.value) {
+                close_mobile_nav(false);
+                return;
+            }
+
+            await open_mobile_nav_and_focus('current');
+        }
+
+        const handle_mobile_nav_trigger_keydown = (event) => {
+            switch (event.key) {
+                case 'Enter':
+                case ' ':
+                    event.preventDefault();
+
+                    if (mobile_nav_open.value) {
+                        close_mobile_nav(false);
+                    } else {
+                        open_mobile_nav_and_focus('current');
+                    }
+                    break;
+
+                case 'ArrowDown':
+                    event.preventDefault();
+                    open_mobile_nav_and_focus('first');
+                    break;
+
+                case 'ArrowUp':
+                    event.preventDefault();
+                    open_mobile_nav_and_focus('last');
+                    break;
+
+                case 'Escape':
+                    if (mobile_nav_open.value) {
+                        event.preventDefault();
+                        close_mobile_nav(false);
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        const handle_mobile_nav_keydown = (event) => {
+            const options = get_mobile_nav_options();
+
+            if (options.length === 0) {
+                return;
+            }
+
+            const focusedIndex =
+                options.indexOf(document.activeElement);
+
+            const activeIndex = Math.max(
+                0,
+                tabs.findIndex((tab) => tab.key === active_tab.value),
+            );
+
+            const currentIndex =
+                focusedIndex >= 0
+                    ? focusedIndex
+                    : activeIndex;
+
+            switch (event.key) {
+                case 'ArrowDown':
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    focus_mobile_nav_option(currentIndex + 1);
+                    break;
+
+                case 'ArrowUp':
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    focus_mobile_nav_option(currentIndex - 1);
+                    break;
+
+                case 'Home':
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    focus_mobile_nav_option(0);
+                    break;
+
+                case 'End':
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    focus_mobile_nav_option(options.length - 1);
+                    break;
+
+                case 'Escape':
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    close_mobile_nav(true);
+                    break;
+
+                case 'Tab':
+                    mobile_nav_open.value = false;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        const select_mobile_tab = (tabKey) => {
+            active_tab.value = tabKey;
+            close_mobile_nav(true);
+        }
+
+        const close_mobile_nav_on_focusout = (event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+                mobile_nav_open.value = false;
+            }
+        }
 
         const language_options = [
             { value: 'en-US', labelKey: 'common.locales.enUS' },
@@ -329,6 +592,15 @@ export default {
             error_message,
             active_tab,
             is_login_page,
+            mobile_nav_open,
+            mobile_nav_trigger,
+            mobile_nav_menu,
+            current_mobile_tab_label,
+            toggle_mobile_nav,
+            handle_mobile_nav_trigger_keydown,
+            handle_mobile_nav_keydown,
+            select_mobile_tab,
+            close_mobile_nav_on_focusout,
             language_options,
             theme_mode,
             theme_palette,
@@ -355,6 +627,10 @@ export default {
     grid-template-columns: minmax(220px, 240px) minmax(0, 1fr);
     gap: 20px;
     align-items: start;
+}
+
+.account-mobile-nav-container {
+    display: none;
 }
 
 .account-sidebar {
@@ -620,23 +896,245 @@ export default {
     }
 
     .account-sidebar {
-        margin-top: 0;
+        display: none;
+    }
+
+    .account-mobile-nav-container {
+        display: block;
+    }
+
+    .account-mobile-nav {
+        display: block;
+        position: relative;
+        z-index: 30;
+        width: max-content;
+        max-width: 100%;
+        margin: 4px 0 0;
+    }
+
+    .account-mobile-nav__trigger {
+        display: flex;
+        align-items: center;
+        width: auto;
+        max-width: 100%;
+        min-height: 50px;
+        padding: 0 16px;
+        border: 1px solid var(--border-soft);
+        border-radius: 17px;
+        background: var(--surface-card-strong);
+        color: var(--text-primary);
+        text-align: left;
+        box-shadow: var(--shadow-soft);
+        transition:
+            border-color 0.15s ease,
+            background-color 0.15s ease,
+            box-shadow 0.15s ease;
+    }
+
+    .account-mobile-nav__trigger:hover,
+    .account-mobile-nav__trigger--open,
+    .account-mobile-nav__trigger:focus-visible {
+        border-color: var(--border-accent);
+        background: var(--surface-soft-hover);
+        box-shadow: var(--shadow-accent);
+    }
+
+    .account-mobile-nav__trigger:focus-visible {
+        outline: 2px solid var(--accent-strong);
+        outline-offset: 2px;
+    }
+
+    .account-mobile-nav__rail {
+        width: 4px;
+        height: 22px;
+        margin-right: 12px;
+        border-radius: 999px;
+        background: var(--accent-strong);
+        flex-shrink: 0;
+    }
+
+    .account-mobile-nav__current {
+        min-width: 0;
+        flex: 0 1 auto;
+        overflow: hidden;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        font-weight: 700;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .account-mobile-nav__chevron {
+        width: 8px;
+        height: 8px;
+        margin: -4px 3px 0 14px;
+        border-right: 2px solid var(--text-secondary);
+        border-bottom: 2px solid var(--text-secondary);
+        flex-shrink: 0;
+        transform: rotate(45deg);
+        transition:
+            transform 0.18s ease,
+            margin 0.18s ease;
+    }
+
+    .account-mobile-nav__trigger--open .account-mobile-nav__chevron {
+        margin-top: 4px;
+        transform: rotate(225deg);
+    }
+
+    .account-mobile-nav__menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        width: max-content;
+        min-width: 100%;
+        max-width: calc(100vw - 32px);
+        padding: 6px;
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        background: var(--surface-card-strong);
+        box-shadow: var(--shadow-medium);
+        overflow: hidden;
+    }
+
+    .account-mobile-nav__option {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 42px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--text-primary);
+        text-align: left;
+        transition:
+            background-color 0.15s ease,
+            color 0.15s ease;
+    }
+
+    .account-mobile-nav__option:hover,
+    .account-mobile-nav__option:focus-visible {
+        background: var(--surface-soft-hover);
+        color: var(--text-accent);
+    }
+
+    .account-mobile-nav__option:focus-visible {
+        outline: 2px solid var(--accent-strong);
+        outline-offset: -2px;
+    }
+
+    .account-mobile-nav__option--active {
+        background: var(--surface-accent-strong);
+        color: var(--text-accent);
+        font-weight: 700;
+    }
+
+    .account-mobile-nav__option--active:hover {
+        background: var(--surface-accent-strong);
+        color: var(--text-accent);
+    }
+
+    .account-mobile-nav__option-label {
+        min-width: 0;
+        flex: 1 1 auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .account-mobile-nav__check {
+        width: 7px;
+        height: 12px;
+        margin: -2px 4px 0 14px;
+        border-right: 2px solid var(--accent-strong);
+        border-bottom: 2px solid var(--accent-strong);
+        flex-shrink: 0;
+        transform: rotate(45deg);
+    }
+
+    .account-mobile-menu-enter-active,
+    .account-mobile-menu-leave-active {
+        transition:
+            opacity 0.15s ease,
+            transform 0.15s ease;
+        transform-origin: top left;
+    }
+
+    .account-mobile-menu-enter-from,
+    .account-mobile-menu-leave-to {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.985);
     }
 }
 
 @media (max-width: 576px) {
+    .account-layout {
+        gap: 10px;
+    }
+
+    .account-mobile-nav {
+        width: max-content;
+        max-width: 100%;
+        margin: 2px 0 0;
+    }
+
+    .account-mobile-nav__trigger {
+        min-height: 48px;
+        padding: 0 15px;
+        border-radius: 16px;
+    }
+
+    .account-mobile-nav__rail {
+        width: 4px;
+        height: 21px;
+        margin-right: 11px;
+    }
+
+    .account-mobile-nav__current {
+        font-size: 0.94rem;
+    }
+
+    .account-mobile-nav__menu {
+        top: calc(100% + 7px);
+        padding: 5px;
+        border-radius: 15px;
+    }
+
+    .account-mobile-nav__option {
+        min-height: 40px;
+        padding: 0 11px;
+        border-radius: 9px;
+        font-size: 0.94rem;
+    }
+
+    .settings-panel {
+        gap: 10px;
+    }
+
     .setting-chip {
-        width: 100%;
+        flex: 1 1 0;
+        min-width: 0;
+        width: auto;
     }
 
     .theme-palette-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
     }
 
     .theme-palette-button {
-        min-height: 50px;
-        padding: 0 12px;
-        border-radius: 14px;
+        min-height: 46px;
+        gap: 8px;
+        padding: 0 10px;
+        border-radius: 12px;
+    }
+
+    .theme-palette-button__label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .auth-switcher {
@@ -650,16 +1148,6 @@ export default {
         padding: 0 14px;
         border-radius: 12px;
         font-size: 0.95rem;
-    }
-
-    .account-tab {
-        min-height: 50px;
-        padding: 0 14px;
-        border-radius: 14px;
-    }
-
-    .account-tab__label {
-        font-size: 0.94rem;
     }
 }
 </style>

@@ -158,6 +158,7 @@
     sortModifiedOldest: 'Last modified oldest first',
     overwriteSameName: 'A file with the same name will be overwritten.',
     noFileSelected: 'No file selected.',
+    clearSelectedFiles: 'Clear',
     uploadSuccess: 'Upload success: {name}',
     uploadFailed: 'Upload failed: {name}',
     selected: 'Selected',
