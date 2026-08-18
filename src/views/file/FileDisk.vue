@@ -1128,6 +1128,7 @@ export default {
     }
 
     const handleDirectoryBusinessError = (resp) => {
+    // 如果resp存在且resp.error_message为非空字符串
       const message = resp?.error_message || t('common.unknownError');
       rejectDirectoryRequest(message);
       ElMessage({
@@ -1477,6 +1478,7 @@ export default {
         url: `${BASE_URL}/api/directory/id/`,
         data: {
           parent_id: id,
+          language: getCurrentLanguage(),
         },
         onSuccess,
         resetSort,
@@ -1495,6 +1497,9 @@ export default {
     const requestDirectoryRoot = (resetSort = true) => {
       loadDirectory({
         url: `${BASE_URL}/api/directory/init/`,
+        data: {
+          language: getCurrentLanguage(),
+        },
         onSuccess(resp) {
           applyPathsInfo(createRootPathsInfo(resp.root_id));
         },
@@ -1639,7 +1644,7 @@ export default {
       return new Promise((resolve, reject) => {
         $.ajax({
           url: `${BASE_URL}/api/oss/sts/`,
-          type: 'GET',
+          type: 'POST',
           headers: {
             Authorization:
               'Bearer ' + store.state.user.access,
