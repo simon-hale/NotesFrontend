@@ -464,8 +464,8 @@
                   <div class="upload-actions">
                     <button
                       type="button"
-                      class="disk-dialog-button disk-dialog-button--ghost upload-dialog-button upload-clear-button"
-                      :disabled="elFileList.length === 0 || isUploading"
+                      class="disk-dialog-button upload-clear-button"
+                      :disabled="isUploading"
                       @click="clearSelectedFiles"
                     >
                       {{ t('fileDisk.clearSelectedFiles') }}
@@ -2758,8 +2758,24 @@ div.content-field.login-reminder-field :deep(.card) {
   flex-wrap: wrap;
 }
 
-.upload-clear-button {
+.disk-dialog-button.upload-clear-button {
   margin-right: auto;
+  border-color: #d4d9e0;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.disk-dialog-button.upload-clear-button:not(:disabled):hover {
+  border-color: #bcc3cc;
+  background: #e3e6ea;
+  color: #1f2937;
+}
+
+.disk-dialog-button.upload-clear-button:disabled,
+.disk-dialog-button.upload-clear-button:disabled:hover {
+  border-color: #e0e4e9;
+  background: #f3f4f6;
+  color: #9ca3af;
 }
 
 .upload-progress {
