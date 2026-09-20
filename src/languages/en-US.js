@@ -44,12 +44,9 @@
     currentTheme: 'Current theme',
     mode: 'Mode',
     palette: 'Palette',
-    eyeCarePalette: 'Eye-care themes',
     palettes: {
       blue: 'Default blue',
-      emerald: 'Emerald',
-      amber: 'Amber',
-      rose: 'Rose',
+      midnight: 'Deep blue',
       sage: 'Sage',
       almond: 'Almond',
     },

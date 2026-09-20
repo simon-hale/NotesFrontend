@@ -144,30 +144,7 @@
                             <div class="theme-control-label">{{ t('theme.palette') }}</div>
                             <div class="theme-palette-grid">
                                 <button
-                                    v-for="option in standard_theme_palette_options"
-                                    :key="option.value"
-                                    type="button"
-                                    :class="theme_palette === option.value ? 'theme-palette-button theme-palette-button--active' : 'theme-palette-button'"
-                                    :aria-pressed="theme_palette === option.value"
-                                    @click="change_theme_palette(option.value)"
-                                >
-                                    <span
-                                        :class="[
-                                            'theme-palette-button__preview',
-                                            `theme-palette-button__preview--${option.value}`,
-                                        ]"
-                                        aria-hidden="true"
-                                    ></span>
-                                    <span class="theme-palette-button__label">{{ t(option.labelKey) }}</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="theme-control-block theme-control-block--subsection">
-                            <div class="theme-control-label theme-control-label--subsection">{{ t('theme.eyeCarePalette') }}</div>
-                            <div class="theme-palette-grid">
-                                <button
-                                    v-for="option in eye_care_theme_palette_options"
+                                    v-for="option in theme_palette_options"
                                     :key="option.value"
                                     type="button"
                                     :class="theme_palette === option.value ? 'theme-palette-button theme-palette-button--active' : 'theme-palette-button'"
@@ -486,9 +463,6 @@ export default {
             { value: DARK_THEME, labelKey: 'common.dark' },
         ];
         const theme_palette_options = THEME_PALETTES;
-        const eye_care_theme_values = ['sage', 'almond'];
-        const standard_theme_palette_options = theme_palette_options.filter((option) => !eye_care_theme_values.includes(option.value));
-        const eye_care_theme_palette_options = theme_palette_options.filter((option) => eye_care_theme_values.includes(option.value));
         const theme_mode = computed(() => store.state.theme.mode);
         const theme_palette = computed(() => store.state.theme.palette);
 
@@ -606,8 +580,6 @@ export default {
             theme_palette,
             theme_mode_options,
             theme_palette_options,
-            standard_theme_palette_options,
-            eye_care_theme_palette_options,
             current_locale_label,
             current_theme_label,
             change_password,
@@ -760,10 +732,6 @@ export default {
     gap: 10px;
 }
 
-.theme-control-block--subsection {
-    margin-top: 6px;
-}
-
 .theme-control-label {
     color: var(--text-secondary);
     font-size: 0.95rem;
@@ -772,7 +740,7 @@ export default {
 
 .theme-palette-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(176px, 176px));
+    grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
     gap: 10px;
     justify-content: start;
 }
@@ -820,24 +788,16 @@ export default {
     background: linear-gradient(135deg, #7ec2ff 0%, #0d6efd 100%);
 }
 
-.theme-palette-button__preview--emerald {
-    background: linear-gradient(135deg, #83dfb6 0%, #118c61 100%);
-}
-
-.theme-palette-button__preview--amber {
-    background: linear-gradient(135deg, #ffd27f 0%, #d88900 100%);
-}
-
-.theme-palette-button__preview--rose {
-    background: linear-gradient(135deg, #ffacc8 0%, #db4376 100%);
+.theme-palette-button__preview--midnight {
+    background: linear-gradient(135deg, #4f6ea8 0%, #14294a 100%);
 }
 
 .theme-palette-button__preview--sage {
-    background: linear-gradient(135deg, #ccd9bf 0%, #68875e 100%);
+    background: linear-gradient(135deg, #b9d2a4 0%, #46683a 100%);
 }
 
 .theme-palette-button__preview--almond {
-    background: linear-gradient(135deg, #f1dfb2 0%, #aa8140 100%);
+    background: linear-gradient(135deg, #ecd7a6 0%, #8a6a24 100%);
 }
 
 .theme-palette-button__label {

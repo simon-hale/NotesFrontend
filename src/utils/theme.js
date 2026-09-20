@@ -4,9 +4,7 @@ export const DARK_THEME = 'dark'
 export const DEFAULT_THEME_PALETTE = 'blue'
 export const THEME_PALETTES = Object.freeze([
   { value: 'blue', labelKey: 'theme.palettes.blue' },
-  { value: 'emerald', labelKey: 'theme.palettes.emerald' },
-  { value: 'amber', labelKey: 'theme.palettes.amber' },
-  { value: 'rose', labelKey: 'theme.palettes.rose' },
+  { value: 'midnight', labelKey: 'theme.palettes.midnight' },
   { value: 'sage', labelKey: 'theme.palettes.sage' },
   { value: 'almond', labelKey: 'theme.palettes.almond' },
 ])

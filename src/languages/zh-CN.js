@@ -44,12 +44,9 @@
     currentTheme: '当前主题',
     mode: '明暗模式',
     palette: '主题配色',
-    eyeCarePalette: '护眼主题',
     palettes: {
       blue: '默认蓝',
-      emerald: '青绿色',
-      amber: '琥珀色',
-      rose: '玫瑰色',
+      midnight: '深蓝色',
       sage: '豆沙绿',
       almond: '杏仁黄',
     },

@@ -612,29 +612,23 @@
         </div>
       </Transition>
     </Teleport>
-    <ContentField v-else class="text-center login-reminder-field">
-        <div class="login-reminder-content">
-          <div>{{ t('auth.loginFirst') }}</div>
-          <el-button class="login-reminder-button" size="large" round @click="go_to_login">{{ t('common.login') }}</el-button>
-        </div>
-    </ContentField>
+    <LoginReminder v-else />
 </template>
 
 <script>
-import ContentField from '@/components/ContentField.vue';
+import LoginReminder from '@/components/account/LoginReminder.vue';
 import { computed, nextTick, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import router from '@/router';
-import ElMessage from '@/utils/message';
 import $ from 'jquery';
+import ElMessage from '@/utils/message';
 import { BASE_URL } from "@/config"
 import { getCurrentLanguage, getHttpErrorMessage } from '@/utils/http';
 
 export default {
   name: "FileDisk",
   components: {
-    ContentField,
+    LoginReminder,
   },
   setup(){
     const store = useStore();
@@ -1172,10 +1166,6 @@ export default {
           handleDirectoryHttpError(resp, textStatus);
         }
       })
-    }
-
-    const go_to_login = () => {
-      router.push({name: 'accountmanagement'});
     }
 
     const resetUploadDialogState = () => {
@@ -2025,7 +2015,6 @@ export default {
       displayPathName,
       elFileList,
       percentage,
-      go_to_login,
       openUploadDialog,
       closeUploadDialog,
       handleUploadDialogAfterLeave,
@@ -2073,47 +2062,9 @@ div.content-field.login-reminder-field {
   margin-top: 20px;
 }
 
-.login-reminder-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-div.content-field.login-reminder-field :deep(.card) {
+.login-reminder-field :deep(.card) {
   width: min(100%, 28rem);
   margin: 0 auto;
-}
-
-:deep(.login-reminder-button.el-button) {
-  min-width: 7.5rem;
-  max-width: 100%;
-  min-height: 2.45rem;
-  padding: 0 1.05rem;
-  border-width: 1px;
-  border-color: color-mix(in srgb, var(--border-accent) 72%, var(--border-soft));
-  border-radius: 999px;
-  background: linear-gradient(180deg, var(--surface-card-strong) 0%, var(--surface-accent-strong) 100%);
-  color: var(--accent-strong);
-  font-size: 0.94rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent-soft) 60%, transparent);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
-}
-
-:deep(.login-reminder-button.el-button:focus),
-:deep(.login-reminder-button.el-button:focus-visible) {
-  border-color: var(--border-accent);
-  background: linear-gradient(180deg, var(--surface-card-strong) 0%, var(--surface-accent-strong) 100%);
-  color: var(--accent-strong);
-}
-
-:deep(.login-reminder-button.el-button:focus:active),
-:deep(.login-reminder-button.el-button:focus-visible:active) {
-  transform: translateY(1px);
-  background: linear-gradient(180deg, var(--surface-soft-hover) 0%, var(--surface-accent-strong) 100%);
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent-soft) 55%, transparent);
 }
 
 .disk-card-body {
@@ -2760,22 +2711,22 @@ div.content-field.login-reminder-field :deep(.card) {
 
 .disk-dialog-button.upload-clear-button {
   margin-right: auto;
-  border-color: #d4d9e0;
-  background: #f3f4f6;
-  color: #374151;
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+  color: var(--text-secondary);
 }
 
 .disk-dialog-button.upload-clear-button:not(:disabled):hover {
-  border-color: #bcc3cc;
-  background: #e3e6ea;
-  color: #1f2937;
+  border-color: var(--border-accent);
+  background: var(--surface-soft-hover);
+  color: var(--text-primary);
 }
 
 .disk-dialog-button.upload-clear-button:disabled,
 .disk-dialog-button.upload-clear-button:disabled:hover {
-  border-color: #e0e4e9;
-  background: #f3f4f6;
-  color: #9ca3af;
+  border-color: var(--border-muted);
+  background: color-mix(in srgb, var(--surface-soft) 55%, var(--surface-card-muted));
+  color: var(--text-muted);
 }
 
 .upload-progress {
@@ -3219,7 +3170,7 @@ div.content-field.login-reminder-field :deep(.card) {
 }
 
 @media (max-width: 768px) {
-  div.content-field.login-reminder-field :deep(.card) {
+  .login-reminder-field :deep(.card) {
     width: min(100%, 32rem);
   }
 }
@@ -3231,10 +3182,6 @@ div.content-field.login-reminder-field :deep(.card) {
 
   .mobile-parent-action {
     display: inline-flex;
-  }
-
-  :deep(.login-reminder-button.el-button) {
-    width: 100%;
   }
 
   .disk-toolbar {
@@ -3299,22 +3246,6 @@ body.disk-modal-open {
   overflow: hidden;
 }
 
-.el-overlay.mobile-sort-mask::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 34%, transparent), transparent 46%),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--surface-overlay) 18%, transparent),
-      color-mix(in srgb, var(--surface-card) 10%, transparent)
-    );
-  backdrop-filter: blur(10px) saturate(126%);
-  -webkit-backdrop-filter: blur(10px) saturate(126%);
-  pointer-events: none;
-}
-
 .el-overlay.mobile-sort-mask .el-drawer {
   z-index: 1;
 }
@@ -3345,18 +3276,17 @@ body.disk-modal-open {
   isolation: isolate;
 }
 
+/* Both modal surfaces paint the same backdrop: the disk modals are rendered by
+   this component, while the mobile sort drawer's overlay node belongs to
+   Element Plus, so the rule is kept global (unscoped) for both. */
+.el-overlay.mobile-sort-mask::before,
 .disk-modal__backdrop {
+  content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-soft) 34%, transparent), transparent 46%),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--surface-overlay) 18%, transparent),
-      color-mix(in srgb, var(--surface-card) 10%, transparent)
-    );
-  backdrop-filter: blur(10px) saturate(126%);
-  -webkit-backdrop-filter: blur(10px) saturate(126%);
+  background: var(--modal-backdrop);
+  backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(126%);
+  -webkit-backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(126%);
   pointer-events: none;
 }
 
