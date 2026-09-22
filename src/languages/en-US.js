@@ -79,6 +79,12 @@
     languagePanelTitle: 'Language settings',
     languagePanelDescription: 'Choose the display language for this website. The setting will be saved on this device.',
     currentLanguage: 'Current language',
+    logoutAllPrompt: 'Signed in on another device?',
+    logoutAllAction: 'Log out on all devices',
+    logoutAllConfirmHint: 'Every device will need to sign in again.',
+    logoutAllConfirmAction: 'Confirm sign out everywhere',
+    logoutAllPending: 'Signing out…',
+    logoutAllCancel: 'Cancel',
   },
   changePassword: {
     curPassword: 'Original Password',

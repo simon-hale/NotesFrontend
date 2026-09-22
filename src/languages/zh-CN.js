@@ -79,6 +79,12 @@
     languagePanelTitle: '语言设置',
     languagePanelDescription: '选择网站的显示语言，该设置会保存在当前设备上',
     currentLanguage: '当前语言',
+    logoutAllPrompt: '还在其他设备上登录？',
+    logoutAllAction: '退出所有设备',
+    logoutAllConfirmHint: '所有设备都将需要重新登录。',
+    logoutAllConfirmAction: '确认退出所有设备',
+    logoutAllPending: '正在退出…',
+    logoutAllCancel: '取消',
   },
   changePassword: {
     curPassword: '原密码',

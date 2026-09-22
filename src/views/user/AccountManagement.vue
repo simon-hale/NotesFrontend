@@ -176,10 +176,16 @@
                 <ContentField v-else-if="active_tab === 'logout'">
                     <div class="settings-panel">
                         <div class="settings-title">{{ t('account.logout') }}</div>
-                        <div class="settings-description">{{ t('account.logoutPanelDescription') }}</div>
-                        <div class="settings-current">
-                            {{ t('account.currentAccount') }}: <strong>{{ username }}</strong>
+
+                        <div class="settings-description">
+                            {{ t('account.logoutPanelDescription') }}
                         </div>
+
+                        <div class="settings-current">
+                            {{ t('account.currentAccount') }}:
+                            <strong>{{ username }}</strong>
+                        </div>
+
                         <div class="settings-actions">
                             <button
                                 type="button"
@@ -188,6 +194,65 @@
                             >
                                 {{ t('account.logoutButton') }}
                             </button>
+                        </div>
+
+                        <div
+                            class="logout-all-association"
+                            aria-live="polite"
+                        >
+                            <template v-if="!logout_all_confirming">
+                                <span class="logout-all-association__hint">
+                                    {{ t('account.logoutAllPrompt') }}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    class="logout-all-link"
+                                    v-on:click="begin_logout_all"
+                                >
+                                    {{ t('account.logoutAllAction') }}
+                                </button>
+                            </template>
+
+                            <template v-else>
+                                <span class="logout-all-association__hint">
+                                    {{ t('account.logoutAllConfirmHint') }}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    class="logout-all-link logout-all-link--strong"
+                                    v-bind:disabled="logout_all_pending"
+                                    v-on:click="logout_all"
+                                >
+                                    {{
+                                        logout_all_pending
+                                            ? t('account.logoutAllPending')
+                                            : t('account.logoutAllConfirmAction')
+                                    }}
+                                </button>
+
+                                <span class="logout-all-association__separator">
+                                    ·
+                                </span>
+
+                                <button
+                                    type="button"
+                                    class="logout-all-link logout-all-link--muted"
+                                    v-bind:disabled="logout_all_pending"
+                                    v-on:click="cancel_logout_all"
+                                >
+                                    {{ t('account.logoutAllCancel') }}
+                                </button>
+                            </template>
+                        </div>
+
+                        <div
+                            v-if="logout_all_error"
+                            class="logout-all-error"
+                            role="alert"
+                        >
+                            {{ logout_all_error }}
                         </div>
                     </div>
                 </ContentField>
@@ -256,6 +321,9 @@ export default {
         let mobile_nav_open = ref(false);
         let mobile_nav_trigger = ref(null);
         let mobile_nav_menu = ref(null);
+        let logout_all_confirming = ref(false);
+        let logout_all_pending = ref(false);
+        let logout_all_error = ref('');
 
         const tabs = [
             { key: 'language', labelKey: 'account.language' },
@@ -494,11 +562,63 @@ export default {
             store.dispatch("cleanReadingInfo");
         }
 
-        const logout = () => {
+        const clearSession = () => {
             clearUserState();
             localStorage.setItem('notes-username', '');
             localStorage.setItem('notes-access', '');
+        }
+
+        const logout = () => {
+            clearSession();
             router.push({name: "accountmanagement"});
+        }
+
+        const begin_logout_all = () => {
+            logout_all_error.value = '';
+            logout_all_confirming.value = true;
+        }
+
+        const cancel_logout_all = () => {
+            if (logout_all_pending.value) {
+                return;
+            }
+
+            logout_all_confirming.value = false;
+            logout_all_error.value = '';
+        }
+
+        const logout_all = () => {
+            if (logout_all_pending.value) {
+                return;
+            }
+
+            logout_all_pending.value = true;
+            logout_all_error.value = '';
+
+            $.ajax({
+                url: `${BASE_URL}/api/user/logout-all/`,
+                type: "POST",
+                headers: {
+                    Authorization: "Bearer " + store.state.user.access,
+                },
+                success(resp) {
+                    if (resp.error_message !== "success") {
+                        logout_all_error.value =
+                            resp.error_message || t('common.unknownError');
+                        return;
+                    }
+
+                    clearSession();
+                    router.push({name: "accountmanagement"});
+                },
+                error(resp) {
+                    logout_all_error.value =
+                        getHttpErrorMessage(t, resp.status);
+                },
+                complete() {
+                    logout_all_pending.value = false;
+                }
+            })
         }
 
         const change_password = (data) => {
@@ -518,7 +638,7 @@ export default {
                     if(resp.error_message !== "success"){
                         error_message.value = resp.error_message;
                     }else{
-                        clearUserState();
+                        clearSession();
                         router.push({name: 'accountmanagement'});
                     }
                 },
@@ -541,7 +661,7 @@ export default {
                 },
                 success(resp) {
                     if(resp.error_message === "success" || resp.error_message === "该用户已被删除"){
-                        clearUserState();
+                        clearSession();
                         router.push({name: 'accountmanagement'});
                     }else{
                         error_message.value = resp.error_message;
@@ -555,6 +675,8 @@ export default {
 
         watch(active_tab, () => {
             error_message.value = '';
+            logout_all_error.value = '';
+            logout_all_confirming.value = false;
         });
 
         return  {
@@ -588,6 +710,12 @@ export default {
             change_theme_palette,
             logout,
             delete_account,
+            logout_all_confirming,
+            logout_all_pending,
+            logout_all_error,
+            begin_logout_all,
+            cancel_logout_all,
+            logout_all,
         }
     }
 }
@@ -688,6 +816,76 @@ export default {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+.logout-all-association {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: -2px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.logout-all-association__hint {
+    color: var(--text-secondary);
+}
+
+.logout-all-association__separator {
+    color: var(--text-secondary);
+    opacity: 0.65;
+}
+
+.logout-all-link {
+    appearance: none;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-accent);
+    font: inherit;
+    font-weight: 650;
+    line-height: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.logout-all-link:hover {
+    color: var(--accent-strong);
+}
+
+.logout-all-link:focus-visible {
+    outline: 2px solid var(--accent-strong);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+.logout-all-link:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.logout-all-link--strong {
+    font-weight: 700;
+}
+
+.logout-all-link--muted {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.logout-all-link--muted:hover {
+    color: var(--text-primary);
+}
+
+.logout-all-error {
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.45;
 }
 
 .setting-chip {
