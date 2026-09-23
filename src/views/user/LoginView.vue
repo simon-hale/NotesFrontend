@@ -39,38 +39,49 @@ export default {
         let password = ref('');
         let error_message = ref('');
 
-        const login = () => {
-            error_message.value = '';
+        const submitLogin = () => {
             $.ajax({
-                url: `${BASE_URL}/api/user/token/`,
+                url: `${BASE_URL}/api/user/login/`,
                 type: "POST",
                 data: {
                     username: username.value,
                     password: password.value,
+                    remember_me: String(autoLoginSelector.value),
                 },
                 success(resp) {
                     if(resp.error_message === "success"){
-                        let access = resp.token;
                         let is_logined = true;
-                        store.dispatch("login", { username: username.value, access, is_logined });
-                        if (autoLoginSelector.value) {
-                            localStorage.setItem('notes-username', username.value);
-                            localStorage.setItem('notes-access', access);
-                        }else{
-                            localStorage.setItem('notes-username', '');
-                            localStorage.setItem('notes-access', '');
-                        }
+                        store.dispatch("login", {
+                            username: resp.username || username.value,
+                            is_logined
+                        });
                         store.commit("setFirstLogin");
                         store.commit("setWelcomeBackPending");
                         router.push({name: "filedisk"});
-                    }else{
+                    } else {
                         error_message.value = t('auth.unknownSuccessError');
                     }
                 },
                 error(resp) {
-                    error_message.value = getHttpErrorMessage(t, resp.status, AUTH_HTTP_ERROR_KEY_MAP);
-                    localStorage.setItem('notes-username', '');
-                    localStorage.setItem('notes-access', '');
+                    error_message.value =
+                        getHttpErrorMessage(t, resp.status, AUTH_HTTP_ERROR_KEY_MAP);
+                }
+            })
+        }
+
+        const login = () => {
+            error_message.value = '';
+
+            $.ajax({
+                url: `${BASE_URL}/api/user/csrf/`,
+                type: "GET",
+                cache: false,
+                success() {
+                    submitLogin();
+                },
+                error(resp) {
+                    error_message.value =
+                        getHttpErrorMessage(t, resp.status);
                 }
             })
         }

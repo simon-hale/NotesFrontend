@@ -23,8 +23,13 @@ import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import './styles/theme.css'
 import { applyThemeToDocument, getStoredTheme } from './utils/theme'
+import { configureHttp } from './utils/http'
 
 applyThemeToDocument(getStoredTheme())
+
+// Browser authentication uses the HttpOnly `notes-auth` cookie.
+// Configure jQuery credentials and CSRF handling before any request is made.
+configureHttp()
 
 // createApp(App).use(store).use(router).use(i18n).use(ElementPlus).mount('#app')
 

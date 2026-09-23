@@ -664,9 +664,6 @@ export default {
       $.ajax({
         url: `${BASE_URL}/api/file/url/`,
         type: "POST",
-        headers: {
-            Authorization:"Bearer " + store.state.user.access,
-        },
         data: {
           id: store.state.reading.file_id,
           username: store.state.user.username,

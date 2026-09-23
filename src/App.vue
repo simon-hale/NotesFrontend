@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import { ref, computed, nextTick, onBeforeUnmount, onMounted, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useStore } from 'vuex';
 import NavBar from './components/NavBar.vue';
@@ -33,9 +33,6 @@ export default {
     const theme_state = computed(() => store.state.theme);
     const show_navbar = computed(() => store.state.navbar.show_navbar);
     const is_reading_route = computed(() => route.name === 'readingpage');
-
-    const username = ref('');
-    const access = ref('');
 
     const updateMessageViewportMetrics = () => {
       if (typeof window === 'undefined') return;
@@ -85,17 +82,16 @@ export default {
       scheduleMessageViewportMetrics();
     });
 
+    // The HttpOnly authentication cookie cannot be inspected by JavaScript,
+    // so startup always asks the backend whether the browser is logged in.
     const auto_login = () => {
         $.ajax({
           url: `${BASE_URL}/api/user/auto-login/`,
           type: "POST",
-          headers: {
-              Authorization:"Bearer " + access.value,
-          },
           success(resp) {
             if(resp.error_message === "success"){
                 let is_logined = true;
-                store.dispatch("login", { username: username.value, access:access.value, is_logined });
+                store.dispatch("login", { username: resp.username, is_logined });
                 store.commit("setFirstLogin");
                 store.commit("setAutoLogin");
                 store.commit("setWelcomeBackPending");
@@ -104,9 +100,14 @@ export default {
             }
           },
           error(resp) {
+            // 401/403 simply means there is no valid login cookie yet.
+            if (resp.status === 401 || resp.status === 403) {
+              store.dispatch("cleaninfo");
+              return;
+            }
+
             ElMessage.error(getHttpErrorMessage(t, resp.status, COMMON_HTTP_ERROR_KEY_MAP));
-            localStorage.setItem('notes-username', '');
-            localStorage.setItem('notes-access', '');
+            store.dispatch("cleaninfo");
           }
         })
       }
@@ -114,15 +115,7 @@ export default {
     onMounted(() => {
       scheduleMessageViewportMetrics();
       window.addEventListener('resize', handleViewportChange);
-      const storedUsername = localStorage.getItem('notes-username');
-      const storedAccess = localStorage.getItem('notes-access');
-      username.value = storedUsername || '';
-      access.value = storedAccess || '';
-      if (storedUsername && storedAccess) auto_login();
-      else {
-        localStorage.setItem('notes-username', '');
-        localStorage.setItem('notes-access', '');
-      }
+      auto_login();
     });
 
     onBeforeUnmount(() => {

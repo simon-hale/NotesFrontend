@@ -562,15 +562,33 @@ export default {
             store.dispatch("cleanReadingInfo");
         }
 
+        // Only clears the application's in-memory state.
+        // The HttpOnly authentication cookie is owned by the backend.
         const clearSession = () => {
             clearUserState();
-            localStorage.setItem('notes-username', '');
-            localStorage.setItem('notes-access', '');
         }
 
         const logout = () => {
-            clearSession();
-            router.push({name: "accountmanagement"});
+            $.ajax({
+                url: `${BASE_URL}/api/user/logout/`,
+                type: "POST",
+                success(resp) {
+                    if (resp.error_message !== "success") {
+                        return;
+                    }
+
+                    clearSession();
+                    router.push({name: "accountmanagement"});
+                },
+                error(resp) {
+                    // The server session may already be invalid (401):
+                    // the browser is logged out either way.
+                    if (resp.status === 401) {
+                        clearSession();
+                        router.push({name: "accountmanagement"});
+                    }
+                }
+            })
         }
 
         const begin_logout_all = () => {
@@ -598,9 +616,6 @@ export default {
             $.ajax({
                 url: `${BASE_URL}/api/user/logout-all/`,
                 type: "POST",
-                headers: {
-                    Authorization: "Bearer " + store.state.user.access,
-                },
                 success(resp) {
                     if (resp.error_message !== "success") {
                         logout_all_error.value =
@@ -625,9 +640,6 @@ export default {
             $.ajax({
                 url: `${BASE_URL}/api/user/update/password/`,
                 type: "POST",
-                headers: {
-                    Authorization:"Bearer " + store.state.user.access,
-                },
                 data: {
                     cur_password: data.cur_password,
                     password: data.password,
@@ -652,9 +664,6 @@ export default {
             $.ajax({
                 url: `${BASE_URL}/api/user/delete/`,
                 type: "POST",
-                headers: {
-                    Authorization:"Bearer " + store.state.user.access,
-                },
                 data: {
                     cur_password: data.cur_password,
                     language: getCurrentLanguage(),

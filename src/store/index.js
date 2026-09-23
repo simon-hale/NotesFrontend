@@ -17,7 +17,6 @@ export default createStore({
   state: {
     user: {
       username: "",
-      access: "",
       is_logined: false,
     },
     firstLogin: false,
@@ -42,17 +41,11 @@ export default createStore({
     setUsername(state, username) {
       state.user.username = username;
     },
-    setAccess(state, access) {
-      state.user.access = access;
-    },
     setLogined(state, is_logined) {
       state.user.is_logined = is_logined;
     },
     cleanUsername(state) { 
       state.user.username = "";
-    },
-    cleanAccess(state) {
-      state.user.access = "";
     },
     cleanLogined(state) {
       state.user.is_logined = false;
@@ -115,12 +108,10 @@ export default createStore({
   actions: {
     login(context, data) {
       context.commit('setUsername', data.username);
-      context.commit('setAccess', data.access);
       context.commit('setLogined', data.is_logined);
     },
     cleaninfo(context) {
       context.commit('cleanUsername');
-      context.commit('cleanAccess');
       context.commit('cleanLogined');
     },
     cleanFirstLogin(context) {

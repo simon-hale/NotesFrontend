@@ -1147,9 +1147,6 @@ export default {
       active_directory_request = $.ajax({
         url,
         type: "POST",
-        headers: {
-          Authorization:"Bearer " + store.state.user.access,
-        },
         data,
         success(resp){
           active_directory_request = null;
@@ -1257,9 +1254,6 @@ export default {
       $.ajax({
         url: `${BASE_URL}/api/directory/modify/name/`,
         type: "POST",
-        headers: {
-            Authorization:"Bearer " + store.state.user.access,
-        },
         data: {
           id: id,
           name: value,
@@ -1287,9 +1281,6 @@ export default {
       $.ajax({
         url: `${BASE_URL}/api/file/modify/name/`,
         type: "POST",
-        headers: {
-            Authorization:"Bearer " + store.state.user.access,
-        },
         data: {
           parentId: paths.value[path_level.value].id,
           fileId: id,
@@ -1390,9 +1381,6 @@ export default {
       $.ajax({
         url: `${BASE_URL}/api/directory/create/`,
         type: "POST",
-        headers: {
-            Authorization:"Bearer " + store.state.user.access,
-        },
         data: {
           name: new_dir_name.value,
           parent_id: paths.value[path_level.value].id,
@@ -1417,9 +1405,6 @@ export default {
       $.ajax({
         url: `${BASE_URL}/api/directory/delete/`,
         type: "POST",
-        headers: {
-            Authorization:"Bearer " + store.state.user.access,
-        },
         data: {
           id: id,
           language: getCurrentLanguage(),
@@ -1446,9 +1431,6 @@ export default {
       $.ajax({
         url: `${BASE_URL}/api/file/delete/`,
         type: "POST",
-        headers: {
-            Authorization:"Bearer " + store.state.user.access,
-        },
         data: {
           id: id,
           language: getCurrentLanguage(),
@@ -1643,10 +1625,6 @@ export default {
         $.ajax({
           url: `${BASE_URL}/api/oss/sts/`,
           type: 'POST',
-          headers: {
-            Authorization:
-              'Bearer ' + store.state.user.access,
-          },
           data: {
             string_of_path,
             filename,
@@ -1882,9 +1860,6 @@ export default {
         $.ajax({
           url: `${BASE_URL}/api/file/insert/`,
           type: 'POST',
-          headers: {
-            Authorization: 'Bearer ' + store.state.user.access,
-          },
           data: {
             string_of_path: string_of_path,
             filename: filename,
@@ -1919,9 +1894,6 @@ export default {
         $.ajax({
           url: `${BASE_URL}/api/file/url/`,
           type: "POST",
-          headers: {
-            Authorization: "Bearer " + store.state.user.access,
-          },
           data: {
             id: id,
             language: getCurrentLanguage(),
