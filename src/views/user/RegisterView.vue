@@ -2,7 +2,7 @@
     <div class="container auth-page">
         <div class="register-shell">
             <div class="register-panel">
-                <form class="register-form">
+                <form class="register-form" @submit.prevent>
                     <div class="mb-3">
                         <label for="username" class="form-label">{{ t('auth.username') }}</label>
                         <input v-model="username" type="text" class="form-control register-input" id="username">
@@ -16,7 +16,7 @@
                         <input v-model="confirmedPassword" type="password" class="form-control register-input" id="confirmedPassword">
                     </div>
                     <div class="warning-message">{{ error_message }}</div>
-                    <button v-on:click.prevent="register" class="btn btn-primary register-button">{{ t('auth.registerButton') }}</button>
+                    <button v-on:click.prevent="register" class="btn btn-primary register-button" :disabled="username === '' || password === '' || confirmedPassword === ''">{{ t('auth.registerButton') }}</button>
                     <div class="text-center inconsistent-message" v-if="password !== confirmedPassword">{{ t('changePassword.mismatch') }}</div>
                 </form>
             </div>
@@ -41,6 +41,8 @@ export default {
         let error_message = ref('');
 
         const register = () => {
+            if (username.value === '' || password.value === '' || confirmedPassword.value === '') return;
+
             $.ajax({
                 url: `${BASE_URL}/api/user/register/`,
                 type: "POST",

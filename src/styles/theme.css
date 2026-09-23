@@ -706,6 +706,15 @@ a {
   --account-action-focus-ring: var(--accent-soft);
 }
 
+.account-action-button--accent:disabled,
+.account-action-button--accent:disabled:hover {
+  --bs-btn-disabled-color: var(--text-accent);
+  --bs-btn-disabled-bg: var(--surface-soft-hover);
+  --bs-btn-disabled-border-color: var(--border-accent);
+  transform: none;
+  opacity: 0.55;
+}
+
 .account-action-button--neutral {
   --bs-btn-color: var(--text-primary);
   --bs-btn-bg: var(--surface-card-strong);
@@ -755,6 +764,15 @@ a {
   --bs-btn-active-bg: var(--account-action-danger-surface-hover);
   --bs-btn-active-border-color: var(--account-action-danger-border-hover);
   --account-action-focus-ring: color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
+.account-action-button--danger:disabled,
+.account-action-button--danger:disabled:hover {
+  --bs-btn-disabled-color: var(--account-action-danger-text);
+  --bs-btn-disabled-bg: var(--account-action-danger-surface);
+  --bs-btn-disabled-border-color: var(--account-action-danger-border);
+  transform: none;
+  opacity: 0.55;
 }
 
 .account-action-button--warning {

@@ -2,7 +2,7 @@
     <div class="container auth-page">
         <div class="login-shell">
             <div class="login-panel">
-                <form class="login-form">
+                <form class="login-form" @submit.prevent>
                     <div class="mb-3">
                         <label for="username" class="form-label">{{ t('auth.username') }}</label>
                         <input v-model="username" type="text" class="form-control login-input" id="username">
@@ -13,7 +13,7 @@
                     </div>
                     <el-checkbox v-model="autoLoginSelector" name="type" class="auto-login-checkbox">{{ t('auth.autoLogin') }}</el-checkbox>
                     <div class="warning-message">{{ error_message }}</div>
-                    <button v-on:click.prevent="login" class="btn btn-primary login-button">{{ t('auth.loginButton') }}</button>
+                    <button v-on:click.prevent="login" class="btn btn-primary login-button" :disabled="username === '' || password === ''">{{ t('auth.loginButton') }}</button>
                 </form>
             </div>
         </div>
@@ -70,6 +70,8 @@ export default {
         }
 
         const login = () => {
+            if (username.value === '' || password.value === '') return;
+
             error_message.value = '';
 
             $.ajax({

@@ -46,7 +46,12 @@
                 <button type="button" class="btn account-action-button account-action-button--close" @click="dialog_visible = false">
                     {{ t('common.close') }}
                 </button>
-                <button type="button" class="btn account-action-button account-action-button--danger" @click="confirm_delete">
+                <button
+                    type="button"
+                    class="btn account-action-button account-action-button--danger"
+                    :disabled="cur_password === ''"
+                    @click="confirm_delete"
+                >
                     {{ t('deleteAccount.confirmSecond') }}
                 </button>
             </div>
@@ -73,6 +78,8 @@ export default {
         let cur_password = ref('');
 
         const confirm_delete = () => {
+            if (cur_password.value === '') return;
+
             dialog_visible.value = false;
             context.emit('delete_account', {
                 "cur_password": cur_password.value,

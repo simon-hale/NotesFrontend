@@ -31,6 +31,7 @@
             <button
                 v-on:click.prevent="change_password"
                 class="btn account-action-button account-action-button--accent account-action-button--full-mobile"
+                :disabled="cur_password === '' || password === '' || confirmedPassword === ''"
             >
                 {{ t('changePassword.submit') }}
             </button>
@@ -62,6 +63,8 @@ export default {
         });
 
         const change_password = () => {
+            if (cur_password.value === '' || password.value === '' || confirmedPassword.value === '') return;
+
             context.emit("change_password", {
                 "cur_password": cur_password.value,
                 "password": password.value,
