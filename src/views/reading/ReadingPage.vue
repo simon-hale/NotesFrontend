@@ -666,7 +666,6 @@ export default {
         type: "POST",
         data: {
           id: store.state.reading.file_id,
-          username: store.state.user.username,
           language: getCurrentLanguage(),
         },
         async success(resp){
