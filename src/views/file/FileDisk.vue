@@ -458,6 +458,14 @@
                   </div>
 
                   <div class="upload-progress" v-show="show_upload_progress">
+                    <div class="upload-progress__meta" v-if="upload_stage_label">
+                      <span
+                        class="upload-progress__name"
+                        v-if="active_upload_file_name"
+                        :title="active_upload_file_name"
+                      >{{ active_upload_file_name }}</span>
+                      <span class="upload-progress__stage" aria-live="polite">{{ upload_stage_label }}</span>
+                    </div>
                     <el-progress :percentage="percentage" />
                   </div>
 
@@ -748,6 +756,19 @@ export default {
     let new_dir_name = ref('');
     let show_upload_progress = ref(false);
     const isUploading = ref(false);
+    // 传输阶段：transfer = OSS 分片传输中，finalizing = /api/file/insert/ 登记中。
+    // Web 端不提供暂停/恢复，阶段只用于说明进度条当前在做什么。
+    const UPLOAD_STAGES = Object.freeze({
+      TRANSFER: 'transfer',
+      FINALIZING: 'finalizing',
+    });
+    const upload_stage = ref(null);
+    const active_upload_file_name = ref('');
+    const upload_stage_label = computed(() => {
+      if (upload_stage.value === UPLOAD_STAGES.TRANSFER) return t('fileDisk.uploadStageTransferring');
+      if (upload_stage.value === UPLOAD_STAGES.FINALIZING) return t('fileDisk.uploadStageFinalizing');
+      return '';
+    });
     let upload_dialog_visible = ref(false);
     const rename_input_ref = ref(null);
     const rename_dialog_visible = ref(false);
@@ -1165,13 +1186,18 @@ export default {
       })
     }
 
+    const resetUploadProgressState = () => {
+      percentage.value = 0;
+      upload_stage.value = null;
+      active_upload_file_name.value = '';
+    }
     const resetUploadDialogState = () => {
       new_dir_name.value = '';
       selection_value.value = 'Dir';
       fileList.value = [];
       elFileList.value = [];
-      percentage.value = 0;
       show_upload_progress.value = false;
+      resetUploadProgressState();
     }
     const handleUploadDialogAfterLeave = () => {
       resetUploadDialogState();
@@ -1619,16 +1645,133 @@ export default {
       return ossUploadModulePromise;
     }
 
-    // 新getSTS：小幅修正reject逻辑
-    const getSTS = (string_of_path, filename) => {
+    /* ---------------------------------------------------------------- *
+     * 上传票据与错误分类。
+     *
+     * 传输侧的错误必须能被区分开：后端鉴权失败不能在批内反复重试，
+     * 后端业务错误与凭证作用域异常属于不可重试，只有 OSS 网络/瞬时
+     * 故障才交给上传模块自带的退避重试。
+     * ---------------------------------------------------------------- */
+    const TRANSFER_ERROR_CODES = Object.freeze({
+      BACKEND_AUTH: 'backend_auth',
+      BACKEND_BUSINESS: 'backend_business',
+      BACKEND_HTTP: 'backend_http',
+      // 与 ossUpload.async.js 中的 CREDENTIAL_SCOPE_ERROR_CODE 保持一致。
+      CREDENTIAL_SCOPE: 'credential_scope',
+    });
+
+    const createTransferError = (code, message, { status = 0, retryable = false } = {}) => {
+      const error = new Error(message || '');
+      error.code = code;
+      error.transferRetryable = retryable;
+      if (status) error.status = status;
+      return error;
+    };
+
+    const isAuthenticationTransferError = (error) => (
+      error?.code === TRANSFER_ERROR_CODES.BACKEND_AUTH
+    );
+
+    // 鉴权失败/凭证作用域异常会中止整批上传，不再对剩余文件重复尝试。
+    const isBatchStoppingTransferError = (error) => (
+      isAuthenticationTransferError(error) ||
+      error?.code === TRANSFER_ERROR_CODES.CREDENTIAL_SCOPE
+    );
+
+    // 日志只保留排查所需的分类信息，绝不输出 JWT、AK/SK、securityToken
+    // 或完整签名 URL。
+    const describeTransferErrorForLog = (error) => ({
+      name: error?.name,
+      code: error?.code,
+      status: error?.status,
+      message: typeof error?.message === 'string'
+        ? error.message
+          .replace(/(https?:\/\/[^\s?#]+)\?[^\s]*/gi, '$1?<redacted>')
+          .slice(0, 200)
+        : '',
+    });
+
+    const normalizeTicketText = (value) => (
+      typeof value === 'string' ? value.trim() : ''
+    );
+
+    const hasAllTicketFields = (record) => (
+      Object.values(record).every((value) => value !== '')
+    );
+
+    const readTicketScope = (ticket) => Object.freeze({
+      bucket: normalizeTicketText(ticket?.bucket),
+      region: normalizeTicketText(ticket?.region),
+      objectKey: normalizeTicketText(ticket?.objectKey),
+    });
+
+    const readTicketCredentials = (ticket) => ({
+      accessKeyId: normalizeTicketText(ticket?.accessKeyId),
+      accessKeySecret: normalizeTicketText(ticket?.accessKeySecret),
+      securityToken: normalizeTicketText(ticket?.securityToken),
+    });
+
+    // 凭证作用域异常属于协议级问题：提示一次并终止本次上传。
+    const failCredentialScope = () => {
+      const message = t('fileDisk.uploadCredentialScopeInvalid');
+      ElMessage.error(message);
+
+      return createTransferError(
+        TRANSFER_ERROR_CODES.CREDENTIAL_SCOPE,
+        message
+      );
+    };
+
+    // 初始票据：冻结作用域，并要求凭证字段完整。
+    const freezeTicketScope = (ticket) => {
+      const scope = readTicketScope(ticket);
+
+      if (
+        !hasAllTicketFields(scope) ||
+        !hasAllTicketFields(readTicketCredentials(ticket))
+      ) {
+        throw failCredentialScope();
+      }
+
+      return scope;
+    };
+
+    // 刷新票据：必须与冻结作用域完全一致，否则 fail closed。
+    const assertTicketScopeUnchanged = (ticket, scope) => {
+      const nextScope = readTicketScope(ticket);
+
+      if (
+        !hasAllTicketFields(nextScope) ||
+        !hasAllTicketFields(readTicketCredentials(ticket)) ||
+        nextScope.bucket !== scope.bucket ||
+        nextScope.region !== scope.region ||
+        nextScope.objectKey !== scope.objectKey
+      ) {
+        throw failCredentialScope();
+      }
+    };
+
+    // 登录会话失效后不再向后端重复请求刷新票据。
+    let upload_session_invalid = false;
+
+    /**
+     * 向上游请求STS票据。
+     *
+     * 只接受冻结后的上传目标快照，绝不重新读取当前目录状态。
+     *
+     * @param {Object} options
+     * @param {Object} options.target 冻结目标 { stringOfPath, parentId, filename }
+     * @param {boolean} [options.isRefresh] 是否为长上传中的后台凭证刷新
+     */
+    const requestStsTicket = ({ target, isRefresh = false }) => {
       return new Promise((resolve, reject) => {
         $.ajax({
           url: `${BASE_URL}/api/oss/sts/`,
           type: 'POST',
           data: {
-            string_of_path,
-            filename,
-            parent_id: paths.value[path_level.value].id,
+            string_of_path: target.stringOfPath,
+            filename: target.filename,
+            parent_id: target.parentId,
             language: getCurrentLanguage(),
             usage: "SINGLE_FILE_UPLOAD",
           },
@@ -1639,12 +1782,19 @@ export default {
               result !== 'success' &&
               result !== 'same_file_name'
             ) {
-              ElMessage.error(result);
-              reject(new Error('STS error'));
+              // 后端业务错误：原样展示后端返回的提示，且不重试。
+              const message = result || t('common.unknownError');
+              ElMessage.error(message);
+              reject(createTransferError(
+                TRANSFER_ERROR_CODES.BACKEND_BUSINESS,
+                message
+              ));
               return;
             }
 
-            if (result === 'same_file_name') {
+            // 同名覆盖提示只属于用户主动发起的那一次上传，
+            // 后台刷新凭证时不再重复打扰用户。
+            if (result === 'same_file_name' && !isRefresh) {
               ElMessage.warning(
                 t('fileDisk.overwriteSameName')
               );
@@ -1653,16 +1803,54 @@ export default {
             resolve(resp);
           },
           error(resp) {
-            const message = getHttpErrorMessage(
-              t,
-              resp.status
-            );
+            const status = Number(resp?.status) || 0;
+            const message = getHttpErrorMessage(t, status);
+            const isAuthFailure = status === 401 || status === 403;
 
+            if (isAuthFailure) {
+              upload_session_invalid = true;
+            }
+
+            // 沿用项目现有的鉴权/HTTP错误提示方式。
             ElMessage.error(message);
-            reject(new Error(message));
+            reject(createTransferError(
+              isAuthFailure
+                ? TRANSFER_ERROR_CODES.BACKEND_AUTH
+                : TRANSFER_ERROR_CODES.BACKEND_HTTP,
+              message,
+              {
+                status,
+                // 鉴权失败不可重试；其余 HTTP 错误仍属于瞬时故障。
+                retryable: !isAuthFailure,
+              }
+            ));
           },
         });
       });
+    };
+
+    /**
+     * 构造交给 ali-oss 官方刷新机制的 refreshSTSToken 回调。
+     *
+     * 仍然请求同一个 stringOfPath / parentId / filename，并校验新票据
+     * 与初始作用域完全一致。
+     */
+    const createTicketRefresher = (target, scope) => async () => {
+      if (upload_session_invalid) {
+        throw createTransferError(
+          TRANSFER_ERROR_CODES.BACKEND_AUTH,
+          t('common.unauthorized')
+        );
+      }
+
+      const ticket = await requestStsTicket({
+        target,
+        isRefresh: true,
+      });
+
+      assertTicketScopeUnchanged(ticket, scope);
+
+      return ticket;
     };
 
     const handleChange = (file, files) => {
@@ -1680,8 +1868,8 @@ export default {
 
       fileList.value = [];
       elFileList.value = [];
-      percentage.value = 0;
       show_upload_progress.value = false;
+      resetUploadProgressState();
     }
 
     // 用于新uploadAll的函数
@@ -1693,6 +1881,26 @@ export default {
       elFileList.value = elFileList.value.filter(
         (item) => item.raw !== file
       );
+    };
+
+    /**
+     * 冻结本次上传的目标目录。
+     *
+     * 上传开始后，本批所有文件的 STS 请求、STS 刷新、objectKey 校验和
+     * /api/file/insert/ 都只使用这份快照，不再读取当前导航状态，
+     * 避免异步过程中 UI 切换目录把文件登记到别的逻辑目录。
+     */
+    const freezeUploadTarget = () => {
+      const currentPath = paths.value[path_level.value] ?? null;
+
+      if (!currentPath) return null;
+
+      return Object.freeze({
+        stringOfPath: paths.value
+          .map((path) => `${path.id}/`)
+          .join(''),
+        parentId: currentPath.id,
+      });
     };
 
     // 新上传主接口，实现了显示分片上传、实时进度回调及补全部分兜底逻辑
@@ -1711,13 +1919,22 @@ export default {
         return;
       }
 
+      // 目标目录在本批上传开始时冻结。
+      const frozenTarget = freezeUploadTarget();
+
+      if (!frozenTarget) {
+        ElMessage.error(
+          t('fileDisk.uploadTargetUnavailable')
+        );
+        return;
+      }
+
       percentage.value = 0;
+      upload_stage.value = null;
+      active_upload_file_name.value = '';
       show_upload_progress.value = true;
       isUploading.value = true;
-
-      const string_of_path = paths.value
-        .map((path) => `${path.id}/`)
-        .join('');
+      upload_session_invalid = false;
 
       // 空文件按1字节计算，避免全部为空文件时除以0。
       const totalBytes = filesToUpload.reduce(
@@ -1729,7 +1946,7 @@ export default {
       let failedCount = 0;
 
       try {
-        // 保持你原来的串行文件上传逻辑。
+        // 保持原来的串行文件上传逻辑。
         // 每个文件内部的分片则由OSS SDK并发上传。
         for (const file of filesToUpload) {
           const currentFileBytes = Math.max(
@@ -1737,10 +1954,13 @@ export default {
             1
           );
 
+          active_upload_file_name.value = file.name;
+          upload_stage.value = UPLOAD_STAGES.TRANSFER;
+
           try {
             await uploadFile(
               file,
-              string_of_path,
+              frozenTarget,
               (currentFileProgress) => {
                 const normalizedProgress = Math.min(
                   1,
@@ -1769,8 +1989,12 @@ export default {
 
             completedBytes += currentFileBytes;
 
-            percentage.value = Math.floor(
-              completedBytes / totalBytes * 100
+            // 单个文件登记完成后同步进度；100%留给整批收尾。
+            percentage.value = Math.min(
+              99,
+              Math.floor(
+                completedBytes / totalBytes * 100
+              )
             );
 
             // 只有OSS上传和数据库写入都成功，才从列表移除。
@@ -1786,8 +2010,13 @@ export default {
             console.warn(
               'Upload failed but handled:',
               file.name,
-              error
+              describeTransferErrorForLog(error)
             );
+
+            // 登录会话失效或凭证作用域异常时，继续传后续文件没有意义。
+            if (isBatchStoppingTransferError(error)) {
+              break;
+            }
 
             // 不throw，继续处理后面的文件。
             // 失败文件仍保留在选择列表中，用户可以再次上传。
@@ -1796,43 +2025,65 @@ export default {
 
         refreshCurrentDirectory();
 
-        percentage.value = failedCount === 0 ? 100 : Math.floor(completedBytes / totalBytes * 100);
+        // 整批文件的 OSS 传输与数据库登记都成功后才显示100%。
+        percentage.value = failedCount === 0
+          ? 100
+          : Math.floor(completedBytes / totalBytes * 100);
       } finally {
         isUploading.value = false;
+        upload_stage.value = null;
+        active_upload_file_name.value = '';
       }
     };
 
-    // 新单文件上传接口，实现了显示分片上传、实时进度回调及补全部分兜底逻辑
+    /**
+     * 新单文件上传接口。
+     *
+     * 顺序固定为：初始STS → OSS分片上传（CompleteMultipartUpload成功）
+     * → /api/file/insert/。三步都使用同一份冻结目标，OSS传输阶段与
+     * 元数据登记阶段在界面上明确区分。
+     */
     const uploadFile = async (
       file,
-      string_of_path,
+      frozenTarget,
       onProgress
     ) => {
+      // 文件级快照：文件名同样在上传开始时冻结。
+      const target = Object.freeze({
+        stringOfPath: frozenTarget.stringOfPath,
+        parentId: frozenTarget.parentId,
+        filename: file.name,
+      });
 
       try {
-        const sts = await getSTS(
-          string_of_path,
-          file.name
-        );
-
-        if (!sts) {
-          throw new Error('STS not ready');
-        }
+        const ticket = await requestStsTicket({ target });
+        // objectKey / bucket / region 的作用域从初始票据冻结而来，
+        // 之后每一次刷新都必须与它完全一致。
+        const scope = freezeTicketScope(ticket);
 
         const { uploadFileToOss } =
           await loadOssUploadModule();
 
-        await uploadFileToOss(
-          sts,
+        // 阶段一：OSS 传输。resolve 即代表 CompleteMultipartUpload 成功。
+        await uploadFileToOss({
           file,
-          onProgress
-        );
+          ticket,
+          onProgress,
+          refreshTicket: createTicketRefresher(
+            target,
+            scope
+          ),
+        });
 
-        // OSS完整上传成功后，再写入数据库。
-        await insertFileInfo(
-          string_of_path,
-          file.name
-        );
+        // 阶段二：元数据登记。此时进度条仍然停留在99%。
+        upload_stage.value = UPLOAD_STAGES.FINALIZING;
+        percentage.value = Math.min(99, percentage.value);
+
+        await insertFileInfo({
+          stringOfPath: target.stringOfPath,
+          parentId: target.parentId,
+          filename: target.filename,
+        });
 
         ElMessage.success(
           t('fileDisk.uploadSuccess', {
@@ -1841,29 +2092,37 @@ export default {
         );
       } catch (error) {
         console.error(
-          `Upload failed: ${file.name}`,
-          error
+          `Upload failed: ${target.filename}`,
+          describeTransferErrorForLog(error)
         );
 
-        ElMessage.error(
-          t('fileDisk.uploadFailed', {
-            name: file.name,
-          })
-        );
+        // 鉴权失败与凭证作用域异常已经给出具体提示，
+        // 这里不再重复弹出“上传失败”，避免同一个原因刷出多条提示。
+        if (!isBatchStoppingTransferError(error)) {
+          ElMessage.error(
+            t('fileDisk.uploadFailed', {
+              name: file.name,
+            })
+          );
+        }
 
         throw error;
       }
     };
 
-    const insertFileInfo = (string_of_path, filename) => {
+    const insertFileInfo = ({
+      stringOfPath,
+      parentId,
+      filename,
+    }) => {
       return new Promise((resolve, reject) => {
         $.ajax({
           url: `${BASE_URL}/api/file/insert/`,
           type: 'POST',
           data: {
-            string_of_path: string_of_path,
+            string_of_path: stringOfPath,
             filename: filename,
-            parent_id: paths.value[path_level.value].id,
+            parent_id: parentId,
             language: getCurrentLanguage(),
           },
           success(resp) {
@@ -1987,6 +2246,8 @@ export default {
       displayPathName,
       elFileList,
       percentage,
+      upload_stage_label,
+      active_upload_file_name,
       openUploadDialog,
       closeUploadDialog,
       handleUploadDialogAfterLeave,
@@ -2702,11 +2963,35 @@ div.content-field.login-reminder-field {
 }
 
 .upload-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   width: 100%;
 }
 
-.upload-progress {
-  width: 100%;
+.upload-progress__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.upload-progress__name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-progress__stage {
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 .mobile-sort-sheet {
