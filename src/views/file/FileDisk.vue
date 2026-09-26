@@ -349,10 +349,10 @@
             @click.stop
           >
             <div class="disk-modal__header upload-dialog__header">
-              <!-- 标题动画跟随当前聚焦的选项（拖动期间由预览驱动），
-                   文字本身仍取自已提交的选择，只有 pointerup 提交后才真正换字。 -->
+              <!-- 标题只在 pointerup 提交新的选择后才切换并播放动画，
+                   拖动预览期间既不改文字也不触发 Transition。 -->
               <Transition name="upload-title-sink" mode="out-in">
-                <h2 :key="selection_active_value" class="disk-modal__title">{{ upload_dialog_title }}</h2>
+                <h2 :key="selection_value" class="disk-modal__title">{{ upload_dialog_title }}</h2>
               </Transition>
               <button
                 type="button"
@@ -390,7 +390,10 @@
                     :ref="(element) => setSelectionOptionRef(element, index)"
                     type="button"
                     class="upload-switcher__option"
-                    :class="{ 'is-active': selection_active_value === option.value }"
+                    :class="{
+                      'is-active': selection_active_value === option.value,
+                      'is-preview-focused': is_dragging_preview && selection_preview_value === option.value,
+                    }"
                     :aria-pressed="selection_value === option.value"
                     :disabled="isUploading"
                     @click="handleSelectionClick(option.value)"
@@ -466,30 +469,32 @@
                       {{ t('fileDisk.uploadPrompt') }}
                     </div>
 
-                    <!-- 挂在 el-upload 的 tip 插槽上，正好落在 drop 区与文件列表之间。
-                         上半部分是常驻的“当前文件 + 当前阶段”，下半部分是总进度条，
-                         两者各有各的显示条件，互不共用。 -->
+                    <!-- 挂在 el-upload 的 tip 插槽上：Element Plus 的渲染顺序是
+                         拖拽区 → tip → 文件列表，所以这里正好落在 drop 区与文件列表之间。
+                         这里只放常驻的“当前文件 + 当前阶段”。 -->
                     <template #tip>
-                      <div class="upload-progress" :class="{ 'is-idle': is_upload_idle }">
-                        <div class="upload-progress__meta">
-                          <span
-                            class="upload-progress__name"
-                            :class="{ 'upload-progress__name--idle': is_upload_idle }"
-                            :title="current_upload_target"
-                          >{{ current_upload_target }}</span>
-                          <span
-                            v-if="upload_stage_label"
-                            class="upload-progress__stage"
-                            aria-live="polite"
-                          >{{ upload_stage_label }}</span>
-                          <span v-else class="visually-hidden" aria-live="polite">{{ current_upload_target }}</span>
-                        </div>
-                        <!-- 总进度条沿用原有 show_upload_progress 生命周期：
-                             上传开始后出现，上传结束后保留最终进度，直到弹窗关闭或清空选择才重置。 -->
-                        <el-progress v-if="show_upload_progress" :percentage="percentage" />
+                      <div class="upload-status" :class="{ 'is-idle': is_upload_idle }">
+                        <span
+                          class="upload-status__name"
+                          :class="{ 'upload-status__name--idle': is_upload_idle }"
+                          :title="current_upload_target"
+                        >{{ current_upload_target }}</span>
+                        <span
+                          v-if="upload_stage_label"
+                          class="upload-status__stage"
+                          aria-live="polite"
+                        >{{ upload_stage_label }}</span>
+                        <span v-else class="visually-hidden" aria-live="polite">{{ current_upload_target }}</span>
                       </div>
                     </template>
                   </el-upload>
+
+                  <!-- 总进度条回到文件列表之后、操作按钮之前，
+                       沿用原有 show_upload_progress 生命周期：上传开始后出现，
+                       上传结束后保留最终进度，直到弹窗关闭或清空选择才重置。 -->
+                  <div class="upload-progress" v-if="show_upload_progress">
+                    <el-progress :percentage="percentage" />
+                  </div>
 
                   <div class="upload-actions">
                     <button
@@ -846,6 +851,10 @@ export default {
     // 滑块、选项文字状态和标题动画都从这一个派生值读取，避免手动同步失配。
     const selection_active_value = computed(() => (
       selection_preview_value.value || selection_value.value
+    ));
+    // 拖动预览正指向另一个选项（此时才给聚焦项加下沉反馈）。
+    const is_dragging_preview = computed(() => (
+      !!selection_preview_value.value && selection_preview_value.value !== selection_value.value
     ));
     const setSelectionOptionRef = (element, index) => {
       if (!element) {
@@ -2390,6 +2399,8 @@ export default {
       selection_value,
       selection_options,
       selection_active_value,
+      selection_preview_value,
+      is_dragging_preview,
       selection_thumb_style,
       setSelectionOptionRef,
       setSelectionValue,
@@ -3007,6 +3018,11 @@ div.content-field.login-reminder-field {
   transform: translateY(1px);
 }
 
+/* 拖动预览指向的选项：复用 :active 的下沉视觉，松手或 cancel 后立即恢复。 */
+.upload-switcher__option.is-preview-focused {
+  transform: translateY(1px);
+}
+
 .upload-switcher__option:focus {
   outline: none;
 }
@@ -3140,27 +3156,22 @@ div.content-field.login-reminder-field {
   color: var(--text-muted);
 }
 
-.upload-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-}
-
-/* 没有上传任务时只是一行 IDLE 占位，进度条不渲染，去掉多余留白。 */
-.upload-progress.is-idle {
-  gap: 0;
-}
-
-.upload-progress__meta {
+/* 常驻的“当前文件 + 当前阶段”，位置在 drop 区与文件列表之间。 */
+.upload-status {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
+  width: 100%;
   min-width: 0;
 }
 
-.upload-progress__name {
+/* 没有上传任务时只有一行 IDLE 占位，无需为阶段文字留出间隔。 */
+.upload-status.is-idle {
+  gap: 0;
+}
+
+.upload-status__name {
   min-width: 0;
   overflow: hidden;
   color: var(--text-primary);
@@ -3170,16 +3181,21 @@ div.content-field.login-reminder-field {
   white-space: nowrap;
 }
 
-.upload-progress__name--idle {
+.upload-status__name--idle {
   color: var(--text-muted);
   letter-spacing: 0.04em;
 }
 
-.upload-progress__stage {
+.upload-status__stage {
   flex: 0 0 auto;
   color: var(--text-secondary);
   font-size: 0.78rem;
   font-weight: 600;
+}
+
+/* 总进度条：位于文件列表之后、操作按钮之前。 */
+.upload-progress {
+  width: 100%;
 }
 
 /* IDLE 占位没有可见的阶段文字，只保留给读屏软件的状态播报。 */
@@ -3509,7 +3525,7 @@ div.content-field.login-reminder-field {
   box-shadow: none;
 }
 
-/* 当前文件面板正好落在 drop 区与文件列表之间，这里只负责上下留白。 */
+/* 当前文件面板落在 drop 区与文件列表之间，这里只负责上下留白。 */
 :deep(.upload-demo--simple .el-upload__tip) {
   margin-top: 10px;
 }
