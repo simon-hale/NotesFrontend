@@ -349,9 +349,10 @@
             @click.stop
           >
             <div class="disk-modal__header upload-dialog__header">
-              <!-- 标题跟随卡片：确定显示哪张卡片时才切换，配合下沉过渡。 -->
+              <!-- 标题动画跟随当前聚焦的选项（拖动期间由预览驱动），
+                   文字本身仍取自已提交的选择，只有 pointerup 提交后才真正换字。 -->
               <Transition name="upload-title-sink" mode="out-in">
-                <h2 :key="selection_value" class="disk-modal__title">{{ upload_dialog_title }}</h2>
+                <h2 :key="selection_active_value" class="disk-modal__title">{{ upload_dialog_title }}</h2>
               </Transition>
               <button
                 type="button"
@@ -389,7 +390,7 @@
                     :ref="(element) => setSelectionOptionRef(element, index)"
                     type="button"
                     class="upload-switcher__option"
-                    :class="{ 'is-active': selection_value === option.value }"
+                    :class="{ 'is-active': selection_active_value === option.value }"
                     :aria-pressed="selection_value === option.value"
                     :disabled="isUploading"
                     @click="handleSelectionClick(option.value)"
@@ -465,7 +466,9 @@
                       {{ t('fileDisk.uploadPrompt') }}
                     </div>
 
-                    <!-- 挂在 el-upload 的 tip 插槽上，正好落在 drop 区与文件列表之间。 -->
+                    <!-- 挂在 el-upload 的 tip 插槽上，正好落在 drop 区与文件列表之间。
+                         上半部分是常驻的“当前文件 + 当前阶段”，下半部分是总进度条，
+                         两者各有各的显示条件，互不共用。 -->
                     <template #tip>
                       <div class="upload-progress" :class="{ 'is-idle': is_upload_idle }">
                         <div class="upload-progress__meta">
@@ -481,8 +484,9 @@
                           >{{ upload_stage_label }}</span>
                           <span v-else class="visually-hidden" aria-live="polite">{{ current_upload_target }}</span>
                         </div>
-                        <!-- 总进度条保持原有显示逻辑：仅在上传过程中出现。 -->
-                        <el-progress v-if="isUploading" :percentage="percentage" />
+                        <!-- 总进度条沿用原有 show_upload_progress 生命周期：
+                             上传开始后出现，上传结束后保留最终进度，直到弹窗关闭或清空选择才重置。 -->
+                        <el-progress v-if="show_upload_progress" :percentage="percentage" />
                       </div>
                     </template>
                   </el-upload>
@@ -772,6 +776,8 @@ export default {
     };
 
     let new_dir_name = ref('');
+    // 总进度条自己的可见性：与上面常驻的当前文件区域完全独立。
+    let show_upload_progress = ref(false);
     const isUploading = ref(false);
     // 传输阶段：transfer = OSS 分片传输中，finalizing = /api/file/insert/ 登记中，
     // idle = 当前没有上传任务。Web 端不提供暂停/恢复，阶段用于说明当前文件面板显示什么。
@@ -836,7 +842,11 @@ export default {
       };
     };
     const selection_preview_value = ref('');
-    const selection_thumb_style = ref(createSelectionThumbStyle());
+    // 切换器当前聚焦的选项：拖动期间由预览值接管，其余时刻就是已提交的选择。
+    // 滑块、选项文字状态和标题动画都从这一个派生值读取，避免手动同步失配。
+    const selection_active_value = computed(() => (
+      selection_preview_value.value || selection_value.value
+    ));
     const setSelectionOptionRef = (element, index) => {
       if (!element) {
         selection_option_refs.value[index] = null;
@@ -845,13 +855,10 @@ export default {
 
       selection_option_refs.value[index] = element;
     };
+    const selection_thumb_style = ref(createSelectionThumbStyle());
     const updateSelectionThumb = () => {
-      // 拖动过程中滑块跟随预览目标；其余时刻跟随已提交的选择。
-      const target_value = selection_preview_value.value || selection_value.value;
-      const option = target_value === 'File' ? selection_option_refs.value[1] : selection_option_refs.value[0];
-      if (!option) return;
-
-      selection_thumb_style.value = createSelectionThumbStyle(option);
+      const active_option_index = selection_active_value.value === 'File' ? 1 : 0;
+      selection_thumb_style.value = createSelectionThumbStyle(selection_option_refs.value[active_option_index]);
     };
     let selection_thumb_sync_pending = false;
     const scheduleSelectionThumbSync = () => {
@@ -863,6 +870,12 @@ export default {
         updateSelectionThumb();
       });
     };
+    // 拖动预览实时驱动滑块：聚焦选项一变就重新量一次尺寸并移动滑块。
+    watch(selection_active_value, () => {
+      if (!upload_dialog_visible.value) return;
+
+      updateSelectionThumb();
+    });
     const setSelectionValue = (value) => {
       if (selection_value.value === value) return;
       selection_value.value = value;
@@ -1332,6 +1345,7 @@ export default {
       selection_value.value = 'Dir';
       fileList.value = [];
       elFileList.value = [];
+      show_upload_progress.value = false;
       resetUploadProgressState();
     }
     const handleUploadDialogAfterLeave = () => {
@@ -1726,10 +1740,8 @@ export default {
         rename_validation_message.value = '';
       }
     })
-    watch(selection_value, () => {
-      if (!upload_dialog_visible.value) return;
-      scheduleSelectionThumbSync();
-    })
+    // 滑块的尺寸测量统一交给 selection_active_value 的监听，
+    // 这里只负责弹窗打开时先量一次、语言变化后重量一次。
     watch(upload_dialog_visible, (visible) => {
       if (visible) {
         scheduleSelectionThumbSync();
@@ -2004,6 +2016,7 @@ export default {
 
       fileList.value = [];
       elFileList.value = [];
+      show_upload_progress.value = false;
       resetUploadProgressState();
     }
 
@@ -2067,6 +2080,7 @@ export default {
       percentage.value = 0;
       upload_stage.value = UPLOAD_STAGES.IDLE;
       active_upload_file_name.value = '';
+      show_upload_progress.value = true;
       isUploading.value = true;
       upload_session_invalid = false;
 
@@ -2353,6 +2367,7 @@ export default {
       disk_modal_transition_duration: DISK_MODAL_TRANSITION_DURATION,
       disk_modal_transition_style: DISK_MODAL_TRANSITION_STYLE,
       new_dir_name,
+      show_upload_progress,
       upload_dialog_visible,
       upload_dialog_title,
       rename_input_ref,
@@ -2374,6 +2389,7 @@ export default {
       resetDeleteBackdropPointer,
       selection_value,
       selection_options,
+      selection_active_value,
       selection_thumb_style,
       setSelectionOptionRef,
       setSelectionValue,
