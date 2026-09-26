@@ -396,7 +396,7 @@
                     }"
                     :aria-pressed="selection_value === option.value"
                     :disabled="isUploading"
-                    @click="handleSelectionClick(option.value)"
+                    @click="handleSelectionClick($event, option.value)"
                   >
                     {{ option.label }}
                   </button>
@@ -471,20 +471,20 @@
 
                     <!-- 挂在 el-upload 的 tip 插槽上：Element Plus 的渲染顺序是
                          拖拽区 → tip → 文件列表，所以这里正好落在 drop 区与文件列表之间。
-                         这里只放常驻的“当前文件 + 当前阶段”。 -->
+                         正常上传时左边是当前文件名、右边是阶段；空闲时左侧留空，
+                         右侧状态位显示一次 IDLE。 -->
                     <template #tip>
                       <div class="upload-status" :class="{ 'is-idle': is_upload_idle }">
                         <span
+                          v-if="!is_upload_idle"
                           class="upload-status__name"
-                          :class="{ 'upload-status__name--idle': is_upload_idle }"
                           :title="current_upload_target"
                         >{{ current_upload_target }}</span>
                         <span
-                          v-if="upload_stage_label"
                           class="upload-status__stage"
+                          :class="{ 'upload-status__stage--idle': is_upload_idle }"
                           aria-live="polite"
-                        >{{ upload_stage_label }}</span>
-                        <span v-else class="visually-hidden" aria-live="polite">{{ current_upload_target }}</span>
+                        >{{ upload_status_text }}</span>
                       </div>
                     </template>
                   </el-upload>
@@ -793,17 +793,15 @@ export default {
     });
     const upload_stage = ref(UPLOAD_STAGES.IDLE);
     const active_upload_file_name = ref('');
-    // 当前文件面板常驻显示：没有上传任务时只留一处 IDLE 占位。
+    // 状态行常驻：空闲时左侧文件名区域留空，只在右侧状态位显示一次 IDLE。
     const is_upload_idle = computed(() => upload_stage.value === UPLOAD_STAGES.IDLE);
     const current_upload_target = computed(() => (
-      is_upload_idle.value
-        ? t('fileDisk.uploadStageIdle')
-        : (active_upload_file_name.value || t('fileDisk.uploadStageTransferring'))
+      active_upload_file_name.value || t('fileDisk.uploadStageTransferring')
     ));
-    const upload_stage_label = computed(() => {
+    const upload_status_text = computed(() => {
       if (upload_stage.value === UPLOAD_STAGES.TRANSFER) return t('fileDisk.uploadStageTransferring');
       if (upload_stage.value === UPLOAD_STAGES.FINALIZING) return t('fileDisk.uploadStageFinalizing');
-      return '';
+      return t('fileDisk.uploadStageIdle');
     });
     let upload_dialog_visible = ref(false);
     const rename_input_ref = ref(null);
@@ -891,17 +889,16 @@ export default {
     };
 
     /* ---------------------------------------------------------------- *
-     * 按住拖动切换卡片。
+     * 点击 / 按住拖动切换卡片。
      *
      * Pointer Events 的完整生命周期都挂在 .upload-switcher 上，并用指针
-     * 捕获把后续事件锁在同一个元素：鼠标、触摸、手写笔走同一条路径，两
-     * 个方向都能拖。拖动期间只维护 selection_preview_value（滑块与聚焦
-     * 动画的预览目标），真正的 selection_value、卡片内容与弹窗标题只在
-     * pointerup 时按最终位置提交；pointercancel 丢弃预览、保持原选择。
+     * 捕获把后续事件锁在同一个元素：鼠标、触摸、手写笔走同一条路径。
+     * pointerdown 只开始手势并给出预览，pointermove 只更新预览，二者都不
+     * 改动 selection_value；提交统一发生在 pointerup，按松手位置决定结果
+     * （没有拖动时就是按下的那个选项）。因此拖动必须松手后才切换卡片与
+     * Create/Upload 标题，pointercancel 则丢弃预览、不提交任何选择。
      * ---------------------------------------------------------------- */
     let selection_pointer_id = null;
-    // 区分“拖动”与“点击”：只有真正越过分界线才抑制随后的 click。
-    let selection_drag_moved = false;
     const getSelectionSwitcher = () => (
       selection_option_refs.value.find(Boolean)?.parentElement ?? null
     );
@@ -933,20 +930,15 @@ export default {
     const resetSelectionDrag = () => {
       releaseSelectionPointer();
       selection_preview_value.value = '';
-      selection_drag_moved = false;
     };
     const handleSelectionPointerDown = (event) => {
-      // 只接管主指针；按下即开始预览，此时还不改动实际选择。
-      if (isUploading.value || event.button > 0) {
-        selection_drag_moved = false;
-        return;
-      }
+      // 只接管主指针；按下只开始手势并给出预览，此时不改动实际选择。
+      if (isUploading.value || event.button > 0) return;
 
       const switcher = getSelectionSwitcher();
       if (!switcher) return;
 
       releaseSelectionPointer();
-      selection_drag_moved = false;
       selection_pointer_id = event.pointerId;
       switcher.setPointerCapture?.(event.pointerId);
       selection_preview_value.value = readDraggedSelection(event.clientX);
@@ -957,34 +949,32 @@ export default {
       const next_preview = readDraggedSelection(event.clientX);
       if (!next_preview || next_preview === selection_preview_value.value) return;
 
-      selection_drag_moved = true;
       selection_preview_value.value = next_preview;
     };
     const handleSelectionPointerUp = (event) => {
       if (selection_pointer_id !== event.pointerId) return;
 
+      // 松手位置决定结果：没有拖动时它就是按下的那个选项，
+      // 所以普通点击与按住拖动共用这一条提交路径。
       const next_value = readDraggedSelection(event.clientX);
-      const should_commit = selection_drag_moved && !!next_value;
 
       releaseSelectionPointer();
       selection_preview_value.value = '';
 
-      if (should_commit) {
+      if (next_value) {
         setSelectionValue(next_value);
       }
     };
     const handleSelectionPointerCancel = (event) => {
       if (selection_pointer_id !== event.pointerId) return;
 
-      // 指针序列被系统打断：丢弃预览，恢复原选择。
+      // 指针序列被系统打断：丢弃预览，不提交任何选择。
       resetSelectionDrag();
     };
-    const handleSelectionClick = (value) => {
-      // 拖动松手后浏览器仍会补发 click，此时选择已经提交，忽略即可。
-      if (selection_drag_moved) {
-        selection_drag_moved = false;
-        return;
-      }
+    const handleSelectionClick = (event, value) => {
+      // 指针驱动的 click 已经由 pointerup 提交过，这里只兜住
+      // 键盘 Enter/Space 产生的非 pointer click，避免重复提交或把结果切回去。
+      if (event.detail !== 0) return;
 
       setSelectionValue(value);
     };
@@ -2413,7 +2403,7 @@ export default {
       displayPathName,
       elFileList,
       percentage,
-      upload_stage_label,
+      upload_status_text,
       current_upload_target,
       openUploadDialog,
       closeUploadDialog,
@@ -3181,11 +3171,6 @@ div.content-field.login-reminder-field {
   white-space: nowrap;
 }
 
-.upload-status__name--idle {
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
-}
-
 .upload-status__stage {
   flex: 0 0 auto;
   color: var(--text-secondary);
@@ -3193,23 +3178,15 @@ div.content-field.login-reminder-field {
   font-weight: 600;
 }
 
+/* 空闲时左侧没有文件名，IDLE 单独占右侧状态位。 */
+.upload-status__stage--idle {
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
 /* 总进度条：位于文件列表之后、操作按钮之前。 */
 .upload-progress {
   width: 100%;
-}
-
-/* IDLE 占位没有可见的阶段文字，只保留给读屏软件的状态播报。 */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  border: 0;
-  white-space: nowrap;
 }
 
 .mobile-sort-sheet {
@@ -3525,9 +3502,10 @@ div.content-field.login-reminder-field {
   box-shadow: none;
 }
 
-/* 当前文件面板落在 drop 区与文件列表之间，这里只负责上下留白。 */
+/* 状态行落在 drop 区与文件列表之间：上方留白加大以拉开与 drop 区的距离，
+   下方保持原值，避免把状态行推离文件列表。 */
 :deep(.upload-demo--simple .el-upload__tip) {
-  margin-top: 10px;
+  margin-top: 20px;
 }
 
 :deep(.upload-demo--simple .el-upload-list) {
