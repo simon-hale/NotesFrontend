@@ -501,9 +501,12 @@ a {
   color: inherit;
 }
 
-/* Kept in sync with APP_MESSAGE_Z_INDEX in src/utils/message.js. */
+/* Element Plus writes the message z-index as an inline style, so the layer has to
+   be pinned with !important. 4000 keeps every app message above all floating
+   layers of the project: Element Plus overlays (2000+), the disk modals (2100)
+   and the reading image box (3000). */
 .el-message.app-message {
-  z-index: 4000;
+  z-index: 4000 !important;
   left: auto !important;
   right: var(--app-message-right) !important;
   transform: none !important;

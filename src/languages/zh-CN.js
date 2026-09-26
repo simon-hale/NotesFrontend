@@ -45,7 +45,7 @@
     mode: '明暗模式',
     palette: '主题配色',
     palettes: {
-      midnight: 'Default blue',
+      midnight: '默认蓝',
       blue: '活力蓝',
       sage: '豆沙绿',
       almond: '杏仁黄',

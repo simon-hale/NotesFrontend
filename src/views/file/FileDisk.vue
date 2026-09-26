@@ -369,7 +369,15 @@
 
             <div class="disk-modal__body upload-dialog__body">
               <div class="upload-dialog__shell">
-                <div class="upload-switcher" :aria-label="t('fileDisk.uploadSwitcherLabel')">
+                <div
+                  class="upload-switcher"
+                  :aria-label="t('fileDisk.uploadSwitcherLabel')"
+                  @pointerdown="handleSelectionPointerDown"
+                  @pointermove="handleSelectionPointerMove"
+                  @pointerup="handleSelectionPointerUp"
+                  @pointercancel="handleSelectionPointerCancel"
+                  @contextmenu.prevent
+                >
                   <span
                     class="upload-switcher__thumb"
                     :style="selection_thumb_style"
@@ -384,7 +392,6 @@
                     :class="{ 'is-active': selection_value === option.value }"
                     :aria-pressed="selection_value === option.value"
                     :disabled="isUploading"
-                    @pointerdown="handleSelectionPointerDown($event, option.value)"
                     @click="handleSelectionClick(option.value)"
                   >
                     {{ option.label }}
@@ -424,9 +431,6 @@
                     :disabled="isUploading"
                     :on-change="handleChange"
                     :on-remove="handleRemove"
-                    @pointermove="handleSelectionPointerMove"
-                    @pointerup="handleSelectionPointerUp"
-                    @pointercancel="handleSelectionPointerCancel"
                   >
                     <el-icon class="el-icon--upload">
                       <svg
@@ -463,16 +467,22 @@
 
                     <!-- 挂在 el-upload 的 tip 插槽上，正好落在 drop 区与文件列表之间。 -->
                     <template #tip>
-                      <div class="upload-progress">
+                      <div class="upload-progress" :class="{ 'is-idle': is_upload_idle }">
                         <div class="upload-progress__meta">
                           <span
                             class="upload-progress__name"
-                            :class="{ 'upload-progress__name--idle': !isUploading }"
+                            :class="{ 'upload-progress__name--idle': is_upload_idle }"
                             :title="current_upload_target"
                           >{{ current_upload_target }}</span>
-                          <span class="upload-progress__stage" aria-live="polite">{{ upload_stage_label }}</span>
+                          <span
+                            v-if="upload_stage_label"
+                            class="upload-progress__stage"
+                            aria-live="polite"
+                          >{{ upload_stage_label }}</span>
+                          <span v-else class="visually-hidden" aria-live="polite">{{ current_upload_target }}</span>
                         </div>
-                        <el-progress :percentage="percentage" />
+                        <!-- 总进度条保持原有显示逻辑：仅在上传过程中出现。 -->
+                        <el-progress v-if="isUploading" :percentage="percentage" />
                       </div>
                     </template>
                   </el-upload>
@@ -764,7 +774,7 @@ export default {
     let new_dir_name = ref('');
     const isUploading = ref(false);
     // 传输阶段：transfer = OSS 分片传输中，finalizing = /api/file/insert/ 登记中，
-    // idle = 当前没有文件在上传。Web 端不提供暂停/恢复，阶段只用于说明进度条当前在做什么。
+    // idle = 当前没有上传任务。Web 端不提供暂停/恢复，阶段用于说明当前文件面板显示什么。
     const UPLOAD_STAGES = Object.freeze({
       IDLE: 'idle',
       TRANSFER: 'transfer',
@@ -772,16 +782,17 @@ export default {
     });
     const upload_stage = ref(UPLOAD_STAGES.IDLE);
     const active_upload_file_name = ref('');
-    // 当前文件面板常驻显示：没有上传任务时用 IDLE 占位。
+    // 当前文件面板常驻显示：没有上传任务时只留一处 IDLE 占位。
+    const is_upload_idle = computed(() => upload_stage.value === UPLOAD_STAGES.IDLE);
     const current_upload_target = computed(() => (
-      isUploading.value
-        ? (active_upload_file_name.value || t('fileDisk.uploadStageTransferring'))
-        : t('fileDisk.uploadStageIdle')
+      is_upload_idle.value
+        ? t('fileDisk.uploadStageIdle')
+        : (active_upload_file_name.value || t('fileDisk.uploadStageTransferring'))
     ));
     const upload_stage_label = computed(() => {
       if (upload_stage.value === UPLOAD_STAGES.TRANSFER) return t('fileDisk.uploadStageTransferring');
       if (upload_stage.value === UPLOAD_STAGES.FINALIZING) return t('fileDisk.uploadStageFinalizing');
-      return t('fileDisk.uploadStageIdle');
+      return '';
     });
     let upload_dialog_visible = ref(false);
     const rename_input_ref = ref(null);
@@ -824,6 +835,7 @@ export default {
         transform: `translateX(${option.offsetLeft}px)`,
       };
     };
+    const selection_preview_value = ref('');
     const selection_thumb_style = ref(createSelectionThumbStyle());
     const setSelectionOptionRef = (element, index) => {
       if (!element) {
@@ -834,13 +846,12 @@ export default {
       selection_option_refs.value[index] = element;
     };
     const updateSelectionThumb = () => {
-      const [directory_option, file_option] = selection_option_refs.value;
-      if (!directory_option || !file_option) return;
+      // 拖动过程中滑块跟随预览目标；其余时刻跟随已提交的选择。
+      const target_value = selection_preview_value.value || selection_value.value;
+      const option = target_value === 'File' ? selection_option_refs.value[1] : selection_option_refs.value[0];
+      if (!option) return;
 
-      // 面板高度与圆角由小尺寸的文件夹卡片决定，指示块跟随它保持稳定。
-      selection_thumb_style.value = createSelectionThumbStyle(
-        selection_value.value === 'File' ? file_option : directory_option
-      );
+      selection_thumb_style.value = createSelectionThumbStyle(option);
     };
     let selection_thumb_sync_pending = false;
     const scheduleSelectionThumbSync = () => {
@@ -857,79 +868,99 @@ export default {
       selection_value.value = value;
     };
 
-    // 按住拖动切换卡片：按下即确定，拖动过程中越过分隔点实时跟随，
-    // 松开时已经停留在哪张卡片就显示哪张。指针捕获让鼠标和触摸走同一条路径。
+    /* ---------------------------------------------------------------- *
+     * 按住拖动切换卡片。
+     *
+     * Pointer Events 的完整生命周期都挂在 .upload-switcher 上，并用指针
+     * 捕获把后续事件锁在同一个元素：鼠标、触摸、手写笔走同一条路径，两
+     * 个方向都能拖。拖动期间只维护 selection_preview_value（滑块与聚焦
+     * 动画的预览目标），真正的 selection_value、卡片内容与弹窗标题只在
+     * pointerup 时按最终位置提交；pointercancel 丢弃预览、保持原选择。
+     * ---------------------------------------------------------------- */
     let selection_pointer_id = null;
-    let selection_pointer_drag_moved = false;
-    const getOptionByViewportX = (client_x) => {
-      const options = selection_option_refs.value.filter(Boolean);
-      if (options.length === 0) return null;
-
-      const first_rect = options[0].getBoundingClientRect();
-
-      return client_x < first_rect.left + first_rect.width / 2 ? options[0] : options[options.length - 1];
-    };
-    const readSelectionValueFromOption = (option) => (
-      selection_option_refs.value.indexOf(option) === 0 ? 'Dir' : 'File'
+    // 区分“拖动”与“点击”：只有真正越过分界线才抑制随后的 click。
+    let selection_drag_moved = false;
+    const getSelectionSwitcher = () => (
+      selection_option_refs.value.find(Boolean)?.parentElement ?? null
     );
-    const applyDraggedSelection = (option) => {
-      const next_value = readSelectionValueFromOption(option);
+    // 分界线取两个选项的实际中线，而不是第一个按钮自身的中心。
+    const getSelectionDividerX = () => {
+      const [directory_option, file_option] = selection_option_refs.value;
+      if (!directory_option || !file_option) return null;
 
-      if (!selection_pointer_drag_moved && selection_value.value === next_value) return;
+      const directory_rect = directory_option.getBoundingClientRect();
+      const file_rect = file_option.getBoundingClientRect();
 
-      selection_pointer_drag_moved = true;
-      setSelectionValue(next_value);
+      return (directory_rect.right + file_rect.left) / 2;
+    };
+    const readDraggedSelection = (client_x) => {
+      const divider_x = getSelectionDividerX();
+      if (divider_x === null) return '';
+
+      return client_x < divider_x ? 'Dir' : 'File';
     };
     const releaseSelectionPointer = () => {
       const pointer_id = selection_pointer_id;
-      const switcher = selection_option_refs.value.find(Boolean)?.parentElement;
       selection_pointer_id = null;
 
+      const switcher = getSelectionSwitcher();
       if (pointer_id !== null && switcher?.hasPointerCapture?.(pointer_id)) {
         switcher.releasePointerCapture(pointer_id);
       }
     };
-    const handleSelectionPointerDown = (event, value) => {
-      if (isUploading.value || event.button > 0) return;
-
+    const resetSelectionDrag = () => {
       releaseSelectionPointer();
-      // 单击（未拖动）仍由 click 收尾，这里只在按下时确定卡片。
-      setSelectionValue(value);
+      selection_preview_value.value = '';
+      selection_drag_moved = false;
+    };
+    const handleSelectionPointerDown = (event) => {
+      // 只接管主指针；按下即开始预览，此时还不改动实际选择。
+      if (isUploading.value || event.button > 0) {
+        selection_drag_moved = false;
+        return;
+      }
 
-      const switcher = selection_option_refs.value.find(Boolean)?.parentElement;
+      const switcher = getSelectionSwitcher();
       if (!switcher) return;
 
+      releaseSelectionPointer();
+      selection_drag_moved = false;
       selection_pointer_id = event.pointerId;
-      selection_pointer_drag_moved = false;
       switcher.setPointerCapture?.(event.pointerId);
+      selection_preview_value.value = readDraggedSelection(event.clientX);
     };
     const handleSelectionPointerMove = (event) => {
       if (selection_pointer_id !== event.pointerId) return;
 
-      const option = getOptionByViewportX(event.clientX);
-      if (option) {
-        applyDraggedSelection(option);
-      }
+      const next_preview = readDraggedSelection(event.clientX);
+      if (!next_preview || next_preview === selection_preview_value.value) return;
+
+      selection_drag_moved = true;
+      selection_preview_value.value = next_preview;
     };
     const handleSelectionPointerUp = (event) => {
       if (selection_pointer_id !== event.pointerId) return;
 
-      const option = getOptionByViewportX(event.clientX);
-      if (option) {
-        applyDraggedSelection(option);
-      }
+      const next_value = readDraggedSelection(event.clientX);
+      const should_commit = selection_drag_moved && !!next_value;
 
       releaseSelectionPointer();
+      selection_preview_value.value = '';
+
+      if (should_commit) {
+        setSelectionValue(next_value);
+      }
     };
     const handleSelectionPointerCancel = (event) => {
       if (selection_pointer_id !== event.pointerId) return;
 
-      releaseSelectionPointer();
+      // 指针序列被系统打断：丢弃预览，恢复原选择。
+      resetSelectionDrag();
     };
     const handleSelectionClick = (value) => {
-      // 拖动松手后浏览器仍会补发 click，此时卡片已经确定，忽略即可。
-      if (selection_pointer_drag_moved) {
-        selection_pointer_drag_moved = false;
+      // 拖动松手后浏览器仍会补发 click，此时选择已经提交，忽略即可。
+      if (selection_drag_moved) {
+        selection_drag_moved = false;
         return;
       }
 
@@ -1705,8 +1736,7 @@ export default {
         return;
       }
 
-      releaseSelectionPointer();
-      selection_pointer_drag_moved = false;
+      resetSelectionDrag();
       selection_option_refs.value = [];
       selection_thumb_style.value = createSelectionThumbStyle();
     })
@@ -2347,6 +2377,7 @@ export default {
       selection_thumb_style,
       setSelectionOptionRef,
       setSelectionValue,
+      is_upload_idle,
       handleSelectionPointerDown,
       handleSelectionPointerMove,
       handleSelectionPointerUp,
@@ -2356,7 +2387,6 @@ export default {
       elFileList,
       percentage,
       upload_stage_label,
-      active_upload_file_name,
       current_upload_target,
       openUploadDialog,
       closeUploadDialog,
@@ -3101,6 +3131,11 @@ div.content-field.login-reminder-field {
   width: 100%;
 }
 
+/* 没有上传任务时只是一行 IDLE 占位，进度条不渲染，去掉多余留白。 */
+.upload-progress.is-idle {
+  gap: 0;
+}
+
 .upload-progress__meta {
   display: flex;
   align-items: baseline;
@@ -3129,6 +3164,20 @@ div.content-field.login-reminder-field {
   color: var(--text-secondary);
   font-size: 0.78rem;
   font-weight: 600;
+}
+
+/* IDLE 占位没有可见的阶段文字，只保留给读屏软件的状态播报。 */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
 }
 
 .mobile-sort-sheet {
