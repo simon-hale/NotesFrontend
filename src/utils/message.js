@@ -7,6 +7,12 @@ const DEFAULT_MESSAGE_OPTIONS = Object.freeze({
   showClose: true,
 });
 
+// Messages must stay readable above every other floating layer of the app:
+// Element Plus starts its overlays at 2000, the disk modals sit at 2100 and the
+// reading image box at 3000. A fixed z-index is passed because `<el-message>` is
+// rendered without an app context, so it cannot inherit Element Plus's counter.
+const APP_MESSAGE_Z_INDEX = 4000;
+
 const getMessageOffset = () => {
   if (typeof window === 'undefined') return 16;
 
@@ -34,6 +40,7 @@ const createMessageOptions = (input, type) => {
     ...sourceOptions,
     type: type || sourceOptions.type,
     offset: sourceOptions.offset ?? getMessageOffset(),
+    zIndex: sourceOptions.zIndex ?? APP_MESSAGE_Z_INDEX,
     customClass: [DEFAULT_MESSAGE_OPTIONS.customClass, normalizeCustomClass(sourceOptions.customClass)]
       .filter(Boolean)
       .join(' '),

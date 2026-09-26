@@ -1,10 +1,10 @@
 export const THEME_STORAGE_KEY = 'frontend-theme'
 export const LIGHT_THEME = 'light'
 export const DARK_THEME = 'dark'
-export const DEFAULT_THEME_PALETTE = 'blue'
+export const DEFAULT_THEME_PALETTE = 'midnight'
 export const THEME_PALETTES = Object.freeze([
-  { value: 'blue', labelKey: 'theme.palettes.blue' },
   { value: 'midnight', labelKey: 'theme.palettes.midnight' },
+  { value: 'blue', labelKey: 'theme.palettes.blue' },
   { value: 'sage', labelKey: 'theme.palettes.sage' },
   { value: 'almond', labelKey: 'theme.palettes.almond' },
 ])

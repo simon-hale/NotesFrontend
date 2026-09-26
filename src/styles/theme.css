@@ -216,7 +216,9 @@
   --el-overlay-color-lighter: var(--modal-backdrop-raised);
 }
 
-/* Deep blue: same canvas as the default palette, with a navy-forward ramp. */
+/* Default blue: the app's default palette (navy-forward ramp), named "Default blue".
+   The vibrant blue palette below extends the base `:root` tokens, which stay the
+   fallback canvas so the palette contract never depends on CSS block order. */
 :root[data-theme-palette='midnight'][data-theme-mode='light'] {
   --app-bg:
     radial-gradient(circle at top left, rgba(129, 165, 214, 0.3), transparent 34%),
@@ -499,7 +501,9 @@ a {
   color: inherit;
 }
 
+/* Kept in sync with APP_MESSAGE_Z_INDEX in src/utils/message.js. */
 .el-message.app-message {
+  z-index: 4000;
   left: auto !important;
   right: var(--app-message-right) !important;
   transform: none !important;

@@ -345,11 +345,14 @@
             class="disk-modal__panel upload-dialog"
             role="dialog"
             aria-modal="true"
-            :aria-label="t('fileDisk.uploadTitle')"
+            :aria-label="upload_dialog_title"
             @click.stop
           >
             <div class="disk-modal__header upload-dialog__header">
-              <h2 class="disk-modal__title">{{ t('fileDisk.uploadTitle') }}</h2>
+              <!-- 标题跟随卡片：确定显示哪张卡片时才切换，配合下沉过渡。 -->
+              <Transition name="upload-title-sink" mode="out-in">
+                <h2 :key="selection_value" class="disk-modal__title">{{ upload_dialog_title }}</h2>
+              </Transition>
               <button
                 type="button"
                 class="disk-modal__close"
@@ -366,7 +369,7 @@
 
             <div class="disk-modal__body upload-dialog__body">
               <div class="upload-dialog__shell">
-                <div class="upload-switcher" :aria-label="t('fileDisk.uploadTitle')">
+                <div class="upload-switcher" :aria-label="t('fileDisk.uploadSwitcherLabel')">
                   <span
                     class="upload-switcher__thumb"
                     :style="selection_thumb_style"
@@ -381,7 +384,8 @@
                     :class="{ 'is-active': selection_value === option.value }"
                     :aria-pressed="selection_value === option.value"
                     :disabled="isUploading"
-                    @click="setSelectionValue(option.value)"
+                    @pointerdown="handleSelectionPointerDown($event, option.value)"
+                    @click="handleSelectionClick(option.value)"
                   >
                     {{ option.label }}
                   </button>
@@ -410,64 +414,68 @@
                 </div>
 
                 <div class="disk-simple-card disk-simple-card--upload" v-if="selection_value === 'File'">
-                  <div class="disk-simple-card__dropzone">
-                    <el-upload
-                      class="upload-demo--simple"
-                      drag
-                      multiple
-                      :auto-upload="false"
-                      :show-file-list="true"
-                      :file-list="elFileList"
-                      :disabled="isUploading"
-                      :on-change="handleChange"
-                      :on-remove="handleRemove"
-                    >
-                      <el-icon class="el-icon--upload">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
+                  <el-upload
+                    class="upload-demo--simple"
+                    drag
+                    multiple
+                    :auto-upload="false"
+                    :show-file-list="true"
+                    :file-list="elFileList"
+                    :disabled="isUploading"
+                    :on-change="handleChange"
+                    :on-remove="handleRemove"
+                    @pointermove="handleSelectionPointerMove"
+                    @pointerup="handleSelectionPointerUp"
+                    @pointercancel="handleSelectionPointerCancel"
+                  >
+                    <el-icon class="el-icon--upload">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path
+                          stroke="none"
+                          d="M0 0h24v24H0z"
                           fill="none"
-                          stroke="currentColor"
-                          stroke-width="1"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path
-                            stroke="none"
-                            d="M0 0h24v24H0z"
-                            fill="none"
-                          />
-                          <path
-                            d="M7 18a4.6 4.4 0 0 1 0 -9a5 4.5 0 0 1 11 2h1a3.5 3.5 0 0 1 0 7h-1"
-                          />
-                          <path
-                            d="M9 15l3 -3l3 3"
-                          />
-                          <path
-                            d="M12 12l0 9"
-                          />
-                        </svg>
-                      </el-icon>
-                      <div class="el-upload__text">
-                        {{ t('fileDisk.uploadPrompt') }}
-                      </div>
-                    </el-upload>
-                  </div>
-
-                  <div class="upload-progress" v-show="show_upload_progress">
-                    <div class="upload-progress__meta" v-if="upload_stage_label">
-                      <span
-                        class="upload-progress__name"
-                        v-if="active_upload_file_name"
-                        :title="active_upload_file_name"
-                      >{{ active_upload_file_name }}</span>
-                      <span class="upload-progress__stage" aria-live="polite">{{ upload_stage_label }}</span>
+                        />
+                        <path
+                          d="M7 18a4.6 4.4 0 0 1 0 -9a5 4.5 0 0 1 11 2h1a3.5 3.5 0 0 1 0 7h-1"
+                        />
+                        <path
+                          d="M9 15l3 -3l3 3"
+                        />
+                        <path
+                          d="M12 12l0 9"
+                        />
+                      </svg>
+                    </el-icon>
+                    <div class="el-upload__text">
+                      {{ t('fileDisk.uploadPrompt') }}
                     </div>
-                    <el-progress :percentage="percentage" />
-                  </div>
+
+                    <!-- 挂在 el-upload 的 tip 插槽上，正好落在 drop 区与文件列表之间。 -->
+                    <template #tip>
+                      <div class="upload-progress">
+                        <div class="upload-progress__meta">
+                          <span
+                            class="upload-progress__name"
+                            :class="{ 'upload-progress__name--idle': !isUploading }"
+                            :title="current_upload_target"
+                          >{{ current_upload_target }}</span>
+                          <span class="upload-progress__stage" aria-live="polite">{{ upload_stage_label }}</span>
+                        </div>
+                        <el-progress :percentage="percentage" />
+                      </div>
+                    </template>
+                  </el-upload>
 
                   <div class="upload-actions">
                     <button
@@ -754,20 +762,26 @@ export default {
     };
 
     let new_dir_name = ref('');
-    let show_upload_progress = ref(false);
     const isUploading = ref(false);
-    // 传输阶段：transfer = OSS 分片传输中，finalizing = /api/file/insert/ 登记中。
-    // Web 端不提供暂停/恢复，阶段只用于说明进度条当前在做什么。
+    // 传输阶段：transfer = OSS 分片传输中，finalizing = /api/file/insert/ 登记中，
+    // idle = 当前没有文件在上传。Web 端不提供暂停/恢复，阶段只用于说明进度条当前在做什么。
     const UPLOAD_STAGES = Object.freeze({
+      IDLE: 'idle',
       TRANSFER: 'transfer',
       FINALIZING: 'finalizing',
     });
-    const upload_stage = ref(null);
+    const upload_stage = ref(UPLOAD_STAGES.IDLE);
     const active_upload_file_name = ref('');
+    // 当前文件面板常驻显示：没有上传任务时用 IDLE 占位。
+    const current_upload_target = computed(() => (
+      isUploading.value
+        ? (active_upload_file_name.value || t('fileDisk.uploadStageTransferring'))
+        : t('fileDisk.uploadStageIdle')
+    ));
     const upload_stage_label = computed(() => {
       if (upload_stage.value === UPLOAD_STAGES.TRANSFER) return t('fileDisk.uploadStageTransferring');
       if (upload_stage.value === UPLOAD_STAGES.FINALIZING) return t('fileDisk.uploadStageFinalizing');
-      return '';
+      return t('fileDisk.uploadStageIdle');
     });
     let upload_dialog_visible = ref(false);
     const rename_input_ref = ref(null);
@@ -790,6 +804,12 @@ export default {
       { label: t('fileDisk.uploadTypeDirectory'), value: 'Dir' },
       { label: t('fileDisk.uploadTypeFile'), value: 'File' },
     ]);
+    // 弹窗标题跟着卡片走：确定显示哪张卡片时才切换，配合下沉过渡。
+    const upload_dialog_title = computed(() => (
+      selection_value.value === 'Dir'
+        ? t('fileDisk.uploadDialogCreateTitle')
+        : t('fileDisk.uploadDialogUploadTitle')
+    ));
     const selection_option_refs = ref([]);
     const createSelectionThumbStyle = (option = null) => {
       if (!option) {
@@ -805,10 +825,6 @@ export default {
       };
     };
     const selection_thumb_style = ref(createSelectionThumbStyle());
-    const selection_active_index = computed(() => {
-      const active_index = selection_options.value.findIndex((option) => option.value === selection_value.value);
-      return active_index === -1 ? 0 : active_index;
-    });
     const setSelectionOptionRef = (element, index) => {
       if (!element) {
         selection_option_refs.value[index] = null;
@@ -818,17 +834,106 @@ export default {
       selection_option_refs.value[index] = element;
     };
     const updateSelectionThumb = () => {
-      const active_option = selection_option_refs.value[selection_active_index.value];
-      selection_thumb_style.value = createSelectionThumbStyle(active_option);
+      const [directory_option, file_option] = selection_option_refs.value;
+      if (!directory_option || !file_option) return;
+
+      // 面板高度与圆角由小尺寸的文件夹卡片决定，指示块跟随它保持稳定。
+      selection_thumb_style.value = createSelectionThumbStyle(
+        selection_value.value === 'File' ? file_option : directory_option
+      );
     };
-    const syncSelectionThumb = () => {
+    let selection_thumb_sync_pending = false;
+    const scheduleSelectionThumbSync = () => {
+      if (selection_thumb_sync_pending) return;
+
+      selection_thumb_sync_pending = true;
       nextTick(() => {
+        selection_thumb_sync_pending = false;
         updateSelectionThumb();
       });
     };
     const setSelectionValue = (value) => {
       if (selection_value.value === value) return;
       selection_value.value = value;
+    };
+
+    // 按住拖动切换卡片：按下即确定，拖动过程中越过分隔点实时跟随，
+    // 松开时已经停留在哪张卡片就显示哪张。指针捕获让鼠标和触摸走同一条路径。
+    let selection_pointer_id = null;
+    let selection_pointer_drag_moved = false;
+    const getOptionByViewportX = (client_x) => {
+      const options = selection_option_refs.value.filter(Boolean);
+      if (options.length === 0) return null;
+
+      const first_rect = options[0].getBoundingClientRect();
+
+      return client_x < first_rect.left + first_rect.width / 2 ? options[0] : options[options.length - 1];
+    };
+    const readSelectionValueFromOption = (option) => (
+      selection_option_refs.value.indexOf(option) === 0 ? 'Dir' : 'File'
+    );
+    const applyDraggedSelection = (option) => {
+      const next_value = readSelectionValueFromOption(option);
+
+      if (!selection_pointer_drag_moved && selection_value.value === next_value) return;
+
+      selection_pointer_drag_moved = true;
+      setSelectionValue(next_value);
+    };
+    const releaseSelectionPointer = () => {
+      const pointer_id = selection_pointer_id;
+      const switcher = selection_option_refs.value.find(Boolean)?.parentElement;
+      selection_pointer_id = null;
+
+      if (pointer_id !== null && switcher?.hasPointerCapture?.(pointer_id)) {
+        switcher.releasePointerCapture(pointer_id);
+      }
+    };
+    const handleSelectionPointerDown = (event, value) => {
+      if (isUploading.value || event.button > 0) return;
+
+      releaseSelectionPointer();
+      // 单击（未拖动）仍由 click 收尾，这里只在按下时确定卡片。
+      setSelectionValue(value);
+
+      const switcher = selection_option_refs.value.find(Boolean)?.parentElement;
+      if (!switcher) return;
+
+      selection_pointer_id = event.pointerId;
+      selection_pointer_drag_moved = false;
+      switcher.setPointerCapture?.(event.pointerId);
+    };
+    const handleSelectionPointerMove = (event) => {
+      if (selection_pointer_id !== event.pointerId) return;
+
+      const option = getOptionByViewportX(event.clientX);
+      if (option) {
+        applyDraggedSelection(option);
+      }
+    };
+    const handleSelectionPointerUp = (event) => {
+      if (selection_pointer_id !== event.pointerId) return;
+
+      const option = getOptionByViewportX(event.clientX);
+      if (option) {
+        applyDraggedSelection(option);
+      }
+
+      releaseSelectionPointer();
+    };
+    const handleSelectionPointerCancel = (event) => {
+      if (selection_pointer_id !== event.pointerId) return;
+
+      releaseSelectionPointer();
+    };
+    const handleSelectionClick = (value) => {
+      // 拖动松手后浏览器仍会补发 click，此时卡片已经确定，忽略即可。
+      if (selection_pointer_drag_moved) {
+        selection_pointer_drag_moved = false;
+        return;
+      }
+
+      setSelectionValue(value);
     };
     const rename_dialog_title = computed(() => (
       rename_dialog_type.value === 'directory'
@@ -1188,7 +1293,7 @@ export default {
 
     const resetUploadProgressState = () => {
       percentage.value = 0;
-      upload_stage.value = null;
+      upload_stage.value = UPLOAD_STAGES.IDLE;
       active_upload_file_name.value = '';
     }
     const resetUploadDialogState = () => {
@@ -1196,7 +1301,6 @@ export default {
       selection_value.value = 'Dir';
       fileList.value = [];
       elFileList.value = [];
-      show_upload_progress.value = false;
       resetUploadProgressState();
     }
     const handleUploadDialogAfterLeave = () => {
@@ -1593,20 +1697,22 @@ export default {
     })
     watch(selection_value, () => {
       if (!upload_dialog_visible.value) return;
-      syncSelectionThumb();
+      scheduleSelectionThumbSync();
     })
     watch(upload_dialog_visible, (visible) => {
       if (visible) {
-        syncSelectionThumb();
+        scheduleSelectionThumbSync();
         return;
       }
 
+      releaseSelectionPointer();
+      selection_pointer_drag_moved = false;
       selection_option_refs.value = [];
       selection_thumb_style.value = createSelectionThumbStyle();
     })
     watch(() => selection_options.value.map((option) => option.label).join('|'), () => {
       if (!upload_dialog_visible.value) return;
-      syncSelectionThumb();
+      scheduleSelectionThumbSync();
     })
 
     const handleWindowResize = () => {
@@ -1868,7 +1974,6 @@ export default {
 
       fileList.value = [];
       elFileList.value = [];
-      show_upload_progress.value = false;
       resetUploadProgressState();
     }
 
@@ -1930,9 +2035,8 @@ export default {
       }
 
       percentage.value = 0;
-      upload_stage.value = null;
+      upload_stage.value = UPLOAD_STAGES.IDLE;
       active_upload_file_name.value = '';
-      show_upload_progress.value = true;
       isUploading.value = true;
       upload_session_invalid = false;
 
@@ -2031,7 +2135,7 @@ export default {
           : Math.floor(completedBytes / totalBytes * 100);
       } finally {
         isUploading.value = false;
-        upload_stage.value = null;
+        upload_stage.value = UPLOAD_STAGES.IDLE;
         active_upload_file_name.value = '';
       }
     };
@@ -2219,8 +2323,8 @@ export default {
       disk_modal_transition_duration: DISK_MODAL_TRANSITION_DURATION,
       disk_modal_transition_style: DISK_MODAL_TRANSITION_STYLE,
       new_dir_name,
-      show_upload_progress,
       upload_dialog_visible,
+      upload_dialog_title,
       rename_input_ref,
       rename_dialog_visible,
       rename_dialog_type,
@@ -2243,11 +2347,17 @@ export default {
       selection_thumb_style,
       setSelectionOptionRef,
       setSelectionValue,
+      handleSelectionPointerDown,
+      handleSelectionPointerMove,
+      handleSelectionPointerUp,
+      handleSelectionPointerCancel,
+      handleSelectionClick,
       displayPathName,
       elFileList,
       percentage,
       upload_stage_label,
       active_upload_file_name,
+      current_upload_target,
       openUploadDialog,
       closeUploadDialog,
       handleUploadDialogAfterLeave,
@@ -2769,6 +2879,7 @@ div.content-field.login-reminder-field {
   gap: 14px;
   width: 100%;
   --upload-switcher-radius: 999px;
+  --upload-tab-morph-timing: cubic-bezier(0.22, 1, 0.36, 1);
   --upload-accent-surface: color-mix(in srgb, var(--accent) 6%, var(--surface-accent-strong));
   --upload-accent-surface-hover: color-mix(in srgb, var(--accent) 10%, var(--surface-soft-hover));
   --upload-accent-surface-disabled: color-mix(in srgb, var(--accent) 5%, var(--surface-card-muted));
@@ -2785,6 +2896,10 @@ div.content-field.login-reminder-field {
   border-radius: var(--upload-switcher-radius);
   background: color-mix(in srgb, var(--surface-card-muted) 94%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 18%, transparent);
+  /* 按住拖动切换时由指针驱动，禁用文本选择与浏览器手势。 */
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
 
 .upload-switcher__thumb {
@@ -2799,8 +2914,8 @@ div.content-field.login-reminder-field {
     inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 38%, transparent);
   pointer-events: none;
   transition:
-    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    transform 0.24s var(--upload-tab-morph-timing),
+    width 0.24s var(--upload-tab-morph-timing);
   will-change: transform, width;
 }
 
@@ -2818,6 +2933,8 @@ div.content-field.login-reminder-field {
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
+  /* 按住拖动时指针事件必须完整交给脚本，不允许浏览器把它当滚动/缩放。 */
+  touch-action: none;
   transition:
     transform 0.16s ease,
     color 0.16s ease,
@@ -2854,10 +2971,29 @@ div.content-field.login-reminder-field {
     inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 38%, transparent);
 }
 
+/* 标题下沉过渡：旧标题下沉淡出，新标题自上方落入，与卡片切换同步。 */
+.upload-title-sink-enter-active,
+.upload-title-sink-leave-active {
+  transition:
+    opacity 0.16s ease,
+    transform 0.2s var(--upload-tab-morph-timing);
+}
+
+.upload-title-sink-enter-from {
+  opacity: 0;
+  transform: translateY(-0.5rem);
+}
+
+.upload-title-sink-leave-to {
+  opacity: 0;
+  transform: translateY(0.5rem);
+}
+
 .disk-simple-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
   padding: 0;
   border: 0;
   background: transparent;
@@ -2906,10 +3042,6 @@ div.content-field.login-reminder-field {
   font-weight: 700;
   line-height: 1.2;
   color: var(--text-primary);
-}
-
-.disk-simple-card__dropzone {
-  width: 100%;
 }
 
 .disk-simple-card__meta,
@@ -2985,6 +3117,11 @@ div.content-field.login-reminder-field {
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.upload-progress__name--idle {
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
 }
 
 .upload-progress__stage {
@@ -3305,6 +3442,15 @@ div.content-field.login-reminder-field {
   background: transparent;
   border: 0;
   box-shadow: none;
+}
+
+/* 当前文件面板正好落在 drop 区与文件列表之间，这里只负责上下留白。 */
+:deep(.upload-demo--simple .el-upload__tip) {
+  margin-top: 10px;
+}
+
+:deep(.upload-demo--simple .el-upload-list) {
+  margin-top: 10px;
 }
 
 :deep(.upload-progress .el-progress-bar__outer) {
