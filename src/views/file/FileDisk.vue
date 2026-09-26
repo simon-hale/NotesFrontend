@@ -3173,6 +3173,7 @@ div.content-field.login-reminder-field {
 
 .upload-status__stage {
   flex: 0 0 auto;
+  margin-left: auto;
   color: var(--text-secondary);
   font-size: 0.78rem;
   font-weight: 600;
