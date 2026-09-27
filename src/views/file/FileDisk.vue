@@ -349,11 +349,7 @@
             @click.stop
           >
             <div class="disk-modal__header upload-dialog__header">
-              <!-- 标题只在 pointerup 提交新的选择后才切换并播放动画，
-                   拖动预览期间既不改文字也不触发 Transition。 -->
-              <Transition name="upload-title-sink" mode="out-in">
-                <h2 :key="selection_value" class="disk-modal__title">{{ upload_dialog_title }}</h2>
-              </Transition>
+              <h2 class="disk-modal__title">{{ upload_dialog_title }}</h2>
               <button
                 type="button"
                 class="disk-modal__close"
@@ -372,11 +368,13 @@
               <div class="upload-dialog__shell">
                 <div
                   class="upload-switcher"
+                  :class="{ 'is-interacting': is_selection_interacting }"
                   :aria-label="t('fileDisk.uploadSwitcherLabel')"
                   @pointerdown="handleSelectionPointerDown"
                   @pointermove="handleSelectionPointerMove"
                   @pointerup="handleSelectionPointerUp"
                   @pointercancel="handleSelectionPointerCancel"
+                  @lostpointercapture="handleSelectionLostPointerCapture"
                   @contextmenu.prevent
                 >
                   <span
@@ -384,6 +382,7 @@
                     :style="selection_thumb_style"
                     aria-hidden="true"
                   ></span>
+
                   <button
                     v-for="(option, index) in selection_options"
                     :key="option.value"
@@ -391,8 +390,14 @@
                     type="button"
                     class="upload-switcher__option"
                     :class="{
-                      'is-active': selection_active_value === option.value,
-                      'is-preview-focused': is_dragging_preview && selection_preview_value === option.value,
+                      'is-active': selection_visual_value === option.value,
+                      'is-pointed':
+                        is_selection_interacting &&
+                        selection_pointer_value === option.value,
+                      'is-pending':
+                        is_selection_interacting &&
+                        selection_pointer_value === option.value &&
+                        selection_value !== option.value,
                     }"
                     :aria-pressed="selection_value === option.value"
                     :disabled="isUploading"
@@ -474,7 +479,7 @@
                          正常上传时左边是当前文件名、右边是阶段；空闲时左侧留空，
                          右侧状态位显示一次 IDLE。 -->
                     <template #tip>
-                      <div class="upload-status" :class="{ 'is-idle': is_upload_idle }">
+                      <div class="upload-status">
                         <span
                           v-if="!is_upload_idle"
                           class="upload-status__name"
@@ -482,7 +487,6 @@
                         >{{ current_upload_target }}</span>
                         <span
                           class="upload-status__stage"
-                          :class="{ 'upload-status__stage--idle': is_upload_idle }"
                           aria-live="polite"
                         >{{ upload_status_text }}</span>
                       </div>
@@ -824,7 +828,7 @@ export default {
       { label: t('fileDisk.uploadTypeDirectory'), value: 'Dir' },
       { label: t('fileDisk.uploadTypeFile'), value: 'File' },
     ]);
-    // 弹窗标题跟着卡片走：确定显示哪张卡片时才切换，配合下沉过渡。
+    // 弹窗标题跟随已提交的 Folder / File 卡片切换。
     const upload_dialog_title = computed(() => (
       selection_value.value === 'Dir'
         ? t('fileDisk.uploadDialogCreateTitle')
@@ -844,15 +848,30 @@ export default {
         transform: `translateX(${option.offsetLeft}px)`,
       };
     };
-    const selection_preview_value = ref('');
-    // 切换器当前聚焦的选项：拖动期间由预览值接管，其余时刻就是已提交的选择。
-    // 滑块、选项文字状态和标题动画都从这一个派生值读取，避免手动同步失配。
-    const selection_active_value = computed(() => (
-      selection_preview_value.value || selection_value.value
+
+    /*
+    * committed / pointed / visual 三个状态严格分离：
+    *
+    * selection_value:
+    *   已经真正提交的卡片，只在 pointerup 或键盘 click 时改变。
+    *
+    * selection_pointer_value:
+    *   当前有效 Pointer 正指向的按钮。
+    *
+    * selection_visual_value:
+    *   Pointer 交互时跟随指针，否则回到真正已选中的卡片。
+    *
+    * 因此拖动时可以完整预览滑块和按钮状态，
+    * 但实际 Folder/File 内容直到松手后才切换。
+    */
+    const selection_pointer_value = ref('');
+
+    const selection_visual_value = computed(() => (
+      selection_pointer_value.value || selection_value.value
     ));
-    // 拖动预览正指向另一个选项（此时才给聚焦项加下沉反馈）。
-    const is_dragging_preview = computed(() => (
-      !!selection_preview_value.value && selection_preview_value.value !== selection_value.value
+
+    const is_selection_interacting = computed(() => (
+      selection_pointer_value.value !== ''
     ));
     const setSelectionOptionRef = (element, index) => {
       if (!element) {
@@ -862,25 +881,37 @@ export default {
 
       selection_option_refs.value[index] = element;
     };
-    const selection_thumb_style = ref(createSelectionThumbStyle());
+
+    const selection_thumb_style = ref(
+      createSelectionThumbStyle()
+    );
+
     const updateSelectionThumb = () => {
-      const active_option_index = selection_active_value.value === 'File' ? 1 : 0;
-      selection_thumb_style.value = createSelectionThumbStyle(selection_option_refs.value[active_option_index]);
+      const active_option_index =
+        selection_visual_value.value === 'File' ? 1 : 0;
+
+      selection_thumb_style.value =
+        createSelectionThumbStyle(
+          selection_option_refs.value[active_option_index]
+        );
     };
     let selection_thumb_sync_pending = false;
     const scheduleSelectionThumbSync = () => {
       if (selection_thumb_sync_pending) return;
-
       selection_thumb_sync_pending = true;
       nextTick(() => {
         selection_thumb_sync_pending = false;
         updateSelectionThumb();
       });
     };
-    // 拖动预览实时驱动滑块：聚焦选项一变就重新量一次尺寸并移动滑块。
-    watch(selection_active_value, () => {
-      if (!upload_dialog_visible.value) return;
 
+    /*
+    * 滑块始终跟随当前视觉目标：
+    * 按住 / 拖动时跟 Pointer，
+    * 无交互时跟真正已选中的卡片。
+    */
+    watch(selection_visual_value, () => {
+      if (!upload_dialog_visible.value) return;
       updateSelectionThumb();
     });
     const setSelectionValue = (value) => {
@@ -889,93 +920,173 @@ export default {
     };
 
     /* ---------------------------------------------------------------- *
-     * 点击 / 按住拖动切换卡片。
-     *
-     * Pointer Events 的完整生命周期都挂在 .upload-switcher 上，并用指针
-     * 捕获把后续事件锁在同一个元素：鼠标、触摸、手写笔走同一条路径。
-     * pointerdown 只开始手势并给出预览，pointermove 只更新预览，二者都不
-     * 改动 selection_value；提交统一发生在 pointerup，按松手位置决定结果
-     * （没有拖动时就是按下的那个选项）。因此拖动必须松手后才切换卡片与
-     * Create/Upload 标题，pointercancel 则丢弃预览、不提交任何选择。
-     * ---------------------------------------------------------------- */
+    * Folder / File 胶囊 Pointer 状态机。
+    *
+    * PC 鼠标、触摸屏、手机和手写笔统一使用 Pointer Events。
+    *
+    * pointerdown:
+    *   只进入交互状态，不切换真实卡片。
+    *
+    * pointermove:
+    *   当前指向哪个按钮，哪个按钮立即获得视觉聚焦和下沉状态。
+    *
+    * pointerup:
+    *   以最终指向的按钮作为结果，此时才真正提交切换。
+    *
+    * pointercancel / lostpointercapture:
+    *   放弃本次交互，不修改真实选择。
+    *
+    * 原生 :active 不再承担任何交互视觉职责。
+    * ---------------------------------------------------------------- */
     let selection_pointer_id = null;
     const getSelectionSwitcher = () => (
       selection_option_refs.value.find(Boolean)?.parentElement ?? null
     );
-    // 分界线取两个选项的实际中线，而不是第一个按钮自身的中心。
+
     const getSelectionDividerX = () => {
-      const [directory_option, file_option] = selection_option_refs.value;
-      if (!directory_option || !file_option) return null;
+      const [directory_option, file_option] =
+        selection_option_refs.value;
 
-      const directory_rect = directory_option.getBoundingClientRect();
-      const file_rect = file_option.getBoundingClientRect();
+      if (!directory_option || !file_option) {
+        return null;
+      }
 
-      return (directory_rect.right + file_rect.left) / 2;
+      const directory_rect =
+        directory_option.getBoundingClientRect();
+
+      const file_rect =
+        file_option.getBoundingClientRect();
+
+      return (
+        directory_rect.right +
+        file_rect.left
+      ) / 2;
     };
-    const readDraggedSelection = (client_x) => {
-      const divider_x = getSelectionDividerX();
-      if (divider_x === null) return '';
 
-      return client_x < divider_x ? 'Dir' : 'File';
+    const readSelectionAtX = (client_x) => {
+      const divider_x = getSelectionDividerX();
+
+      if (divider_x === null) {
+        return '';
+      }
+
+      return client_x < divider_x
+        ? 'Dir'
+        : 'File';
     };
     const releaseSelectionPointer = () => {
       const pointer_id = selection_pointer_id;
-      selection_pointer_id = null;
-
       const switcher = getSelectionSwitcher();
-      if (pointer_id !== null && switcher?.hasPointerCapture?.(pointer_id)) {
+      selection_pointer_id = null;
+      selection_pointer_value.value = '';
+      if (
+        pointer_id !== null &&
+        switcher?.hasPointerCapture?.(pointer_id)
+      ) {
         switcher.releasePointerCapture(pointer_id);
       }
     };
-    const resetSelectionDrag = () => {
+    const resetSelectionInteraction = () => {
       releaseSelectionPointer();
-      selection_preview_value.value = '';
     };
     const handleSelectionPointerDown = (event) => {
-      // 只接管主指针；按下只开始手势并给出预览，此时不改动实际选择。
-      if (isUploading.value || event.button > 0) return;
-
+      if (
+        isUploading.value ||
+        event.isPrimary === false ||
+        selection_pointer_id !== null
+      ) {
+        return;
+      }
+      if (
+        event.pointerType !== 'touch' &&
+        event.button !== 0
+      ) {
+        return;
+      }
       const switcher = getSelectionSwitcher();
-      if (!switcher) return;
-
-      releaseSelectionPointer();
+      if (!switcher) {
+        return;
+      }
+      const next_value =
+        readSelectionAtX(event.clientX);
+      if (!next_value) {
+        return;
+      }
+      if (event.cancelable) {
+        event.preventDefault();
+      }
       selection_pointer_id = event.pointerId;
-      switcher.setPointerCapture?.(event.pointerId);
-      selection_preview_value.value = readDraggedSelection(event.clientX);
-    };
-    const handleSelectionPointerMove = (event) => {
-      if (selection_pointer_id !== event.pointerId) return;
-
-      const next_preview = readDraggedSelection(event.clientX);
-      if (!next_preview || next_preview === selection_preview_value.value) return;
-
-      selection_preview_value.value = next_preview;
-    };
-    const handleSelectionPointerUp = (event) => {
-      if (selection_pointer_id !== event.pointerId) return;
-
-      // 松手位置决定结果：没有拖动时它就是按下的那个选项，
-      // 所以普通点击与按住拖动共用这一条提交路径。
-      const next_value = readDraggedSelection(event.clientX);
-
-      releaseSelectionPointer();
-      selection_preview_value.value = '';
-
-      if (next_value) {
-        setSelectionValue(next_value);
+      selection_pointer_value.value = next_value;
+      try {
+        switcher.setPointerCapture?.(
+          event.pointerId
+        );
+      } catch {
+        /*
+        * 某些浏览器极端情况下可能拒绝 capture。
+        * 即便如此，当前交互状态仍可继续处理。
+        */
       }
     };
-    const handleSelectionPointerCancel = (event) => {
-      if (selection_pointer_id !== event.pointerId) return;
+    const handleSelectionPointerMove = (event) => {
+      if (
+        selection_pointer_id !== event.pointerId
+      ) {
+        return;
+      }
 
-      // 指针序列被系统打断：丢弃预览，不提交任何选择。
-      resetSelectionDrag();
+      const next_value =
+        readSelectionAtX(event.clientX);
+
+      if (
+        !next_value ||
+        next_value === selection_pointer_value.value
+      ) {
+        return;
+      }
+
+      selection_pointer_value.value = next_value;
+    };
+
+    const handleSelectionPointerUp = (event) => {
+      if (
+        selection_pointer_id !== event.pointerId
+      ) {
+        return;
+      }
+      const final_value =
+        readSelectionAtX(event.clientX) ||
+        selection_pointer_value.value;
+      if (final_value) {
+        selection_pointer_value.value = final_value;
+        setSelectionValue(final_value);
+      }
+      releaseSelectionPointer();
+    };
+    const handleSelectionPointerCancel = (event) => {
+      if (
+        selection_pointer_id !== event.pointerId
+      ) {
+        return;
+      }
+      resetSelectionInteraction();
+    };
+    const handleSelectionLostPointerCapture = (event) => {
+      if (
+        selection_pointer_id !== event.pointerId
+      ) {
+        return;
+      }
+      selection_pointer_id = null;
+      selection_pointer_value.value = '';
     };
     const handleSelectionClick = (event, value) => {
-      // 指针驱动的 click 已经由 pointerup 提交过，这里只兜住
-      // 键盘 Enter/Space 产生的非 pointer click，避免重复提交或把结果切回去。
-      if (event.detail !== 0) return;
-
+      if (
+        event.detail !== 0 ||
+        isUploading.value
+      ) {
+        return;
+      }
       setSelectionValue(value);
     };
     const rename_dialog_title = computed(() => (
@@ -1739,17 +1850,17 @@ export default {
         rename_validation_message.value = '';
       }
     })
-    // 滑块的尺寸测量统一交给 selection_active_value 的监听，
-    // 这里只负责弹窗打开时先量一次、语言变化后重量一次。
+    // 滑块尺寸由 selection_visual_value 驱动。
+    // 这里负责弹窗首次打开时测量，以及关闭时彻底清理 Pointer 状态。
     watch(upload_dialog_visible, (visible) => {
       if (visible) {
         scheduleSelectionThumbSync();
         return;
       }
-
-      resetSelectionDrag();
+      resetSelectionInteraction();
       selection_option_refs.value = [];
-      selection_thumb_style.value = createSelectionThumbStyle();
+      selection_thumb_style.value =
+        createSelectionThumbStyle();
     })
     watch(() => selection_options.value.map((option) => option.label).join('|'), () => {
       if (!upload_dialog_visible.value) return;
@@ -2388,9 +2499,9 @@ export default {
       resetDeleteBackdropPointer,
       selection_value,
       selection_options,
-      selection_active_value,
-      selection_preview_value,
-      is_dragging_preview,
+      selection_visual_value,
+      selection_pointer_value,
+      is_selection_interacting,
       selection_thumb_style,
       setSelectionOptionRef,
       setSelectionValue,
@@ -2399,6 +2510,7 @@ export default {
       handleSelectionPointerMove,
       handleSelectionPointerUp,
       handleSelectionPointerCancel,
+      handleSelectionLostPointerCapture,
       handleSelectionClick,
       displayPathName,
       elFileList,
@@ -2939,13 +3051,34 @@ div.content-field.login-reminder-field {
   align-self: center;
   gap: 4px;
   padding: 4px;
-  border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--border-soft) 82%,
+      transparent
+    );
   border-radius: var(--upload-switcher-radius);
-  background: color-mix(in srgb, var(--surface-card-muted) 94%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 18%, transparent);
-  /* 按住拖动切换时由指针驱动，禁用文本选择与浏览器手势。 */
+  background:
+    color-mix(
+      in srgb,
+      var(--surface-card-muted) 94%,
+      transparent
+    );
+  box-shadow:
+    inset 0 1px 0
+    color-mix(
+      in srgb,
+      var(--surface-card-strong) 18%,
+      transparent
+    );
+
+  /*
+   * Pointer Events 统一管理鼠标 / Touch / Pen。
+   * 不允许文本选择、页面手势或 iOS 长按高亮参与交互。
+   */
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
   touch-action: none;
 }
 
@@ -2955,10 +3088,25 @@ div.content-field.login-reminder-field {
   bottom: 4px;
   left: 0;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-card-strong) 94%, transparent);
+  background:
+    color-mix(
+      in srgb,
+      var(--surface-card-strong) 94%,
+      transparent
+    );
   box-shadow:
-    0 8px 16px color-mix(in srgb, var(--accent-soft) 36%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 38%, transparent);
+    0 8px 16px
+      color-mix(
+        in srgb,
+        var(--accent-soft) 36%,
+        transparent
+      ),
+    inset 0 1px 0
+      color-mix(
+        in srgb,
+        var(--surface-card-strong) 38%,
+        transparent
+      );
   pointer-events: none;
   transition:
     transform 0.24s var(--upload-tab-morph-timing),
@@ -2980,8 +3128,13 @@ div.content-field.login-reminder-field {
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
-  /* 按住拖动时指针事件必须完整交给脚本，不允许浏览器把它当滚动/缩放。 */
+  cursor: pointer;
+
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
   touch-action: none;
+
   transition:
     transform 0.16s ease,
     color 0.16s ease,
@@ -2989,56 +3142,88 @@ div.content-field.login-reminder-field {
     box-shadow 0.16s ease;
 }
 
-.upload-switcher__option:hover {
-  color: var(--text-accent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface-soft-hover));
-}
-
+/*
+ * 当前视觉目标。
+ *
+ * 无 Pointer 交互时 = 已选中按钮；
+ * 按住 / 拖动时 = 当前 Pointer 指向按钮。
+ */
 .upload-switcher__option.is-active {
-  background: transparent;
   color: var(--text-primary);
+  background: transparent;
   box-shadow: none;
 }
 
-.upload-switcher__option.is-active:hover {
-  background: transparent;
-}
-
-.upload-switcher__option:active {
+/*
+ * Pointer 正指向谁，谁下沉。
+ *
+ * 不再使用浏览器原生 :active，
+ * 因此从 Folder 拖到 File 后，
+ * 下沉状态会立即跟随到 File，
+ * 不会继续黏在最初按下的按钮上。
+ */
+.upload-switcher__option.is-pointed {
   transform: translateY(1px);
 }
 
-/* 拖动预览指向的选项：复用 :active 的下沉视觉，松手或 cancel 后立即恢复。 */
-.upload-switcher__option.is-preview-focused {
-  transform: translateY(1px);
+/*
+ * 当前正指向一个尚未真正提交的按钮。
+ * 这是“待选中 + 聚焦”状态，
+ * 与普通未选中状态明确区分。
+ */
+.upload-switcher__option.is-pending {
+  color: var(--text-accent);
+  background:
+    color-mix(
+      in srgb,
+      var(--accent) 10%,
+      transparent
+    );
+}
+
+/*
+ * PC 只有真正支持 hover 的精细指针设备才显示 hover。
+ * Pointer 按住期间彻底停用 hover，避免它与拖动状态竞争。
+ */
+@media (hover: hover) and (pointer: fine) {
+  .upload-switcher:not(.is-interacting)
+    .upload-switcher__option:not(.is-active):hover {
+    color: var(--text-accent);
+    background:
+      color-mix(
+        in srgb,
+        var(--accent) 8%,
+        var(--surface-soft-hover)
+      );
+  }
 }
 
 .upload-switcher__option:focus {
   outline: none;
 }
 
+/*
+ * 键盘仍然保留独立的可访问性焦点。
+ * 它不会参与 Pointer 的 selected / pending 状态。
+ */
 .upload-switcher__option:focus-visible {
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--accent-soft) 82%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--surface-card-strong) 38%, transparent);
+    0 0 0 2px
+      color-mix(
+        in srgb,
+        var(--accent-soft) 82%,
+        transparent
+      ),
+    inset 0 1px 0
+      color-mix(
+        in srgb,
+        var(--surface-card-strong) 38%,
+        transparent
+      );
 }
 
-/* 标题下沉过渡：旧标题下沉淡出，新标题自上方落入，与卡片切换同步。 */
-.upload-title-sink-enter-active,
-.upload-title-sink-leave-active {
-  transition:
-    opacity 0.16s ease,
-    transform 0.2s var(--upload-tab-morph-timing);
-}
-
-.upload-title-sink-enter-from {
-  opacity: 0;
-  transform: translateY(-0.5rem);
-}
-
-.upload-title-sink-leave-to {
-  opacity: 0;
-  transform: translateY(0.5rem);
+.upload-switcher__option:disabled {
+  cursor: default;
 }
 
 .disk-simple-card {
@@ -3146,22 +3331,19 @@ div.content-field.login-reminder-field {
   color: var(--text-muted);
 }
 
-/* 常驻的“当前文件 + 当前阶段”，位置在 drop 区与文件列表之间。 */
 .upload-status {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
   gap: 10px;
   width: 100%;
   min-width: 0;
-}
-
-/* 没有上传任务时只有一行 IDLE 占位，无需为阶段文字留出间隔。 */
-.upload-status.is-idle {
-  gap: 0;
+  margin-top: 10px;
+  padding-inline: 12px;
+  box-sizing: border-box;
 }
 
 .upload-status__name {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   color: var(--text-primary);
@@ -3177,12 +3359,6 @@ div.content-field.login-reminder-field {
   color: var(--text-secondary);
   font-size: 0.78rem;
   font-weight: 600;
-}
-
-/* 空闲时左侧没有文件名，IDLE 单独占右侧状态位。 */
-.upload-status__stage--idle {
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
 }
 
 /* 总进度条：位于文件列表之后、操作按钮之前。 */
@@ -3501,12 +3677,6 @@ div.content-field.login-reminder-field {
   background: transparent;
   border: 0;
   box-shadow: none;
-}
-
-/* 状态行落在 drop 区与文件列表之间：上方留白加大以拉开与 drop 区的距离，
-   下方保持原值，避免把状态行推离文件列表。 */
-:deep(.upload-demo--simple .el-upload__tip) {
-  margin-top: 20px;
 }
 
 :deep(.upload-demo--simple .el-upload-list) {
