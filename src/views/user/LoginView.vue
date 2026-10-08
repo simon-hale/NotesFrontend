@@ -49,14 +49,13 @@ export default {
                     remember_me: String(autoLoginSelector.value),
                 },
                 success(resp) {
-                    if(resp.error_message === "success"){
-                        let is_logined = true;
+                    if (resp.error_message === "success") {
+                        const is_logined = true;
                         store.dispatch("login", {
                             username: resp.username || username.value,
                             is_logined
                         });
                         store.commit("setFirstLogin");
-                        store.commit("setWelcomeBackPending");
                         router.push({name: "filedisk"});
                     } else {
                         error_message.value = t('auth.unknownSuccessError');

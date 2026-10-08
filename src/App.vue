@@ -71,46 +71,46 @@ export default {
       scheduleMessageViewportMetrics();
     });
 
-    watch(() => store.state.welcomeBackPending, (welcomeBackPending) => {
-      if (!welcomeBackPending) return;
-
-      ElMessage.success(t('fileDisk.welcomeBack'));
-      store.commit("cleanWelcomeBackPending");
-    });
-
     watch(() => route.fullPath, () => {
       scheduleMessageViewportMetrics();
     });
 
-    // The HttpOnly authentication cookie cannot be inspected by JavaScript,
-    // so startup always asks the backend whether the browser is logged in.
     const auto_login = () => {
-        $.ajax({
-          url: `${BASE_URL}/api/user/auto-login/`,
-          type: "POST",
-          success(resp) {
-            if(resp.error_message === "success"){
-                let is_logined = true;
-                store.dispatch("login", { username: resp.username, is_logined });
-                store.commit("setFirstLogin");
-                store.commit("setAutoLogin");
-                store.commit("setWelcomeBackPending");
-            }else{
-                ElMessage.error(t('auth.unknownSuccessError'));
-            }
-          },
-          error(resp) {
-            // 401/403 simply means there is no valid login cookie yet.
-            if (resp.status === 401 || resp.status === 403) {
-              store.dispatch("cleaninfo");
-              return;
-            }
-
-            ElMessage.error(getHttpErrorMessage(t, resp.status, COMMON_HTTP_ERROR_KEY_MAP));
+      $.ajax({
+        url: `${BASE_URL}/api/user/auto-login/`,
+        type: "POST",
+        success(resp) {
+          if (resp.error_message === "success") {
+            const is_logined = true;
+            store.dispatch("login", {
+              username: resp.username,
+              is_logined,
+            });
+            store.commit("setFirstLogin");
+            store.commit("setAutoLogin");
+          } else {
             store.dispatch("cleaninfo");
+            ElMessage.error(t('auth.unknownSuccessError'));
           }
-        })
-      }
+        },
+        error(resp) {
+          // 401/403 simply means there is no valid login cookie yet.
+          if (resp.status === 401 || resp.status === 403) {
+            store.dispatch("cleaninfo");
+            return;
+          }
+
+          ElMessage.error(
+            getHttpErrorMessage(
+              t,
+              resp.status,
+              COMMON_HTTP_ERROR_KEY_MAP
+            )
+          );
+          store.dispatch("cleaninfo");
+        }
+      });
+    }
 
     onMounted(() => {
       scheduleMessageViewportMetrics();

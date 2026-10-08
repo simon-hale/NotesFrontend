@@ -21,7 +21,6 @@ export default createStore({
     },
     firstLogin: false,
     autoLogin: false,
-    welcomeBackPending: false,
     file: {
       path_level: -1,
       paths: [],
@@ -29,6 +28,7 @@ export default createStore({
     reading: {
       file_id: -1,
       file_name: "",
+      file_type: "",
     },
     navbar: {
       show_navbar: true,
@@ -62,12 +62,6 @@ export default createStore({
     cleanAutoLogin(state) {
       state.autoLogin = false;
     },
-    setWelcomeBackPending(state) {
-      state.welcomeBackPending = true;
-    },
-    cleanWelcomeBackPending(state) {
-      state.welcomeBackPending = false;
-    },
     refreshPathLevel(state, path_level) {
       state.file.path_level = path_level;
     },
@@ -79,6 +73,9 @@ export default createStore({
     },
     setReadingFileName(state, file_name) {
       state.reading.file_name = file_name;
+    },
+    setReadingFileType(state, file_type) {
+      state.reading.file_type = file_type;
     },
     showNavbar(state) {
       state.navbar.show_navbar = true;
@@ -128,6 +125,7 @@ export default createStore({
     cleanReadingInfo(context) {
       context.commit('setReadingFileId', -1);
       context.commit('setReadingFileName', "");
+      context.commit('setReadingFileType', "");
     },
   },
   modules: {

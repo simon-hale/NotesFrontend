@@ -8,22 +8,40 @@
         <component
           :is="pdfViewerComponent"
           v-if="pdfViewerComponent && pdf_url"
-          v-show="is_pdf && !isPreviewLoading"
+          v-show="is_pdf && !isPreviewLoading && !preview_error_message"
           class="reading-viewer"
           :pdf="pdf_url"
           :style="{ height: content_height }"
+          @pages-rendered="handlePdfPagesRendered"
         />
         <div
           v-if="isPreviewLoading"
           class="reading-loading-state"
           :style="{ minHeight: content_height }"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
         >
           <span class="reading-loading-state__spinner" aria-hidden="true"></span>
           <span class="reading-loading-state__text">{{ loadingPreviewLabel }}</span>
         </div>
         <div
-          class="markdown-body reading-viewer reading-viewer--markdown"
+          v-else-if="preview_error_message"
+          class="preview-error-state"
+          :style="{ minHeight: content_height }"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+        >
+          <div class="preview-error-state__icon" aria-hidden="true">!</div>
+          <div class="preview-error-state__text">
+            {{ preview_error_message }}
+          </div>
+        </div>
+
+        <div
           v-else-if="is_markdown"
+          class="markdown-body reading-viewer reading-viewer--markdown"
           v-html="html"
           :style="{ height: content_height, overflowY: 'auto' }"
         ></div>
@@ -49,12 +67,19 @@
           :style="{ height: content_height }"
         />
         <div
-          v-if="!has_preview && !isPreviewLoading"
+          v-else-if="!has_preview"
           class="empty-state"
           :style="{ minHeight: content_height }"
         >
-          <div class="empty-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-book" viewBox="0 0 16 16">
+          <div class="empty-icon" aria-hidden="true">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="28"
+              height="28"
+              fill="currentColor"
+              class="bi bi-book"
+              viewBox="0 0 16 16"
+            >
               <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.124.606.667-.543 1.795-.74 3.124-.606C11.87 2.06 13.14 2.458 14 2.828V14.5a.5.5 0 0 1-.74.439c-.706-.353-1.789-.73-2.94-.845-1.17-.118-2.232.097-2.706.665a.5.5 0 0 1-.768 0c-.474-.568-1.535-.783-2.706-.665-1.151.116-2.234.492-2.94.845A.5.5 0 0 1 1 14.5z"/>
               <path d="M14 3.101c-.827-.363-2.06-.75-3.291-.874-1.087-.11-2.143.015-2.709.568V14.1c.63-.39 1.524-.523 2.41-.434 1.008.101 2.054.423 2.878.76zm-7 11V2.795c-.566-.553-1.622-.678-2.709-.568C3.06 2.351 1.827 2.738 1 3.1v11.325c.824-.337 1.87-.659 2.878-.76.886-.089 1.78.044 2.41.434"/>
             </svg>
@@ -87,7 +112,7 @@
             @click="toggleFullscreen"
           />
           <el-button size="small" :icon="show_navbar ? ArrowUp : ArrowDown" class="toolbar-button" @click="show_navbar ? unshowNavbar() : showNavbar()" circle />
-          <el-button size="small" :icon="RefreshRight" class="toolbar-button" @click="getFileURL" circle />
+          <el-button size="small" :icon="RefreshRight" class="toolbar-button" :disabled="!has_selected_file || isPreviewLoading || isPdfRendering" @click="getFileURL" circle />
         </div>
       </div>
 
@@ -150,7 +175,7 @@
 <script>
 import LoginReminder from '@/components/account/LoginReminder.vue';
 import { RefreshRight, Picture, ArrowUp, ArrowDown, FullScreen } from '@element-plus/icons-vue'
-import { computed, ref, shallowRef, onActivated, onDeactivated, onBeforeUnmount, nextTick } from 'vue';
+import { computed, ref, shallowRef, onActivated, onDeactivated, onBeforeUnmount, nextTick, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import $ from 'jquery';
@@ -191,6 +216,8 @@ export default {
     let excelViewerComponent = shallowRef(null);
     let pptViewerComponent = shallowRef(null);
     let isPreviewLoading = ref(false);
+    let isPdfRendering = ref(false);
+    let preview_error_message = ref('');
 
     let content_height = ref('60vh');
     let imageDialogVisible = ref(false);
@@ -202,6 +229,10 @@ export default {
     const IMAGE_BOX_Z_INDEX = 3000;
 
     const has_preview = computed(() => is_pdf.value || is_markdown.value || is_word.value || is_excel.value || is_ppt.value);
+    const has_selected_file = computed(() => {
+      const id = Number(store.state.reading.file_id);
+      return Number.isInteger(id) && id > 0;
+    });
     const display_file_name = computed(() => file_name.value || t('reading.emptyState'));
     const fullscreenLabel = computed(() => t(isFullscreen.value ? 'reading.exitFullscreen' : 'reading.enterFullscreen'));
     const loadingPreviewLabel = computed(() => t('reading.loadingPreview'));
@@ -209,6 +240,53 @@ export default {
     let toolbarResizeObserver = null;
     let markdownRenderer = null;
     let previewLoadToken = 0;
+    let fileUrlRequestToken = 0;
+    let activeFileUrlRequest = null;
+    let activeMarkdownAbortController = null;
+    let pdfRenderGuardTimer = null;
+
+    const PDF_RENDER_GUARD_TIMEOUT_MS = 120000;
+
+    const clearPdfRenderGuard = () => {
+      if (pdfRenderGuardTimer !== null) {
+        window.clearTimeout(pdfRenderGuardTimer);
+        pdfRenderGuardTimer = null;
+      }
+
+      isPdfRendering.value = false;
+    }
+
+    const beginPdfRenderGuard = () => {
+      clearPdfRenderGuard();
+
+      isPdfRendering.value = true;
+
+      pdfRenderGuardTimer = window.setTimeout(() => {
+        pdfRenderGuardTimer = null;
+        isPdfRendering.value = false;
+      }, PDF_RENDER_GUARD_TIMEOUT_MS);
+    }
+
+    const handlePdfPagesRendered = () => {
+      if (!isPdfRendering.value) return;
+
+      clearPdfRenderGuard();
+      scheduleContentHeightUpdate();
+    }
+
+    const abortActivePreviewRequests = () => {
+      if (activeFileUrlRequest) {
+        const request = activeFileUrlRequest;
+        activeFileUrlRequest = null;
+        request.abort();
+      }
+
+      if (activeMarkdownAbortController) {
+        const controller = activeMarkdownAbortController;
+        activeMarkdownAbortController = null;
+        controller.abort();
+      }
+    }
 
     const updateContentHeight = () => {
       const pageStyles = readingPageRef.value ? window.getComputedStyle(readingPageRef.value) : null;
@@ -374,6 +452,10 @@ export default {
     })
 
     onBeforeUnmount(() => {
+      fileUrlRequestToken += 1;
+      previewLoadToken += 1;
+      abortActivePreviewRequests();
+      clearPdfRenderGuard();
       isPageActive.value = false;
       imageDialogVisible.value = false;
       handleDialogClose();
@@ -409,12 +491,67 @@ export default {
       html.value = '';
     }
 
+    const clearPreviewSources = () => {
+      pdf_url.value = '';
+      word_url.value = '';
+      excel_url.value = '';
+      ppt_url.value = '';
+
+      clearMarkdownPreviewState();
+    }
+
+    const clearPreviewError = () => {
+      preview_error_message.value = '';
+    }
+
+    const setPreviewError = (
+      message
+    ) => {
+      clearPdfRenderGuard();
+      resetPreviewFlags();
+      clearPreviewSources();
+
+      preview_error_message.value =
+        message ||
+        t('reading.previewLoadFailed');
+
+      isPreviewLoading.value = false;
+
+      scheduleContentHeightUpdate();
+    }
+
+    watch(
+      () => store.state.reading.file_id,
+      (nextId, previousId) => {
+        if (nextId === previousId) {
+          return;
+        }
+
+        fileUrlRequestToken += 1;
+        previewLoadToken += 1;
+        abortActivePreviewRequests();
+        clearPdfRenderGuard();
+
+        isPreviewLoading.value = false;
+
+        resetPreviewFlags();
+        clearPreviewSources();
+        clearPreviewError();
+
+        scheduleContentHeightUpdate();
+      }
+    );
+
     const normalizePreviewType = (type) => {
-      if (type === 'pdf') return 'pdf';
-      if (type === 'md') return 'markdown';
-      if (type === 'docx') return 'word';
-      if (type === 'xlsx' || type === 'xls') return 'excel';
-      if (type === 'pptx') return 'ppt';
+      const normalizedType = typeof type === 'string'
+        ? type.trim().toLowerCase().replace(/^\./, '')
+        : '';
+
+      if (normalizedType === 'pdf') return 'pdf';
+      if (normalizedType === 'md') return 'markdown';
+      if (normalizedType === 'docx') return 'word';
+      if (normalizedType === 'xlsx' || normalizedType === 'xls') return 'excel';
+      if (normalizedType === 'pptx') return 'ppt';
       return '';
     }
 
@@ -451,11 +588,21 @@ export default {
     }
 
     const refreshMarkdown = async (requestToken) => {
+      if (activeMarkdownAbortController) {
+        activeMarkdownAbortController.abort();
+      }
+
+      const controller = new AbortController();
+      activeMarkdownAbortController = controller;
+
       try {
         const renderer = await ensureMarkdownRenderer();
         if (requestToken !== previewLoadToken) return;
 
-        const resp = await fetch(markdown_url.value);
+        const resp = await fetch(markdown_url.value, {
+          signal: controller.signal,
+        });
+
         if (!resp.ok) {
           throw new Error(`Markdown request failed with status ${resp.status}`);
         }
@@ -466,28 +613,43 @@ export default {
         html.value = renderer.renderMarkdown(text);
         is_markdown.value = true;
       } catch (e) {
-        if (requestToken !== previewLoadToken) return;
+        if (e?.name === 'AbortError' || requestToken !== previewLoadToken) return;
 
         html.value = t('reading.markdownLoadFailed');
         is_markdown.value = true;
+      } finally {
+        if (activeMarkdownAbortController === controller) {
+          activeMarkdownAbortController = null;
+        }
       }
     }
 
     const preparePreview = async (previewType, url) => {
       const requestToken = ++previewLoadToken;
+      clearPreviewError();
+      clearPreviewSources();
       isPreviewLoading.value = true;
       resetPreviewFlags();
 
-      if (previewType !== 'markdown') {
-        clearMarkdownPreviewState();
-      }
-
       try {
         if (previewType === 'pdf') {
-          pdf_url.value = url;
+          /*
+          * 先让上一份 PDF Viewer 完整卸载一个 Vue tick，
+          * 避免旧 PDF.js worker 与新 Viewer 的初始化发生重叠。
+          */
+          await nextTick();
+          if (requestToken !== previewLoadToken) return;
+
           await ensurePdfViewer();
           if (requestToken !== previewLoadToken) return;
 
+          /*
+          * isPreviewLoading 只负责外层准备阶段。
+          * 从这里开始由 PDF.js 的 open/pages-rendered 生命周期接管锁。
+          */
+          beginPdfRenderGuard();
+
+          pdf_url.value = url;
           is_pdf.value = true;
           return;
         }
@@ -527,7 +689,8 @@ export default {
       } catch (error) {
         if (requestToken !== previewLoadToken) return;
 
-        ElMessage.error(t('reading.previewLoadFailed'));
+        console.error('Preview loader failed:', error);
+        setPreviewError(t('reading.previewLoadFailed'));
       } finally {
         if (requestToken === previewLoadToken) {
           isPreviewLoading.value = false;
@@ -661,42 +824,93 @@ export default {
     let html = ref('loading...');
 
     const getFileURL = () => {
-      $.ajax({
+      const requestedFileId = Number(store.state.reading.file_id);
+
+      if (!Number.isInteger(requestedFileId) || requestedFileId <= 0) return;
+      if (isPreviewLoading.value || isPdfRendering.value) return;
+
+      const storedPreviewType = normalizePreviewType(
+        store.state.reading.file_type
+      );
+
+      if (!storedPreviewType) {
+        setPreviewError(
+          t('reading.unsupportedFileType')
+        );
+        return;
+      }
+
+      const requestToken = ++fileUrlRequestToken;
+
+      previewLoadToken += 1;
+      resetPreviewFlags();
+      clearPreviewSources();
+      clearPreviewError();
+      isPreviewLoading.value = true;
+
+      activeFileUrlRequest = $.ajax({
         url: `${BASE_URL}/api/file/url/`,
         type: "POST",
         data: {
-          id: store.state.reading.file_id,
+          id: requestedFileId,
           language: getCurrentLanguage(),
         },
-        async success(resp){
-            if(resp.error_message !== 'success'){
-              ElMessage({
-                message: resp.error_message,
-                type: 'error',
-              })
-            }else{
-              const previewType = normalizePreviewType(resp.type);
-              if (!previewType) {
-                resetPreviewFlags();
-                clearMarkdownPreviewState();
-                isPreviewLoading.value = false;
-                ElMessage({
-                  message: t('reading.unsupportedFileType'),
-                  type: 'error',
-                })
-                return;
-              }
 
-              await preparePreview(previewType, resp.url);
-            }
+        async success(resp) {
+          if (
+            requestToken !== fileUrlRequestToken ||
+            requestedFileId !== Number(store.state.reading.file_id)
+          ) {
+            return;
+          }
+
+          if (resp.error_message !== 'success') {
+            setPreviewError(
+              resp.error_message ||
+              t('common.unknownError')
+            );
+            return;
+          }
+
+          const previewType = normalizePreviewType(resp.type);
+
+          if (!previewType) {
+            setPreviewError(
+              t('reading.unsupportedFileType')
+            );
+            return;
+          }
+
+          await preparePreview(
+            previewType,
+            resp.url
+          );
         },
-        error(resp) {
-          ElMessage({
-            message: getHttpErrorMessage(t, resp.status),
-            type: 'error',
-          })
+
+        error(resp, textStatus) {
+          if (textStatus === 'abort') return;
+
+          if (
+            requestToken !== fileUrlRequestToken ||
+            requestedFileId !== Number(store.state.reading.file_id)
+          ) {
+            return;
+          }
+
+          setPreviewError(
+            getHttpErrorMessage(
+              t,
+              resp.status
+            )
+          );
+        },
+
+        complete(xhr) {
+          if (activeFileUrlRequest === xhr) {
+            activeFileUrlRequest = null;
+          }
         }
-     })
+      });
     }
 
     return{
@@ -729,10 +943,14 @@ export default {
       excelViewerComponent,
       pptViewerComponent,
       isPreviewLoading,
+      isPdfRendering,
+      preview_error_message,
       has_preview,
+      has_selected_file,
       display_file_name,
       fullscreenLabel,
       loadingPreviewLabel,
+      handlePdfPagesRendered,
       showNavbar,
       unshowNavbar,
       toggleFullscreen,
@@ -928,6 +1146,46 @@ div.content-field.login-reminder-field {
 .reading-loading-state__text {
   font-size: 0.92rem;
   color: var(--text-secondary);
+}
+
+.preview-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  background: var(--reading-empty-bg);
+}
+
+.preview-error-state__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid color-mix(
+    in srgb,
+    var(--danger) 34%,
+    var(--border-soft)
+  );
+  background: color-mix(
+    in srgb,
+    var(--danger) 8%,
+    var(--surface-card-muted)
+  );
+  color: var(--danger);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.preview-error-state__text {
+  max-width: min(100%, 36rem);
+  color: var(--danger);
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 .empty-state {

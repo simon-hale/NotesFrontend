@@ -141,10 +141,19 @@
             class="directory-feedback"
             :class="directory_feedback_tone"
             :role="directory_feedback_tone === 'directory-feedback--error' ? 'alert' : 'status'"
-            aria-live="polite"
+            :aria-live="directory_feedback_tone === 'directory-feedback--error' ? 'assertive' : 'polite'"
+            aria-atomic="true"
           >
-            <div class="directory-feedback__message">{{ directory_feedback_message }}</div>
-            <div v-if="directory_feedback_detail" class="directory-feedback__detail">{{ directory_feedback_detail }}</div>
+            <div class="directory-feedback__message">
+              {{ directory_feedback_message }}
+            </div>
+
+            <div
+              v-if="directory_feedback_detail"
+              class="directory-feedback__detail"
+            >
+              {{ directory_feedback_detail }}
+            </div>
           </div>
 
           <template v-else>
@@ -275,7 +284,7 @@
                   type="button"
                   class="entry-name entry-name--interactive"
                   :title="file.name"
-                  @click="setReadingFileInfo(file.id, file.name)"
+                  @click="setReadingFileInfo(file.id, file.name, file.type)"
                 >
                   <span class="entry-type-badge">{{ file.type ? file.type.toUpperCase() : 'FILE' }}</span>
                   <span class="entry-name__text">{{ file.name }}</span>
@@ -474,21 +483,24 @@
                       {{ t('fileDisk.uploadPrompt') }}
                     </div>
 
-                    <!-- 挂在 el-upload 的 tip 插槽上：Element Plus 的渲染顺序是
-                         拖拽区 → tip → 文件列表，所以这里正好落在 drop 区与文件列表之间。
-                         正常上传时左边是当前文件名、右边是阶段；空闲时左侧留空，
-                         右侧状态位显示一次 IDLE。 -->
                     <template #tip>
-                      <div class="upload-status">
+                      <div
+                        class="upload-status"
+                        role="status"
+                        aria-live="polite"
+                        aria-atomic="true"
+                      >
                         <span
                           v-if="!is_upload_idle"
                           class="upload-status__name"
                           :title="current_upload_target"
-                        >{{ current_upload_target }}</span>
-                        <span
-                          class="upload-status__stage"
-                          aria-live="polite"
-                        >{{ upload_status_text }}</span>
+                        >
+                          {{ current_upload_target }}
+                        </span>
+
+                        <span class="upload-status__stage">
+                          {{ upload_status_text }}
+                        </span>
                       </div>
                     </template>
                   </el-upload>
@@ -815,7 +827,6 @@ export default {
     const rename_original_name = ref('');
     const rename_draft = ref('');
     const rename_validation_message = ref('');
-    const rename_dialog_close_intent = ref('dismiss');
     const rename_backdrop_pointer_id = ref(null);
     const delete_dialog_visible = ref(false);
     const delete_dialog_type = ref('directory');
@@ -1406,17 +1417,11 @@ export default {
       active_directory_request = null;
       const message = getHttpErrorMessage(t, resp?.status);
       rejectDirectoryRequest(message);
-      ElMessage.error(message);
     }
 
     const handleDirectoryBusinessError = (resp) => {
-    // 如果resp存在且resp.error_message为非空字符串
       const message = resp?.error_message || t('common.unknownError');
       rejectDirectoryRequest(message);
-      ElMessage({
-        message: message,
-        type: 'error',
-      })
     }
 
     const loadDirectory = ({ url, data, onSuccess, resetSort = false }) => {
@@ -1488,7 +1493,6 @@ export default {
       rename_original_name.value = name;
       rename_draft.value = name;
       rename_validation_message.value = '';
-      rename_dialog_close_intent.value = 'dismiss';
       rename_dialog_visible.value = true;
 
       nextTick(() => {
@@ -1497,14 +1501,13 @@ export default {
       });
     }
 
-    const closeRenameDialog = (intent = 'dismiss') => {
-      rename_dialog_close_intent.value = intent;
+    const closeRenameDialog = () => {
       clearRenameBackdropPointer();
       rename_dialog_visible.value = false;
     }
 
     const cancelRenameDialog = () => {
-      closeRenameDialog('cancel');
+      closeRenameDialog();
     }
 
     const {
@@ -1512,24 +1515,20 @@ export default {
       handleBackdropPointerDown: handleRenameBackdropPointerDown,
       handleBackdropPointerUp: handleRenameBackdropPointerUp,
       resetBackdropPointer: resetRenameBackdropPointer,
-    } = createBackdropPointerGuard(rename_backdrop_pointer_id, cancelRenameDialog);
+    } = createBackdropPointerGuard(
+      rename_backdrop_pointer_id,
+      cancelRenameDialog
+    );
 
     const handleRenameDialogClosed = () => {
-      if (rename_dialog_close_intent.value !== 'confirm') {
-        ElMessage({
-          type: 'info',
-          message: t('fileDisk.inputCanceled'),
-        })
-      }
-
       rename_dialog_type.value = 'directory';
       rename_target_id.value = null;
       rename_original_name.value = '';
       rename_draft.value = '';
       rename_validation_message.value = '';
-      rename_dialog_close_intent.value = 'dismiss';
       clearRenameBackdropPointer();
     }
+
     const handleRenameDialogAfterLeave = () => {
       handleRenameDialogClosed();
       releaseDiskModalBodyLockIfIdle();
@@ -1610,7 +1609,7 @@ export default {
 
       const targetType = rename_dialog_type.value;
       const targetId = rename_target_id.value;
-      closeRenameDialog('confirm');
+      closeRenameDialog();
 
       if (targetType === 'directory') {
         requestModifyDirectoryName(targetId, value);
@@ -1918,23 +1917,68 @@ export default {
       CREDENTIAL_SCOPE: 'credential_scope',
     });
 
-    const createTransferError = (code, message, { status = 0, retryable = false } = {}) => {
+    const createTransferError = (
+      code,
+      message,
+      {
+        status = 0,
+        retryable = false,
+      } = {}
+    ) => {
       const error = new Error(message || '');
+
       error.code = code;
       error.transferRetryable = retryable;
-      if (status) error.status = status;
+
+      if (status) {
+        error.status = status;
+      }
+
       return error;
-    };
+    }
 
     const isAuthenticationTransferError = (error) => (
       error?.code === TRANSFER_ERROR_CODES.BACKEND_AUTH
-    );
+    )
 
-    // 鉴权失败/凭证作用域异常会中止整批上传，不再对剩余文件重复尝试。
+    // 鉴权失败/凭证作用域异常会中止整批上传，
+    // 不再继续请求剩余文件。
     const isBatchStoppingTransferError = (error) => (
       isAuthenticationTransferError(error) ||
       error?.code === TRANSFER_ERROR_CODES.CREDENTIAL_SCOPE
-    );
+    )
+
+    const getUploadErrorMessage = (
+      error,
+      fileName
+    ) => {
+      if (
+        error?.code ===
+        TRANSFER_ERROR_CODES.CREDENTIAL_SCOPE
+      ) {
+        return t(
+          'fileDisk.uploadCredentialScopeInvalid'
+        );
+      }
+
+      if (
+        [
+          TRANSFER_ERROR_CODES.BACKEND_AUTH,
+          TRANSFER_ERROR_CODES.BACKEND_BUSINESS,
+          TRANSFER_ERROR_CODES.BACKEND_HTTP,
+        ].includes(error?.code) &&
+        error?.message
+      ) {
+        return error.message;
+      }
+
+      return t(
+        'fileDisk.uploadFailed',
+        {
+          name: fileName,
+        }
+      );
+    }
 
     // 日志只保留排查所需的分类信息，绝不输出 JWT、AK/SK、securityToken
     // 或完整签名 URL。
@@ -1969,16 +2013,12 @@ export default {
       securityToken: normalizeTicketText(ticket?.securityToken),
     });
 
-    // 凭证作用域异常属于协议级问题：提示一次并终止本次上传。
-    const failCredentialScope = () => {
-      const message = t('fileDisk.uploadCredentialScopeInvalid');
-      ElMessage.error(message);
-
-      return createTransferError(
+    const failCredentialScope = () => (
+      createTransferError(
         TRANSFER_ERROR_CODES.CREDENTIAL_SCOPE,
-        message
-      );
-    };
+        t('fileDisk.uploadCredentialScopeInvalid')
+      )
+    );
 
     // 初始票据：冻结作用域，并要求凭证字段完整。
     const freezeTicketScope = (ticket) => {
@@ -2012,16 +2052,10 @@ export default {
     // 登录会话失效后不再向后端重复请求刷新票据。
     let upload_session_invalid = false;
 
-    /**
-     * 向上游请求STS票据。
-     *
-     * 只接受冻结后的上传目标快照，绝不重新读取当前目录状态。
-     *
-     * @param {Object} options
-     * @param {Object} options.target 冻结目标 { stringOfPath, parentId, filename }
-     * @param {boolean} [options.isRefresh] 是否为长上传中的后台凭证刷新
-     */
-    const requestStsTicket = ({ target, isRefresh = false }) => {
+    const requestStsTicket = ({
+      target,
+      isRefresh = false,
+    }) => {
       return new Promise((resolve, reject) => {
         $.ajax({
           url: `${BASE_URL}/api/oss/sts/`,
@@ -2033,6 +2067,7 @@ export default {
             language: getCurrentLanguage(),
             usage: "SINGLE_FILE_UPLOAD",
           },
+
           success(resp) {
             const result = resp.error_message;
 
@@ -2040,19 +2075,26 @@ export default {
               result !== 'success' &&
               result !== 'same_file_name'
             ) {
-              // 后端业务错误：原样展示后端返回的提示，且不重试。
-              const message = result || t('common.unknownError');
-              ElMessage.error(message);
-              reject(createTransferError(
-                TRANSFER_ERROR_CODES.BACKEND_BUSINESS,
-                message
-              ));
+              const message =
+                result ||
+                t('common.unknownError');
+
+              reject(
+                createTransferError(
+                  TRANSFER_ERROR_CODES.BACKEND_BUSINESS,
+                  message
+                )
+              );
+
               return;
             }
 
-            // 同名覆盖提示只属于用户主动发起的那一次上传，
-            // 后台刷新凭证时不再重复打扰用户。
-            if (result === 'same_file_name' && !isRefresh) {
+            // 只在用户主动开始该文件上传时提示一次。
+            // STS 后台刷新不得重复提示覆盖信息。
+            if (
+              result === 'same_file_name' &&
+              !isRefresh
+            ) {
               ElMessage.warning(
                 t('fileDisk.overwriteSameName')
               );
@@ -2060,28 +2102,37 @@ export default {
 
             resolve(resp);
           },
+
           error(resp) {
-            const status = Number(resp?.status) || 0;
-            const message = getHttpErrorMessage(t, status);
-            const isAuthFailure = status === 401 || status === 403;
+            const status =
+              Number(resp?.status) || 0;
+
+            const message =
+              getHttpErrorMessage(
+                t,
+                status
+              );
+
+            const isAuthFailure =
+              status === 401 ||
+              status === 403;
 
             if (isAuthFailure) {
               upload_session_invalid = true;
             }
 
-            // 沿用项目现有的鉴权/HTTP错误提示方式。
-            ElMessage.error(message);
-            reject(createTransferError(
-              isAuthFailure
-                ? TRANSFER_ERROR_CODES.BACKEND_AUTH
-                : TRANSFER_ERROR_CODES.BACKEND_HTTP,
-              message,
-              {
-                status,
-                // 鉴权失败不可重试；其余 HTTP 错误仍属于瞬时故障。
-                retryable: !isAuthFailure,
-              }
-            ));
+            reject(
+              createTransferError(
+                isAuthFailure
+                  ? TRANSFER_ERROR_CODES.BACKEND_AUTH
+                  : TRANSFER_ERROR_CODES.BACKEND_HTTP,
+                message,
+                {
+                  status,
+                  retryable: !isAuthFailure,
+                }
+              )
+            );
           },
         });
       });
@@ -2170,12 +2221,7 @@ export default {
 
       const filesToUpload = [...fileList.value];
 
-      if (filesToUpload.length === 0) {
-        ElMessage.warning(
-          t('fileDisk.noFileSelected')
-        );
-        return;
-      }
+      if (filesToUpload.length === 0) return;
 
       // 目标目录在本批上传开始时冻结。
       const frozenTarget = freezeUploadTarget();
@@ -2294,19 +2340,11 @@ export default {
       }
     };
 
-    /**
-     * 新单文件上传接口。
-     *
-     * 顺序固定为：初始STS → OSS分片上传（CompleteMultipartUpload成功）
-     * → /api/file/insert/。三步都使用同一份冻结目标，OSS传输阶段与
-     * 元数据登记阶段在界面上明确区分。
-     */
     const uploadFile = async (
       file,
       frozenTarget,
       onProgress
     ) => {
-      // 文件级快照：文件名同样在上传开始时冻结。
       const target = Object.freeze({
         stringOfPath: frozenTarget.stringOfPath,
         parentId: frozenTarget.parentId,
@@ -2315,14 +2353,11 @@ export default {
 
       try {
         const ticket = await requestStsTicket({ target });
-        // objectKey / bucket / region 的作用域从初始票据冻结而来，
-        // 之后每一次刷新都必须与它完全一致。
         const scope = freezeTicketScope(ticket);
 
         const { uploadFileToOss } =
           await loadOssUploadModule();
 
-        // 阶段一：OSS 传输。resolve 即代表 CompleteMultipartUpload 成功。
         await uploadFileToOss({
           file,
           ticket,
@@ -2333,7 +2368,7 @@ export default {
           ),
         });
 
-        // 阶段二：元数据登记。此时进度条仍然停留在99%。
+        // 阶段二：元数据登记，100% 继续保留给完整收尾。
         upload_stage.value = UPLOAD_STAGES.FINALIZING;
         percentage.value = Math.min(99, percentage.value);
 
@@ -2342,27 +2377,19 @@ export default {
           parentId: target.parentId,
           filename: target.filename,
         });
-
-        ElMessage.success(
-          t('fileDisk.uploadSuccess', {
-            name: file.name,
-          })
-        );
       } catch (error) {
         console.error(
           `Upload failed: ${target.filename}`,
           describeTransferErrorForLog(error)
         );
 
-        // 鉴权失败与凭证作用域异常已经给出具体提示，
-        // 这里不再重复弹出“上传失败”，避免同一个原因刷出多条提示。
-        if (!isBatchStoppingTransferError(error)) {
-          ElMessage.error(
-            t('fileDisk.uploadFailed', {
-              name: file.name,
-            })
-          );
-        }
+        // 用户提示只在上传编排层产生一次。
+        ElMessage.error(
+          getUploadErrorMessage(
+            error,
+            file.name
+          )
+        );
 
         throw error;
       }
@@ -2374,36 +2401,77 @@ export default {
       filename,
     }) => {
       return new Promise((resolve, reject) => {
-        $.ajax({
-          url: `${BASE_URL}/api/file/insert/`,
-          type: 'POST',
-          data: {
-            string_of_path: stringOfPath,
-            filename: filename,
-            parent_id: parentId,
-            language: getCurrentLanguage(),
-          },
-          success(resp) {
-            if (resp.error_message !== 'success') {
-              ElMessage.error(t('common.networkError'))
-              reject(new Error('Insert File Info error'))
-            } else {
-              resolve(resp)
-            }
-          },
-          error(resp) {
-            const message = getHttpErrorMessage(t, resp.status)
-            ElMessage.error(message)
-            reject(new Error(message))
-          },
-        })
-      })
-    }
+          $.ajax({
+            url: `${BASE_URL}/api/file/insert/`,
+            type: 'POST',
+            data: {
+              string_of_path: stringOfPath,
+              filename,
+              parent_id: parentId,
+              language: getCurrentLanguage(),
+            },
+            success(resp) {
+              if (resp.error_message !== 'success') {
+                reject(
+                  createTransferError(
+                    TRANSFER_ERROR_CODES.BACKEND_BUSINESS,
+                    resp.error_message ||
+                      t('common.unknownError')
+                  )
+                );
+                return;
+              }
+              resolve(resp);
+            },
 
-    const setReadingFileInfo = (id, file_name) => {
+            error(resp) {
+              const status = Number(resp?.status) || 0;
+
+              const message = getHttpErrorMessage(
+                  t,
+                  status
+                );
+
+              const isAuthFailure = status === 401 || status === 403;
+
+              if (isAuthFailure) upload_session_invalid = true;
+
+              reject(
+                createTransferError(
+                  isAuthFailure
+                    ? TRANSFER_ERROR_CODES.BACKEND_AUTH
+                    : TRANSFER_ERROR_CODES.BACKEND_HTTP,
+                  message,
+                  {
+                    status,
+                    retryable: false,
+                  }
+                )
+              );
+            },
+          });
+        }
+      );
+    };
+
+    const SUPPORTED_READING_FILE_TYPES = new Set(['pdf', 'md', 'docx', 'xlsx', 'xls', 'pptx']);
+
+    const setReadingFileInfo = (id, file_name, file_type) => {
+        const normalizedType = typeof file_type === 'string'
+          ? file_type.trim().toLowerCase().replace(/^\./, '')
+          : '';
+
+        if (!SUPPORTED_READING_FILE_TYPES.has(normalizedType)) {
+          ElMessage.warning(t('reading.unsupportedFileType'));
+          return;
+        }
+
         store.commit("setReadingFileId", id);
         store.commit("setReadingFileName", file_name);
-        ElMessage.success(t('fileDisk.selected'));
+        store.commit("setReadingFileType", normalizedType);
+        ElMessage.info(
+          t('fileDisk.selected')
+        );
     }
 
     const getFileURL = (id) => {
@@ -2412,19 +2480,30 @@ export default {
           url: `${BASE_URL}/api/file/url/`,
           type: "POST",
           data: {
-            id: id,
+            id,
             language: getCurrentLanguage(),
           },
           success(resp) {
             if (resp.error_message !== 'success') {
-              ElMessage.error(resp.error_message)
-              reject(new Error(resp.error_message))
-            } else resolve(resp.url)
+              reject(
+                new Error(
+                  resp.error_message ||
+                  t('common.unknownError')
+                )
+              );
+              return;
+            }
+            resolve(resp.url);
           },
           error(resp) {
-            const message = getHttpErrorMessage(t, resp.status)
-            ElMessage.error(message)
-            reject(new Error(message))
+            reject(
+              new Error(
+                getHttpErrorMessage(
+                  t,
+                  resp.status
+                )
+              )
+            );
           }
         })
       })
@@ -2439,12 +2518,14 @@ export default {
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            ElMessage({
-                message: t('fileDisk.downloadStarted'),
-                type: 'success',
-            });
-        } catch (error) {
-            ElMessage.error(t('common.networkError'));
+            ElMessage.info(
+              t('fileDisk.downloadStarted')
+            );
+          } catch (error) {
+            ElMessage.error(
+              error?.message ||
+              t('common.networkError')
+            );
         }
     }
 
