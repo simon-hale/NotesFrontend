@@ -45,7 +45,7 @@
           v-html="html"
           :style="{ height: content_height, overflowY: 'auto' }"
         ></div>
-                <component
+        <component
           :is="wordViewerComponent"
           v-else-if="is_word && wordViewerComponent"
           class="reading-viewer"
@@ -118,7 +118,7 @@
             @click="toggleFullscreen"
           />
           <el-button size="small" :icon="show_navbar ? ArrowUp : ArrowDown" class="toolbar-button" @click="show_navbar ? unshowNavbar() : showNavbar()" circle />
-          <el-button size="small" :icon="RefreshRight" class="toolbar-button" :disabled="!has_selected_file || isPreviewLoading || isPdfRendering || isOfficeRendering" @click="getFileURL" circle/>
+          <el-button size="small" :icon="RefreshRight" class="toolbar-button" :disabled="!has_selected_file || isPreviewLoading || isPdfRendering || isOfficeRendering" @click="getFileURL" circle />
         </div>
       </div>
 
@@ -217,7 +217,7 @@ export default {
     let word_url = ref('');
     let excel_url = ref('');
     let ppt_url = ref('');
-        let pdfViewerComponent = shallowRef(null);
+    let pdfViewerComponent = shallowRef(null);
     let wordViewerComponent = shallowRef(null);
     let excelViewerComponent = shallowRef(null);
     let pptViewerComponent = shallowRef(null);
@@ -251,7 +251,7 @@ export default {
     const fullscreenLabel = computed(() => t(isFullscreen.value ? 'reading.exitFullscreen' : 'reading.enterFullscreen'));
     const loadingPreviewLabel = computed(() => t('reading.loadingPreview'));
 
-        let toolbarResizeObserver = null;
+    let toolbarResizeObserver = null;
     let markdownRenderer = null;
 
     let previewLoadToken = 0;
