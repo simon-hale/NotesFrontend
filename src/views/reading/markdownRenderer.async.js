@@ -1,16 +1,38 @@
 import 'github-markdown-css/github-markdown.css';
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css';
+
 import MarkdownIt from 'markdown-it';
 import texmath from 'markdown-it-texmath';
 import katex from 'katex';
 import hljs from 'highlight.js';
 import DOMPurify from 'dompurify';
 
+const AUTO_HIGHLIGHT_LANGUAGES = Object.freeze([
+  'javascript',
+  'typescript',
+  'java',
+  'python',
+  'c',
+  'cpp',
+  'csharp',
+  'go',
+  'rust',
+  'kotlin',
+  'bash',
+  'json',
+  'xml',
+  'css',
+  'sql',
+  'yaml',
+  'markdown',
+]);
+
 const md = new MarkdownIt({
   html: true,
   linkify: true,
   breaks: true,
+
   highlight(code, lang) {
     if (lang && hljs.getLanguage(lang)) {
       try {
@@ -18,12 +40,15 @@ const md = new MarkdownIt({
           hljs.highlight(code, { language: lang }).value
         }</code></pre>`;
       } catch (__) {
-        // Fall back to auto highlighting below.
+        // Fall back to restricted auto detection below.
       }
     }
 
     return `<pre class="hljs"><code>${
-      hljs.highlightAuto(code).value
+      hljs.highlightAuto(
+        code,
+        AUTO_HIGHLIGHT_LANGUAGES
+      ).value
     }</code></pre>`;
   },
 });
@@ -33,7 +58,21 @@ md.use(texmath, {
   delimiters: 'dollars',
 });
 
-export const renderMarkdown = (text) => DOMPurify.sanitize(md.render(text), {
-  ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn'],
-  ADD_ATTR: ['class', 'style'],
-});
+export const renderMarkdown = (text) => DOMPurify.sanitize(
+  md.render(text),
+  {
+    ADD_TAGS: [
+      'math',
+      'annotation',
+      'semantics',
+      'mrow',
+      'mi',
+      'mo',
+      'mn',
+    ],
+    ADD_ATTR: [
+      'class',
+      'style',
+    ],
+  }
+);

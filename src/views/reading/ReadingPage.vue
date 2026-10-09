@@ -45,26 +45,32 @@
           v-html="html"
           :style="{ height: content_height, overflowY: 'auto' }"
         ></div>
-        <component
+                <component
           :is="wordViewerComponent"
           v-else-if="is_word && wordViewerComponent"
           class="reading-viewer"
           :src="word_url"
+          :request-options="officeRequestOptions"
           :style="{ height: content_height }"
+          v-on="officeEventListeners"
         />
         <component
           :is="excelViewerComponent"
           v-else-if="is_excel && excelViewerComponent"
           class="reading-viewer"
           :src="excel_url"
+          :options="excelPreviewOptions"
           :style="{ height: content_height }"
+          v-on="officeEventListeners"
         />
         <component
           :is="pptViewerComponent"
           v-else-if="is_ppt && pptViewerComponent"
           class="reading-viewer"
           :src="ppt_url"
+          :request-options="officeRequestOptions"
           :style="{ height: content_height }"
+          v-on="officeEventListeners"
         />
         <div
           v-else-if="!has_preview"
@@ -112,7 +118,7 @@
             @click="toggleFullscreen"
           />
           <el-button size="small" :icon="show_navbar ? ArrowUp : ArrowDown" class="toolbar-button" @click="show_navbar ? unshowNavbar() : showNavbar()" circle />
-          <el-button size="small" :icon="RefreshRight" class="toolbar-button" :disabled="!has_selected_file || isPreviewLoading || isPdfRendering" @click="getFileURL" circle />
+          <el-button size="small" :icon="RefreshRight" class="toolbar-button" :disabled="!has_selected_file || isPreviewLoading || isPdfRendering || isOfficeRendering" @click="getFileURL" circle/>
         </div>
       </div>
 
@@ -211,12 +217,15 @@ export default {
     let word_url = ref('');
     let excel_url = ref('');
     let ppt_url = ref('');
-    let pdfViewerComponent = shallowRef(null);
+        let pdfViewerComponent = shallowRef(null);
     let wordViewerComponent = shallowRef(null);
     let excelViewerComponent = shallowRef(null);
     let pptViewerComponent = shallowRef(null);
     let isPreviewLoading = ref(false);
     let isPdfRendering = ref(false);
+    let isOfficeRendering = ref(false);
+    let officeRequestOptions = shallowRef({});
+    let officeEventListeners = shallowRef({});
     let preview_error_message = ref('');
 
     let content_height = ref('60vh');
@@ -228,6 +237,11 @@ export default {
 
     const IMAGE_BOX_Z_INDEX = 3000;
 
+    const excelPreviewOptions = Object.freeze({
+      minColLength: 0,
+      minRowLength: 0,
+    });
+
     const has_preview = computed(() => is_pdf.value || is_markdown.value || is_word.value || is_excel.value || is_ppt.value);
     const has_selected_file = computed(() => {
       const id = Number(store.state.reading.file_id);
@@ -237,15 +251,25 @@ export default {
     const fullscreenLabel = computed(() => t(isFullscreen.value ? 'reading.exitFullscreen' : 'reading.enterFullscreen'));
     const loadingPreviewLabel = computed(() => t('reading.loadingPreview'));
 
-    let toolbarResizeObserver = null;
+        let toolbarResizeObserver = null;
     let markdownRenderer = null;
+
     let previewLoadToken = 0;
     let fileUrlRequestToken = 0;
+
     let activeFileUrlRequest = null;
     let activeMarkdownAbortController = null;
+    let activeOfficeAbortController = null;
+
     let pdfRenderGuardTimer = null;
+    let officeRenderGuardTimer = null;
+    let officeRenderSequence = 0;
+
+    let contentHeightFrameId = null;
+    let contentHeightUpdatePending = false;
 
     const PDF_RENDER_GUARD_TIMEOUT_MS = 120000;
+    const OFFICE_RENDER_GUARD_TIMEOUT_MS = 120000;
 
     const clearPdfRenderGuard = () => {
       if (pdfRenderGuardTimer !== null) {
@@ -254,7 +278,7 @@ export default {
       }
 
       isPdfRendering.value = false;
-    }
+    };
 
     const beginPdfRenderGuard = () => {
       clearPdfRenderGuard();
@@ -265,14 +289,105 @@ export default {
         pdfRenderGuardTimer = null;
         isPdfRendering.value = false;
       }, PDF_RENDER_GUARD_TIMEOUT_MS);
-    }
+    };
 
     const handlePdfPagesRendered = () => {
       if (!isPdfRendering.value) return;
 
       clearPdfRenderGuard();
       scheduleContentHeightUpdate();
-    }
+    };
+
+    const clearOfficeRenderGuard = () => {
+      if (officeRenderGuardTimer !== null) {
+        window.clearTimeout(officeRenderGuardTimer);
+        officeRenderGuardTimer = null;
+      }
+
+      isOfficeRendering.value = false;
+    };
+
+    const handleOfficeRendered = (sequence) => {
+      if (sequence !== officeRenderSequence) return;
+
+      activeOfficeAbortController = null;
+
+      clearOfficeRenderGuard();
+      scheduleContentHeightUpdate();
+    };
+
+    const handleOfficeError = (sequence, error) => {
+      if (sequence !== officeRenderSequence) return;
+
+      if (error?.name === 'AbortError') return;
+
+      activeOfficeAbortController = null;
+      clearOfficeRenderGuard();
+
+      setPreviewError(
+        t('reading.previewLoadFailed')
+      );
+    };
+
+    const beginOfficeRenderGuard = () => {
+      clearOfficeRenderGuard();
+
+      const sequence = ++officeRenderSequence;
+
+      isOfficeRendering.value = true;
+
+      officeEventListeners.value = {
+        rendered: () => {
+          handleOfficeRendered(sequence);
+        },
+
+        error: (error) => {
+          handleOfficeError(
+            sequence,
+            error
+          );
+        },
+      };
+
+      officeRenderGuardTimer = window.setTimeout(() => {
+        if (sequence !== officeRenderSequence) return;
+
+        officeRenderGuardTimer = null;
+        isOfficeRendering.value = false;
+      }, OFFICE_RENDER_GUARD_TIMEOUT_MS);
+    };
+
+    const beginCancellableOfficeRequest = () => {
+      const controller = new AbortController();
+
+      activeOfficeAbortController = controller;
+
+      officeRequestOptions.value = {
+        signal: controller.signal,
+      };
+    };
+
+    const cancelOfficePreview = () => {
+      /*
+       * 先使旧组件的 rendered / error 回调失效，
+       * 再取消仍处于 fetch 阶段的 DOCX / PPTX 请求。
+       *
+       * 即使第三方组件在 abort 后异步抛出 error，
+       * 旧 sequence 也不会污染下一份文档的状态。
+       */
+      officeRenderSequence += 1;
+
+      clearOfficeRenderGuard();
+
+      officeEventListeners.value = {};
+      officeRequestOptions.value = {};
+
+      if (activeOfficeAbortController) {
+        const controller = activeOfficeAbortController;
+        activeOfficeAbortController = null;
+        controller.abort();
+      }
+    };
 
     const abortActivePreviewRequests = () => {
       if (activeFileUrlRequest) {
@@ -286,7 +401,9 @@ export default {
         activeMarkdownAbortController = null;
         controller.abort();
       }
-    }
+
+      cancelOfficePreview();
+    };
 
     const updateContentHeight = () => {
       const pageStyles = readingPageRef.value ? window.getComputedStyle(readingPageRef.value) : null;
@@ -302,25 +419,56 @@ export default {
     }
 
     const scheduleContentHeightUpdate = () => {
+      if (contentHeightUpdatePending) return;
+      contentHeightUpdatePending = true;
       nextTick(() => {
-        window.requestAnimationFrame(() => {
+        if (!contentHeightUpdatePending) return;
+
+        contentHeightFrameId = window.requestAnimationFrame(() => {
+          contentHeightFrameId = null;
+          contentHeightUpdatePending = false;
+
           updateContentHeight();
         });
       });
-    }
+    };
+
+    const cancelScheduledContentHeightUpdate = () => {
+      contentHeightUpdatePending = false;
+
+      if (contentHeightFrameId !== null) {
+        window.cancelAnimationFrame(
+          contentHeightFrameId
+        );
+
+        contentHeightFrameId = null;
+      }
+    };
 
     const bindToolbarResize = () => {
-      if (typeof ResizeObserver === 'undefined' || !toolbarRef.value) return;
+      if (
+        typeof ResizeObserver === 'undefined' ||
+        !toolbarRef.value
+      ) {
+        return;
+      }
+
       toolbarResizeObserver?.disconnect();
-      toolbarResizeObserver = new ResizeObserver(() => updateContentHeight());
-      toolbarResizeObserver.observe(toolbarRef.value);
-    }
+
+      toolbarResizeObserver = new ResizeObserver(() => {
+        scheduleContentHeightUpdate();
+      });
+
+      toolbarResizeObserver.observe(
+        toolbarRef.value
+      );
+    };
 
     const unbindToolbarResize = () => {
       if (!toolbarResizeObserver) return;
       toolbarResizeObserver.disconnect();
       toolbarResizeObserver = null;
-    }
+    };
 
     const scheduleImageBoxUpdate = () => {
       nextTick(() => {
@@ -456,17 +604,39 @@ export default {
       previewLoadToken += 1;
       abortActivePreviewRequests();
       clearPdfRenderGuard();
+      cancelScheduledContentHeightUpdate();
       isPageActive.value = false;
       imageDialogVisible.value = false;
       handleDialogClose();
-      document.removeEventListener('paste', handlePaste);
-      document.removeEventListener('fullscreenchange', syncFullscreenState);
-      document.removeEventListener('webkitfullscreenchange', syncFullscreenState);
-      window.removeEventListener('resize', handleViewportChange);
-      window.removeEventListener('orientationchange', handleViewportChange);
+
+      document.removeEventListener(
+        'paste',
+        handlePaste
+      );
+
+      document.removeEventListener(
+        'fullscreenchange',
+        syncFullscreenState
+      );
+
+      document.removeEventListener(
+        'webkitfullscreenchange',
+        syncFullscreenState
+      );
+
+      window.removeEventListener(
+        'resize',
+        handleViewportChange
+      );
+
+      window.removeEventListener(
+        'orientationchange',
+        handleViewportChange
+      );
+
       unbindToolbarResize();
       exitFullscreenIfActive();
-    })
+    });
 
     const showNavbar = () => {
       store.commit("showNavbar");
@@ -508,6 +678,7 @@ export default {
       message
     ) => {
       clearPdfRenderGuard();
+      cancelOfficePreview();
       resetPreviewFlags();
       clearPreviewSources();
 
@@ -518,7 +689,7 @@ export default {
       isPreviewLoading.value = false;
 
       scheduleContentHeightUpdate();
-    }
+    };
 
     watch(
       () => store.state.reading.file_id,
@@ -624,7 +795,10 @@ export default {
       }
     }
 
-    const preparePreview = async (previewType, url) => {
+    const preparePreview = async (
+      previewType,
+      url
+    ) => {
       const requestToken = ++previewLoadToken;
       clearPreviewError();
       clearPreviewSources();
@@ -634,70 +808,167 @@ export default {
       try {
         if (previewType === 'pdf') {
           /*
-          * 先让上一份 PDF Viewer 完整卸载一个 Vue tick，
-          * 避免旧 PDF.js worker 与新 Viewer 的初始化发生重叠。
-          */
+           * 先让上一份 Viewer 完整卸载一个 Vue tick，
+           * 避免旧 PDF.js worker 与新 Viewer 初始化重叠。
+           */
           await nextTick();
-          if (requestToken !== previewLoadToken) return;
+
+          if (
+            requestToken !== previewLoadToken
+          ) {
+            return;
+          }
 
           await ensurePdfViewer();
-          if (requestToken !== previewLoadToken) return;
+
+          if (
+            requestToken !== previewLoadToken
+          ) {
+            return;
+          }
 
           /*
-          * isPreviewLoading 只负责外层准备阶段。
-          * 从这里开始由 PDF.js 的 open/pages-rendered 生命周期接管锁。
-          */
+           * isPreviewLoading 仅负责 ReadingPage 外层准备。
+           * PDF 真正 open/render 阶段继续由
+           * open/pages-rendered 生命周期保护。
+           */
           beginPdfRenderGuard();
 
           pdf_url.value = url;
           is_pdf.value = true;
+
           return;
         }
 
         if (previewType === 'markdown') {
           markdown_url.value = url;
-          await refreshMarkdown(requestToken);
+
+          await refreshMarkdown(
+            requestToken
+          );
+
           return;
         }
 
         if (previewType === 'word') {
+          /*
+           * 和 PDF 一样保证旧 Office Viewer
+           * 至少完整卸载一个 Vue tick。
+           */
+          await nextTick();
+
+          if (
+            requestToken !== previewLoadToken
+          ) {
+            return;
+          }
+
           await ensureWordViewer();
-          if (requestToken !== previewLoadToken) return;
+
+          if (
+            requestToken !== previewLoadToken
+          ) {
+            return;
+          }
+
+          /*
+           * vue-office 的 requestOptions
+           * 会直接传给内部 fetch，
+           * 因此 DOCX 可以使用原生 AbortSignal。
+           */
+          beginCancellableOfficeRequest();
+          beginOfficeRenderGuard();
 
           word_url.value = url;
           is_word.value = true;
+
           return;
         }
 
         if (previewType === 'excel') {
+          await nextTick();
+
+          if (
+            requestToken !== previewLoadToken
+          ) {
+            return;
+          }
+
           await ensureExcelViewer();
-          if (requestToken !== previewLoadToken) return;
+
+          if (
+            requestToken !== previewLoadToken
+          ) {
+            return;
+          }
+
+          /*
+           * 当前 vue-office Excel 底层使用 XMLHttpRequest，
+           * 不为了取消请求额外改造数据链路。
+           *
+           * 这里只建立 render guard。
+           */
+          beginOfficeRenderGuard();
 
           excel_url.value = url;
           is_excel.value = true;
+
           return;
         }
 
         if (previewType === 'ppt') {
+          await nextTick();
+
+          if (
+            requestToken !== previewLoadToken
+          ) {
+            return;
+          }
+
           await ensurePptViewer();
-          if (requestToken !== previewLoadToken) return;
+
+          if (
+            requestToken !== previewLoadToken
+          ) {
+            return;
+          }
+
+          /*
+           * PPTX 和 DOCX 一样使用内部 fetch，
+           * requestOptions.signal 可以取消仍在下载的旧文件。
+           */
+          beginCancellableOfficeRequest();
+          beginOfficeRenderGuard();
 
           ppt_url.value = url;
           is_ppt.value = true;
+
           return;
         }
       } catch (error) {
-        if (requestToken !== previewLoadToken) return;
+        if (
+          requestToken !== previewLoadToken
+        ) {
+          return;
+        }
 
-        console.error('Preview loader failed:', error);
-        setPreviewError(t('reading.previewLoadFailed'));
+        console.error(
+          'Preview loader failed:',
+          error
+        );
+
+        setPreviewError(
+          t('reading.previewLoadFailed')
+        );
       } finally {
-        if (requestToken === previewLoadToken) {
+        if (
+          requestToken === previewLoadToken
+        ) {
           isPreviewLoading.value = false;
           scheduleContentHeightUpdate();
         }
       }
-    }
+    };
 
     const imgUrl = ref('');
 
@@ -827,7 +1098,7 @@ export default {
       const requestedFileId = Number(store.state.reading.file_id);
 
       if (!Number.isInteger(requestedFileId) || requestedFileId <= 0) return;
-      if (isPreviewLoading.value || isPdfRendering.value) return;
+      if (isPreviewLoading.value || isPdfRendering.value || isOfficeRendering.value) return;
 
       const storedPreviewType = normalizePreviewType(
         store.state.reading.file_type
@@ -843,6 +1114,13 @@ export default {
       const requestToken = ++fileUrlRequestToken;
 
       previewLoadToken += 1;
+
+      /*
+       * 即使上一轮 Office 已经显示完成，
+       * 也先使它残留的异步事件失效。
+       */
+      cancelOfficePreview();
+
       resetPreviewFlags();
       clearPreviewSources();
       clearPreviewError();
@@ -944,6 +1222,10 @@ export default {
       pptViewerComponent,
       isPreviewLoading,
       isPdfRendering,
+      isOfficeRendering,
+      officeRequestOptions,
+      officeEventListeners,
+      excelPreviewOptions,
       preview_error_message,
       has_preview,
       has_selected_file,
